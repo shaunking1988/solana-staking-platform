@@ -1,0 +1,24 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+staking_program = "Cxj21a71eRjRSyWbSCEsmyKehqKqyrjMCqZi1sJoTHwj"
+lottery = "Gu7AoXQqr2PsED9FwYeSwedUx8NKSwvbZUvrWyczBhqx"
+
+[programs.localnet]
+staking_program = "Cxj21a71eRjRSyWbSCEsmyKehqKqyrjMCqZi1sJoTHwj"
+lottery = "Gu7AoXQqr2PsED9FwYeSwedUx8NKSwvbZUvrWyczBhqx"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""

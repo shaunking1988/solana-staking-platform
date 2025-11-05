@@ -1,0 +1,8 @@
+[2025-10-12T04:37:06.722483500Z INFO  solana_test_validator] solana-validator 1.18.26 (src:d9f20e95; feat:3241752014, client:SolanaLabs)
+[2025-10-12T04:37:06.722907500Z INFO  solana_test_validator] Starting validator with: ArgsOs {
+        inner: [
+            "C:\\Users\\shaun\\.local\\share\\solana\\install\\active_release\\bin\\solana-test-validator.exe",
+        ],
+    }
+[2025-10-12T04:37:06.723598000Z WARN  solana_perf] CUDA is disabled
+[2025-10-12T04:37:06.723687000Z ERROR solana_perf] Incompatible CPU detected: missing AVX support. Please build from source on the target

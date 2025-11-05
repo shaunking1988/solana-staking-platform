@@ -1,0 +1,49 @@
+{
+  "featuredTokens": [
+    {
+      "address": "So11111111111111111111111111111111111111112",
+      "symbol": "SOL",
+      "name": "Wrapped SOL",
+      "decimals": 9,
+      "logoURI": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png",
+      "order": 0,
+      "enabled": true
+    },
+    {
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "symbol": "USDC",
+      "name": "USD Coin",
+      "decimals": 6,
+      "logoURI": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png",
+      "order": 1,
+      "enabled": true
+    },
+    {
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "symbol": "USDT",
+      "name": "USDT",
+      "decimals": 6,
+      "logoURI": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.png",
+      "order": 2,
+      "enabled": true
+    },
+    {
+      "address": "9XgfFWPxPU6hyDyGtfhC9D6eyRE3RUSgAYKHRznWpump",
+      "symbol": "kitkat",
+      "name": "Remember KitKat",
+      "decimals": 6,
+      "logoURI": "https://ipfs.io/ipfs/bafybeifzuhhw4jgzdkmydmdca4axo3can74baknh6snxtnarq74k5hcvwy",
+      "order": 3,
+      "enabled": true
+    },
+    {
+      "address": "DSUux6W7KEQCBqxxMv9jL1yhDHvsASCyuSZ3rqipAtKg",
+      "symbol": "WINRFC",
+      "name": "Retarded Lotto Coin",
+      "decimals": 9,
+      "logoURI": "https://gateway.pinata.cloud/ipfs/QmZithjRfnqdrpbwDuaY4RTscMvuNGZd49B6gzCovFyo2j",
+      "order": 4,
+      "enabled": true
+    }
+  ]
+}

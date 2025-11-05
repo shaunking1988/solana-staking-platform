@@ -1,0 +1,93 @@
+2025-10-08 00:16:35 BST LOG:  checkpoint starting: immediate force wait
+2025-10-08 00:16:35 BST LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.008 s, sync=0.004 s, total=0.034 s; sync files=5, longest=0.002 s, average=0.001 s; distance=4704 kB, estimate=4704 kB; lsn=0/A7B92E0, redo lsn=0/A7B9288
+2025-10-08 00:16:37 BST LOG:  checkpoint starting: immediate force wait
+2025-10-08 00:16:37 BST LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.004 s, sync=0.008 s, total=0.025 s; sync files=5, longest=0.006 s, average=0.002 s; distance=4704 kB, estimate=4704 kB; lsn=0/AC51598, redo lsn=0/AC51540
+2025-10-08 00:21:37 BST LOG:  checkpoint starting: time
+2025-10-08 00:21:42 BST LOG:  checkpoint complete: wrote 38 buffers (0.2%); 0 WAL file(s) added, 0 removed, 0 recycled; write=4.713 s, sync=0.127 s, total=4.889 s; sync files=38, longest=0.060 s, average=0.004 s; distance=153 kB, estimate=4249 kB; lsn=0/AC77CA8, redo lsn=0/AC77C50
+2025-10-08 00:52:27 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 00:52:27 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 00:52:27 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 00:52:27 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 01:19:16 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 01:19:16 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 01:19:16 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 01:19:16 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 01:19:16 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 01:19:16 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 01:22:28 BST ERROR:  relation "pools" does not exist
+2025-10-08 01:22:28 BST STATEMENT:  ALTER TABLE pools 
+	ADD COLUMN has_self_reflections BOOLEAN DEFAULT FALSE,
+	ADD COLUMN has_external_reflections BOOLEAN DEFAULT FALSE,
+	ADD COLUMN external_reflection_mint VARCHAR(255);
+2025-10-08 01:26:37 BST LOG:  checkpoint starting: time
+2025-10-08 01:26:39 BST LOG:  checkpoint complete: wrote 19 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.999 s, sync=0.004 s, total=2.016 s; sync files=16, longest=0.001 s, average=0.001 s; distance=46 kB, estimate=3829 kB; lsn=0/AC836A8, redo lsn=0/AC83650
+2025-10-08 01:31:37 BST LOG:  checkpoint starting: time
+2025-10-08 01:31:37 BST LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.252 s, sync=0.003 s, total=0.272 s; sync files=3, longest=0.002 s, average=0.001 s; distance=6 kB, estimate=3446 kB; lsn=0/AC84EC0, redo lsn=0/AC84E68
+2025-10-08 01:33:53 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 01:36:01 BST FATAL:  password authentication failed for user "postgres"
+2025-10-08 01:36:01 BST DETAIL:  Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-08 01:45:45 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 01:46:37 BST LOG:  checkpoint starting: time
+2025-10-08 01:46:37 BST LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.235 s, sync=0.002 s, total=0.261 s; sync files=3, longest=0.001 s, average=0.001 s; distance=6 kB, estimate=3102 kB; lsn=0/AC867A0, redo lsn=0/AC86748
+2025-10-08 03:32:59 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 03:32:59 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 03:33:16 BST LOG:  checkpoint starting: immediate force wait
+2025-10-08 03:33:16 BST LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.009 s, sync=0.005 s, total=0.035 s; sync files=5, longest=0.002 s, average=0.001 s; distance=4724 kB, estimate=4724 kB; lsn=0/B123AE8, redo lsn=0/B123A90
+2025-10-08 03:33:18 BST LOG:  checkpoint starting: immediate force wait
+2025-10-08 03:33:18 BST LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.004 s, sync=0.004 s, total=0.016 s; sync files=7, longest=0.001 s, average=0.001 s; distance=4725 kB, estimate=4725 kB; lsn=0/B5C0F70, redo lsn=0/B5C0F18
+2025-10-08 03:35:37 BST LOG:  checkpoint starting: immediate force wait
+2025-10-08 03:35:37 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.012 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4725 kB, estimate=4725 kB; lsn=0/BA5E600, redo lsn=0/BA5E5A8
+2025-10-08 03:35:38 BST LOG:  checkpoint starting: immediate force wait
+2025-10-08 03:35:38 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.013 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4719 kB, estimate=4725 kB; lsn=0/BEFA428, redo lsn=0/BEFA3D0
+2025-10-08 03:40:38 BST LOG:  checkpoint starting: time
+2025-10-08 03:40:40 BST LOG:  checkpoint complete: wrote 13 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.421 s, sync=0.005 s, total=1.439 s; sync files=12, longest=0.001 s, average=0.001 s; distance=56 kB, estimate=4258 kB; lsn=0/BF085D8, redo lsn=0/BF08580
+2025-10-08 03:45:38 BST LOG:  checkpoint starting: time
+2025-10-08 03:45:38 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.440 s, sync=0.001 s, total=0.448 s; sync files=3, longest=0.001 s, average=0.001 s; distance=6 kB, estimate=3832 kB; lsn=0/BF09F10, redo lsn=0/BF09EB8
+2025-10-08 04:03:26 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 06:50:18 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 06:50:18 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 06:50:18 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 06:50:18 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 07:50:47 BST LOG:  checkpoint starting: time
+2025-10-08 07:50:48 BST LOG:  checkpoint complete: wrote 8 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.779 s, sync=0.002 s, total=0.796 s; sync files=6, longest=0.001 s, average=0.001 s; distance=33 kB, estimate=3453 kB; lsn=0/BF125A8, redo lsn=0/BF12550
+2025-10-08 08:00:47 BST LOG:  checkpoint starting: time
+2025-10-08 08:00:47 BST LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.124 s, sync=0.002 s, total=0.146 s; sync files=2, longest=0.001 s, average=0.001 s; distance=5 kB, estimate=3108 kB; lsn=0/BF13D00, redo lsn=0/BF13CA8
+2025-10-08 08:55:47 BST LOG:  checkpoint starting: time
+2025-10-08 08:55:47 BST LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.116 s, sync=0.002 s, total=0.132 s; sync files=2, longest=0.001 s, average=0.001 s; distance=6 kB, estimate=2798 kB; lsn=0/BF155E0, redo lsn=0/BF15588
+2025-10-08 09:35:16 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 09:35:16 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 09:35:16 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 09:35:16 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 09:35:16 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 09:35:16 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 11:30:55 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 11:33:10 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-08 11:34:17 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	

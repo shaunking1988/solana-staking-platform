@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Pool {
+  id          String   @id @default(cuid())
+  
+  // ✅ FIXED: User-chosen poolId (NOT auto-increment)
+  poolId      Int      @map("pool_id")
+  
+  // ✅ FIXED: Required tokenMint field
+  tokenMint   String   @map("token_mint")
+  
+  name        String
+  symbol      String
+  apr         Float?
+  apy         Float?
+  type        String   // "locked" or "unlocked"
+  lockPeriod  Int?     @map("lock_period")
+  totalStaked Float    @default(0) @map("total_staked")
+  rewards     String?
+  logo        String?
+  pairAddress String?  @map("pair_address")
+  hidden      Boolean  @default(false)
+  featured    Boolean  @default(false)
+  views       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  // Reflection fields
+  hasSelfReflections      Boolean  @default(false) @map("has_self_reflections")
+  hasExternalReflections  Boolean  @default(false) @map("has_external_reflections")
+  externalReflectionMint  String?  @map("external_reflection_mint")
+  reflectionTokenAccount  String?  @map("reflection_token_account")
+  reflectionTokenSymbol   String?  @map("reflection_token_symbol")
+  
+  // Initialization & Status
+  isInitialized         Boolean  @default(false) @map("is_initialized")
+  poolAddress           String?  @map("pool_address")
+  isPaused              Boolean  @default(false) @map("is_paused")
+  isEmergencyUnlocked   Boolean  @default(false) @map("is_emergency_unlocked")
+  
+  // Fee Settings
+  platformFeePercent    Float    @default(2) @map("platform_fee_percent")
+  flatSolFee            Float    @default(0.005) @map("flat_sol_fee")
+  
+  // Referral Settings
+  referralEnabled       Boolean  @default(false) @map("referral_enabled")
+  referralWallet        String?  @map("referral_wallet")
+  referralSplitPercent  Float?   @map("referral_split_percent")
+
+  stakes   Stake[]
+  Activity Activity[]
+  
+  // ✅ CRITICAL: Composite unique constraint
+  @@unique([tokenMint, poolId], name: "pool_token_pool_id_unique")
+  
+  // ✅ PERFORMANCE: Indexes
+  @@index([tokenMint, poolId], name: "pool_token_pool_id_idx")
+  @@index([tokenMint], name: "pool_token_mint_idx")
+  
+  @@map("pools")
+}
+
+model Stake {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  poolId    String   @map("pool_id")
+  amount    Float
+  createdAt DateTime @default(now()) @map("created_at")
+
+  pool Pool @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  
+  @@index([userId], name: "stake_user_id_idx")
+  @@index([poolId], name: "stake_pool_id_idx")
+  @@map("stakes")
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  type      String   // "deposit" | "withdraw" | "claim"
+  amount    Float
+  timestamp DateTime @default(now())
+  pool      Pool     @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  poolId    String   @map("pool_id")
+  userId    String   @map("user_id")
+  
+  @@index([userId], name: "activity_user_id_idx")
+  @@index([poolId], name: "activity_pool_id_idx")
+  @@index([type], name: "activity_type_idx")
+  @@map("activities")
+}
+
+model UserStake {
+  id            String   @id @default(cuid())
+  userWallet    String   @map("user_wallet")
+  tokenMint     String   @map("token_mint")
+  poolId        Int      @default(0) @map("pool_id")
+  stakedAmount  BigInt   @default(0) @map("staked_amount")
+  stakePda      String   @unique @map("stake_pda")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([userWallet, tokenMint, poolId])
+  @@index([userWallet])
+  @@index([tokenMint])
+  @@index([stakedAmount])
+  @@map("user_stakes")
+}
+
+model SEO {
+  id                  String   @id @default(cuid())
+  page                String   @unique // "landing", "dashboard", "pools"
+  title               String
+  description         String
+  keywords            String?
+  ogTitle             String?  @map("og_title")
+  ogDescription       String?  @map("og_description")
+  ogImage             String?  @map("og_image")
+  twitterCard         String?  @map("twitter_card")
+  twitterTitle        String?  @map("twitter_title")
+  twitterDescription  String?  @map("twitter_description")
+  twitterImage        String?  @map("twitter_image")
+  canonicalUrl        String?  @map("canonical_url")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@map("seo")
+}
+
+// Swap Configuration
+model SwapConfig {
+  id              Int      @id @default(autoincrement())
+  platformFeeBps  Int      @default(50)       // 50 bps = 0.5%
+  treasuryWallet  String
+  enabled         Boolean  @default(true)
+  maxSlippageBps  Int      @default(100)      // ✅ ADD THIS LINE
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Swap Statistics
+model SwapStats {
+  id          Int      @id @default(autoincrement())
+  fromToken   String
+  toToken     String
+  fromAmount  Float
+  toAmount    Float
+  userAddress String
+  createdAt   DateTime @default(now())
+
+  @@index([fromToken, toToken])
+  @@index([createdAt])
+}
+
+// Liquidity Configuration
+model LiquidityConfig {
+  id              Int      @id @default(autoincrement())
+  platformFeeBps  Int      @default(50)
+  treasuryWallet  String
+  enabled         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Liquidity Pool Tracking
+model LiquidityPool {
+  id           Int      @id @default(autoincrement())
+  poolAddress  String   @unique
+  tokenA       String
+  tokenB       String
+  userAddress  String
+  lpTokens     Float
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userAddress])
+  @@index([tokenA, tokenB])
+}

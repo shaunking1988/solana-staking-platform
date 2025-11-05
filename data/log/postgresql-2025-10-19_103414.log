@@ -1,0 +1,6 @@
+2025-10-19 10:34:14 BST LOG:  database system was shut down at 2025-10-19 10:31:51 BST
+2025-10-19 10:36:18 BST ERROR:  canceling statement due to user request
+2025-10-19 10:36:18 BST ERROR:  canceling statement due to user request
+2025-10-19 10:36:18 BST LOG:  shutting down
+2025-10-19 10:36:18 BST LOG:  checkpoint starting: shutdown immediate
+2025-10-19 10:36:18 BST LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.005 s, sync=0.002 s, total=0.016 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/BF157F0, redo lsn=0/BF157F0

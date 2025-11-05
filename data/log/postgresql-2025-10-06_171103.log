@@ -1,0 +1,257 @@
+2025-10-06 17:11:03 BST LOG:  database system was shut down at 2025-10-06 17:10:54 BST
+2025-10-06 17:15:31 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:15:31 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:15:31 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:15:31 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:16:03 BST LOG:  checkpoint starting: time
+2025-10-06 17:17:45 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:17:45 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:17:45 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:17:45 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:17:47 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:17:47 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:17:47 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:17:47 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:17:54 BST LOG:  checkpoint complete: wrote 998 buffers (6.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=111.279 s, sync=0.053 s, total=111.342 s; sync files=310, longest=0.001 s, average=0.001 s; distance=4705 kB, estimate=4705 kB; lsn=0/1A0B680, redo lsn=0/1A0B5F0
+2025-10-06 17:18:58 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:18:58 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:18:58 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:18:58 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:20:16 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:20:16 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:20:16 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:20:16 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:20:17 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:20:17 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:20:17 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:20:17 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:21:16 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:21:16 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:21:16 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:21:16 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:21:16 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:21:16 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:21:16 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:21:16 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:21:26 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:21:26 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:21:26 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:21:26 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:21:31 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:21:31 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:21:31 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:21:31 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:23:22 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:23:22 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:23:22 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:23:22 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:35:51 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:35:51 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:35:51 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:35:51 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:36:39 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:36:39 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:36:39 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:36:39 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:36:42 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:36:42 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:36:42 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:36:42 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:37:23 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:37:23 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:37:23 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:37:23 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:38:29 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:38:29 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:38:29 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:38:29 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:40:08 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:40:08 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:40:08 BST FATAL:  password authentication failed for user "USER"
+2025-10-06 17:40:08 BST DETAIL:  Role "USER" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:42:12 BST FATAL:  password authentication failed for user "DEFAULT"
+2025-10-06 17:42:12 BST DETAIL:  Role "DEFAULT" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:42:12 BST FATAL:  password authentication failed for user "DEFAULT"
+2025-10-06 17:42:12 BST DETAIL:  Role "DEFAULT" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:42:20 BST FATAL:  password authentication failed for user "DEFAULT"
+2025-10-06 17:42:20 BST DETAIL:  Role "DEFAULT" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:42:20 BST FATAL:  password authentication failed for user "DEFAULT"
+2025-10-06 17:42:20 BST DETAIL:  Role "DEFAULT" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:42:59 BST FATAL:  password authentication failed for user "DEFAULT"
+2025-10-06 17:42:59 BST DETAIL:  Role "DEFAULT" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 117: "host    all             all             ::1/128                 scram-sha-256"
+2025-10-06 17:42:59 BST FATAL:  password authentication failed for user "DEFAULT"
+2025-10-06 17:42:59 BST DETAIL:  Role "DEFAULT" does not exist.
+	Connection matched file "C:/Users/shaun/OneDrive/Desktop/solana-staking-starter-v2/data/pg_hba.conf" line 115: "host    all             all             127.0.0.1/32            scram-sha-256"
+2025-10-06 17:46:03 BST LOG:  checkpoint starting: time
+2025-10-06 17:46:04 BST LOG:  checkpoint complete: wrote 9 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.007 s, sync=0.002 s, total=1.021 s; sync files=3, longest=0.001 s, average=0.001 s; distance=34 kB, estimate=4238 kB; lsn=0/1A13ED8, redo lsn=0/1A13E80
+2025-10-06 17:46:16 BST ERROR:  relation "_prisma_migrations" does not exist at character 126
+2025-10-06 17:46:16 BST STATEMENT:  SELECT "id", "checksum", "finished_at", "migration_name", "logs", "rolled_back_at", "started_at", "applied_steps_count" FROM "_prisma_migrations" ORDER BY "started_at" ASC
+2025-10-06 17:46:17 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 17:46:17 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 1 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.096 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4576 kB, estimate=4576 kB; lsn=0/1E8C168, redo lsn=0/1E8C110
+2025-10-06 17:46:18 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 17:46:18 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.004 s, sync=0.002 s, total=0.018 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4576 kB, estimate=4576 kB; lsn=0/2304558, redo lsn=0/2304500
+2025-10-06 17:51:18 BST LOG:  checkpoint starting: time
+2025-10-06 17:51:25 BST LOG:  checkpoint complete: wrote 64 buffers (0.4%); 0 WAL file(s) added, 0 removed, 0 recycled; write=7.039 s, sync=0.008 s, total=7.053 s; sync files=47, longest=0.001 s, average=0.001 s; distance=195 kB, estimate=4138 kB; lsn=0/23352A0, redo lsn=0/2335210
+2025-10-06 17:55:23 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 17:55:23 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 17:55:34 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 17:55:34 BST LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.012 s; sync files=5, longest=0.001 s, average=0.001 s; distance=4604 kB, estimate=4604 kB; lsn=0/27B4308, redo lsn=0/27B42B0
+2025-10-06 17:55:35 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 17:55:35 BST LOG:  checkpoint complete: wrote 10 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.005 s, sync=0.004 s, total=0.016 s; sync files=8, longest=0.001 s, average=0.001 s; distance=4604 kB, estimate=4604 kB; lsn=0/2C33488, redo lsn=0/2C33430
+2025-10-06 18:00:35 BST LOG:  checkpoint starting: time
+2025-10-06 18:00:40 BST LOG:  checkpoint complete: wrote 46 buffers (0.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=4.992 s, sync=0.007 s, total=5.004 s; sync files=42, longest=0.001 s, average=0.001 s; distance=149 kB, estimate=4158 kB; lsn=0/2C58AA0, redo lsn=0/2C58A48
+2025-10-06 18:35:06 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 18:35:06 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 19:02:53 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 19:03:02 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 19:03:02 BST LOG:  checkpoint complete: wrote 9 buffers (0.1%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.008 s, sync=0.004 s, total=0.026 s; sync files=9, longest=0.001 s, average=0.001 s; distance=4631 kB, estimate=4631 kB; lsn=0/30DE8B0, redo lsn=0/30DE858
+2025-10-06 19:03:04 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 19:03:04 BST LOG:  checkpoint complete: wrote 10 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.005 s, sync=0.005 s, total=0.017 s; sync files=10, longest=0.001 s, average=0.001 s; distance=4631 kB, estimate=4631 kB; lsn=0/35647E0, redo lsn=0/3564788
+2025-10-06 19:08:04 BST LOG:  checkpoint starting: time
+2025-10-06 19:08:04 BST LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.108 s, sync=0.001 s, total=0.114 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=4168 kB; lsn=0/3564978, redo lsn=0/3564920
+2025-10-06 19:08:14 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 19:08:14 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.014 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4632 kB, estimate=4632 kB; lsn=0/39EA980, redo lsn=0/39EA928
+2025-10-06 19:08:15 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 19:08:15 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.004 s, sync=0.002 s, total=0.017 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4632 kB, estimate=4632 kB; lsn=0/3E70AF8, redo lsn=0/3E70AA0
+2025-10-06 19:13:15 BST LOG:  checkpoint starting: time
+2025-10-06 19:13:15 BST LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.107 s, sync=0.002 s, total=0.114 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=4169 kB; lsn=0/3E70C90, redo lsn=0/3E70C38
+2025-10-06 20:16:15 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 20:19:36 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:19:36 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.006 s, sync=0.003 s, total=0.027 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4632 kB, estimate=4632 kB; lsn=0/42F6F10, redo lsn=0/42F6EB8
+2025-10-06 20:19:37 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:19:37 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.014 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4632 kB, estimate=4632 kB; lsn=0/477D2B0, redo lsn=0/477D258
+2025-10-06 20:20:15 BST ERROR:  column "apy" of relation "Pool" does not exist at character 57
+2025-10-06 20:20:15 BST STATEMENT:  INSERT INTO "public"."Pool" ("id","name","symbol","apr","apy","type","lockPeriod","totalStaked","rewards","logo","mintAddress","pairAddress","createdAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING "public"."Pool"."id", "public"."Pool"."name", "public"."Pool"."symbol", "public"."Pool"."apr", "public"."Pool"."apy", "public"."Pool"."type", "public"."Pool"."lockPeriod", "public"."Pool"."totalStaked", "public"."Pool"."rewards", "public"."Pool"."logo", "public"."Pool"."mintAddress", "public"."Pool"."pairAddress", "public"."Pool"."createdAt"
+2025-10-06 20:21:58 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 20:22:06 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:22:06 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.013 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4633 kB, estimate=4633 kB; lsn=0/4C037E8, redo lsn=0/4C03790
+2025-10-06 20:22:07 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:22:07 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.003 s, sync=0.002 s, total=0.015 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4633 kB, estimate=4633 kB; lsn=0/5089DD0, redo lsn=0/5089D78
+2025-10-06 20:22:16 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:22:16 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.014 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4633 kB, estimate=4633 kB; lsn=0/55104E8, redo lsn=0/5510490
+2025-10-06 20:22:17 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:22:17 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.012 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4634 kB, estimate=4634 kB; lsn=0/5996CF8, redo lsn=0/5996CA0
+2025-10-06 20:22:50 BST ERROR:  column "apy" of relation "Pool" does not exist at character 57
+2025-10-06 20:22:50 BST STATEMENT:  INSERT INTO "public"."Pool" ("id","name","symbol","apr","apy","type","lockPeriod","totalStaked","rewards","logo","mintAddress","pairAddress","createdAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING "public"."Pool"."id", "public"."Pool"."name", "public"."Pool"."symbol", "public"."Pool"."apr", "public"."Pool"."apy", "public"."Pool"."type", "public"."Pool"."lockPeriod", "public"."Pool"."totalStaked", "public"."Pool"."rewards", "public"."Pool"."logo", "public"."Pool"."mintAddress", "public"."Pool"."pairAddress", "public"."Pool"."createdAt"
+2025-10-06 20:24:11 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 20:24:17 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:24:17 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.012 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4634 kB, estimate=4634 kB; lsn=0/5E1D6A0, redo lsn=0/5E1D648
+2025-10-06 20:24:18 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:24:18 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.003 s, sync=0.002 s, total=0.015 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4634 kB, estimate=4634 kB; lsn=0/62A4110, redo lsn=0/62A40B8
+2025-10-06 20:26:29 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:26:29 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.011 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4634 kB, estimate=4634 kB; lsn=0/672AD00, redo lsn=0/672ACA8
+2025-10-06 20:26:30 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:26:30 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.014 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4635 kB, estimate=4635 kB; lsn=0/6BB1980, redo lsn=0/6BB1928
+2025-10-06 20:27:29 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:27:29 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.004 s, sync=0.002 s, total=0.017 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4635 kB, estimate=4635 kB; lsn=0/70387C0, redo lsn=0/7038768
+2025-10-06 20:27:30 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:27:30 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.004 s, sync=0.003 s, total=0.014 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4635 kB, estimate=4635 kB; lsn=0/74BF678, redo lsn=0/74BF620
+2025-10-06 20:29:03 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 20:29:15 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:29:15 BST LOG:  checkpoint complete: wrote 61 buffers (0.4%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.015 s, sync=0.016 s, total=0.042 s; sync files=51, longest=0.001 s, average=0.001 s; distance=4952 kB, estimate=4952 kB; lsn=0/7995960, redo lsn=0/7995908
+2025-10-06 20:29:16 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:29:16 BST LOG:  checkpoint complete: wrote 20 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.006 s, sync=0.006 s, total=0.019 s; sync files=18, longest=0.001 s, average=0.001 s; distance=4713 kB, estimate=4928 kB; lsn=0/7E2FDD8, redo lsn=0/7E2FD80
+2025-10-06 20:34:16 BST LOG:  checkpoint starting: time
+2025-10-06 20:34:17 BST LOG:  checkpoint complete: wrote 10 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.998 s, sync=0.005 s, total=1.021 s; sync files=8, longest=0.002 s, average=0.001 s; distance=39 kB, estimate=4439 kB; lsn=0/7E39DC0, redo lsn=0/7E39D68
+2025-10-06 20:38:50 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 20:38:59 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:38:59 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.003 s, sync=0.002 s, total=0.013 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4698 kB, estimate=4698 kB; lsn=0/82D0990, redo lsn=0/82D0938
+2025-10-06 20:39:00 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 20:39:00 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.004 s, sync=0.002 s, total=0.014 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4699 kB, estimate=4699 kB; lsn=0/8767668, redo lsn=0/8767610
+2025-10-06 20:44:00 BST LOG:  checkpoint starting: time
+2025-10-06 20:44:02 BST LOG:  checkpoint complete: wrote 18 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=2.075 s, sync=0.005 s, total=2.091 s; sync files=18, longest=0.001 s, average=0.001 s; distance=39 kB, estimate=4233 kB; lsn=0/87712F0, redo lsn=0/8771298
+2025-10-06 20:54:00 BST LOG:  checkpoint starting: time
+2025-10-06 20:54:01 BST LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.230 s, sync=0.002 s, total=0.243 s; sync files=3, longest=0.001 s, average=0.001 s; distance=2 kB, estimate=3810 kB; lsn=0/8771CC8, redo lsn=0/8771C70
+2025-10-06 21:44:46 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 21:44:46 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 21:46:23 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 21:46:23 BST LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.004 s, sync=0.002 s, total=0.017 s; sync files=5, longest=0.001 s, average=0.001 s; distance=4700 kB, estimate=4700 kB; lsn=0/8C09078, redo lsn=0/8C09020
+2025-10-06 21:46:24 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 21:46:24 BST LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.004 s, sync=0.003 s, total=0.018 s; sync files=5, longest=0.001 s, average=0.001 s; distance=4701 kB, estimate=4701 kB; lsn=0/90A0568, redo lsn=0/90A0510
+2025-10-06 21:51:24 BST LOG:  checkpoint starting: time
+2025-10-06 21:51:24 BST LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.666 s, sync=0.004 s, total=0.674 s; sync files=7, longest=0.002 s, average=0.001 s; distance=17 kB, estimate=4232 kB; lsn=0/90A4CF8, redo lsn=0/90A4CA0
+2025-10-06 21:56:24 BST LOG:  checkpoint starting: time
+2025-10-06 21:56:25 BST LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.447 s, sync=0.003 s, total=0.476 s; sync files=5, longest=0.001 s, average=0.001 s; distance=2 kB, estimate=3809 kB; lsn=0/90A57B0, redo lsn=0/90A5758
+2025-10-06 22:13:28 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 22:13:28 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 22:24:10 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 22:24:18 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 22:24:18 BST LOG:  checkpoint complete: wrote 5 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.009 s, sync=0.003 s, total=0.029 s; sync files=5, longest=0.001 s, average=0.001 s; distance=4701 kB, estimate=4701 kB; lsn=0/953CF00, redo lsn=0/953CEA8
+2025-10-06 22:24:20 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 22:24:20 BST LOG:  checkpoint complete: wrote 6 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.005 s, sync=0.003 s, total=0.016 s; sync files=6, longest=0.001 s, average=0.001 s; distance=4702 kB, estimate=4702 kB; lsn=0/99D4780, redo lsn=0/99D4728
+2025-10-06 22:29:20 BST LOG:  checkpoint starting: time
+2025-10-06 22:29:20 BST LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.106 s, sync=0.001 s, total=0.113 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=4231 kB; lsn=0/99D4918, redo lsn=0/99D48C0
+2025-10-06 22:34:20 BST LOG:  checkpoint starting: time
+2025-10-06 22:34:20 BST LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.106 s, sync=0.002 s, total=0.115 s; sync files=2, longest=0.001 s, average=0.001 s; distance=3 kB, estimate=3809 kB; lsn=0/99D55C0, redo lsn=0/99D5568
+2025-10-06 22:49:28 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 22:49:28 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 22:49:28 BST LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2025-10-06 22:49:35 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 22:49:36 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.002 s, total=0.015 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4702 kB, estimate=4702 kB; lsn=0/9E6CF50, redo lsn=0/9E6CEF8
+2025-10-06 22:49:36 BST LOG:  checkpoint starting: immediate force wait
+2025-10-06 22:49:36 BST LOG:  checkpoint complete: wrote 4 buffers (0.0%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.003 s, sync=0.002 s, total=0.015 s; sync files=4, longest=0.001 s, average=0.001 s; distance=4702 kB, estimate=4702 kB; lsn=0/A304A18, redo lsn=0/A3049C0
+2025-10-06 22:54:36 BST LOG:  checkpoint starting: time
+2025-10-06 22:54:38 BST LOG:  checkpoint complete: wrote 15 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=1.552 s, sync=0.004 s, total=1.560 s; sync files=15, longest=0.001 s, average=0.001 s; distance=44 kB, estimate=4236 kB; lsn=0/A30FCB0, redo lsn=0/A30FC58
+2025-10-06 22:59:36 BST LOG:  checkpoint starting: time
+2025-10-06 22:59:36 BST LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.237 s, sync=0.025 s, total=0.271 s; sync files=3, longest=0.024 s, average=0.009 s; distance=7 kB, estimate=3813 kB; lsn=0/A3119B0, redo lsn=0/A311958
+2025-10-06 23:04:36 BST LOG:  checkpoint starting: time
+2025-10-06 23:04:36 BST LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.113 s, sync=0.001 s, total=0.124 s; sync files=2, longest=0.001 s, average=0.001 s; distance=7 kB, estimate=3433 kB; lsn=0/A3138B0, redo lsn=0/A313858
+2025-10-06 23:14:37 BST LOG:  checkpoint starting: time
+2025-10-06 23:14:37 BST LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.116 s, sync=0.002 s, total=0.127 s; sync files=2, longest=0.002 s, average=0.001 s; distance=2 kB, estimate=3090 kB; lsn=0/A3142F0, redo lsn=0/A314298

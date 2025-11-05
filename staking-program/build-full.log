@@ -1,0 +1,21 @@
+WARNING: `anchor-lang` version(0.29.0) and the current CLI version(0.32.1) don't match.
+
+	This can lead to unwanted behavior. To use the same CLI version, add:
+
+	[toolchain]
+	anchor_version = "0.29.0"
+
+	to Anchor.toml
+
+   Compiling proc-macro2 v1.0.101
+   Compiling quote v1.0.41
+   Compiling syn v1.0.109
+   Compiling serde_core v1.0.228
+   Compiling solana-frozen-abi v1.18.26
+   Compiling anyhow v1.0.100
+   Compiling syn v2.0.106
+   Compiling serde_json v1.0.145
+   Compiling borsh-derive-internal v0.10.4
+   Compiling borsh-schema-derive-internal v0.9.3
+   Compiling borsh-derive-internal v0.9.3
+   Compiling borsh-schema-derive-internal v0.10.4
