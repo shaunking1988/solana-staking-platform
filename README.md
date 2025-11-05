@@ -25,3 +25,4 @@ anchor build && anchor deploy
 # web: pnpm i && pnpm dev
 ```
 # Updated
+# Deploy from web folder
