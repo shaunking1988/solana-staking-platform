@@ -1,4 +1,4 @@
 // app/page.tsx
-import DashboardPage from './dashboard/page';
+import LandingPage from '../components/LandingPage';
 
-export default DashboardPage;
+export default LandingPage;
