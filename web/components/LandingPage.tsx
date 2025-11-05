@@ -894,7 +894,7 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="text-center md:text-left">
               <p className="text-gray-400">
-                © 2025 POOL7 Staking. Built on Solana with ❤️
+                © 2025 SolTrax Staking. Built on Solana with ❤️
               </p>
             </div>
             
