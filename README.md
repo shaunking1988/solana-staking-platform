@@ -26,3 +26,4 @@ anchor build && anchor deploy
 ```
 # Updated
 # Deploy from web folder
+# Fix program ID
