@@ -29,3 +29,4 @@ anchor build && anchor deploy
 # Fix program ID
 # Redeploy with updated env vars
 # Trigger deploy
+# Redeploy with DIRECT_URL
