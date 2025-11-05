@@ -24,3 +24,4 @@ anchor build && anchor deploy
 # server: pnpm i && pnpm prisma:generate && pnpm prisma:migrate && pnpm dev
 # web: pnpm i && pnpm dev
 ```
+# Updated
