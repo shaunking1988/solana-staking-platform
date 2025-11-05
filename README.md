@@ -28,3 +28,4 @@ anchor build && anchor deploy
 # Deploy from web folder
 # Fix program ID
 # Redeploy with updated env vars
+# Trigger deploy
