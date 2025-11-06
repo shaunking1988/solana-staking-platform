@@ -34,3 +34,4 @@ anchor build && anchor deploy
 # Fix env var format
 # Fix env var format
 # Fix env var format
+# Fix env var format

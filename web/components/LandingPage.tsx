@@ -341,10 +341,10 @@ export default function LandingPage() {
 
               <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
                 <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  Stake. Earn.
+                  Swap. Stake.
                 </span>
                 <br />
-                <span className="text-white">Multiply.</span>
+                <span className="text-white">Earn. Stream.</span>
               </h1>
 
               <p className="text-xl text-gray-400 max-w-2xl">
