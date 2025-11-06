@@ -976,20 +976,6 @@ export default function PoolCard(props: PoolCardProps) {
             <span>Connect wallet to interact</span>
           </div>
         )}
-        
-        {connected && !isInitialized && (
-          <div className="relative z-10 flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-gray-400 bg-white/[0.02] border border-white/[0.05] p-1.5 sm:p-2 rounded leading-tight">
-            <AlertTriangle className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-            <span>Pool initializing - check back soon</span>
-          </div>
-        )}
-        
-        {connected && isPaused && (
-          <div className="relative z-10 flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-gray-400 bg-white/[0.02] border border-white/[0.05] p-1.5 sm:p-2 rounded leading-tight">
-            <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-            <span>Pool paused by admin</span>
-          </div>
-        )}
       </div>
 
       {/* MODAL */}
