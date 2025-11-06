@@ -298,9 +298,10 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950">
-    <BlockchainBackground />
-      {/* Hero Section */}
+    <>
+      <BlockchainBackground />
+      <div className="min-h-screen bg-slate-950 relative">
+        {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-900">
         {/* Animated Background Effects */}
         <div className="absolute inset-0 overflow-hidden">
@@ -925,5 +926,6 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
+  </>
   );
 }
