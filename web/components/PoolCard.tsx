@@ -764,7 +764,7 @@ export default function PoolCard(props: PoolCardProps) {
             )}
             {!isInitialized && effectiveMintAddress && (
               <div className="px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-[10px] sm:text-xs font-semibold border backdrop-blur-sm bg-white/[0.05] border-white/[0.1] text-gray-400">
-                ⏳ Init
+                ⏳ Initializing
               </div>
             )}
             {isPaused && (
