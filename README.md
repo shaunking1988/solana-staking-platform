@@ -30,3 +30,4 @@ anchor build && anchor deploy
 # Redeploy with updated env vars
 # Trigger deploy
 # Redeploy with DIRECT_URL
+# Apply env vars to all environments
