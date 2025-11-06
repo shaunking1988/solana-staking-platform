@@ -321,7 +321,7 @@ const searchTokens = async (query: string) => {
         console.log("Checking platform at:", platformPDA.toString());
         
         // Fetch the platform account
-        const platformAccount = await program.account.platform.authFetch(platformPDA);
+        const platformAccount = await program.account.platform.fetch(platformPDA);
         console.log("Platform account data:", platformAccount);
         console.log("Is initialized:", platformAccount.isInitialized);
         
