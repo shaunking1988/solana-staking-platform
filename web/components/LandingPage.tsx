@@ -56,8 +56,8 @@ export default function LandingPage() {
 
   // TODO: Add your social media links here
   const socialLinks = {
-    telegram: "", // Add your Telegram link here
-    twitter: "", // Add your Twitter link here
+    telegram: "https://t.me/StakePointPortal", // Add your Telegram link here
+    twitter: "https://x.com/StakePointApp", // Add your Twitter link here
   };
 
   // TODO: Add your Stakeflow token address here (SPL token mint address)
