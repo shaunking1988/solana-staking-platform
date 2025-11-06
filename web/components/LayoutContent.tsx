@@ -31,39 +31,3 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
     </div>
   );
 }
-```
-
----
-
-## 🎯 What This Does:
-
-### Mobile (< 1024px):
-- ✅ Click hamburger → Dropdown menu appears below navbar
-- ✅ Menu items show in vertical list
-- ✅ Click item → Navigate and close menu
-- ✅ Click overlay → Close menu
-- ❌ No sidebar (hidden)
-
-### Desktop (≥ 1024px):
-- ✅ Sidebar always visible on left
-- ✅ Hamburger menu hidden
-- ✅ Content flows normally
-
----
-
-## 📱 Mobile Menu Preview:
-```
-┌─────────────────────────────┐
-│ ☰  StakePoint    [Wallet]   │ ← Navbar
-├─────────────────────────────┤
-│ ✨ Home                      │ ← Dropdown
-│ 🏠 Dashboard                 │    Menu
-│ 🪙 Staking Pools            │
-│ ⇅  Swap                     │
-│ 📖 Documentation            │
-│ 🆘 Support                  │
-├─────────────────────────────┤
-│                             │
-│   Main Content Here         │
-│                             │
-└─────────────────────────────┘
