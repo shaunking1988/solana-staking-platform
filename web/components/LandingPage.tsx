@@ -59,14 +59,14 @@ export default function LandingPage() {
     twitter: "", // Add your Twitter link here
   };
 
-  // TODO: Add your SolTrax token address here (SPL token mint address)
-  // Using BONK as example - replace with your SolTrax token address when deployed
-  const SOLTRAX_TOKEN_ADDRESS = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"; // BONK token - Replace with your token mint address
+  // TODO: Add your SolStream token address here (SPL token mint address)
+  // Using BONK as example - replace with your SolStream token address when deployed
+  const SOLSTREAM_TOKEN_ADDRESS = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"; // BONK token - Replace with your token mint address
 
   useEffect(() => {
     fetchFeaturedPools();
     fetchPlatformStats();
-    if (SOLTRAX_TOKEN_ADDRESS) {
+    if (SOLSTREAM_TOKEN_ADDRESS) {
       fetchTokenData();
       // Refresh token data every 60 seconds
       const interval = setInterval(fetchTokenData, 60000);
@@ -154,7 +154,7 @@ export default function LandingPage() {
     try {
       // Fetch from DexScreener API
       const response = await fetch(
-        `https://api.dexscreener.com/latest/dex/tokens/${SOLTRAX_TOKEN_ADDRESS}`
+        `https://api.dexscreener.com/latest/dex/tokens/${SOLSTREAM_TOKEN_ADDRESS}`
       );
       
       if (!response.ok) {
@@ -335,7 +335,7 @@ export default function LandingPage() {
               <div className="inline-block">
                 <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/20 border border-blue-500/30 rounded-full text-blue-400 text-sm font-semibold animate-pulse">
                   <Sparkles className="w-4 h-4" />
-                  Powered by SolTrax Token
+                  Powered by SolStream Token
                 </span>
               </div>
 
@@ -526,7 +526,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* SolTrax Token Section */}
+      {/* SolStream Token Section */}
       <section className="relative py-20 lg:py-32 bg-slate-950">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-1/4 right-1/3 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl animate-pulse" />
@@ -544,11 +544,11 @@ export default function LandingPage() {
             <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
               Introducing{" "}
               <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                SolTrax Token
+                SolStream Token
               </span>
             </h2>
             <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-              The native token powering our staking ecosystem. Hold SolTrax to unlock exclusive benefits, 
+              The native token powering our staking ecosystem. Hold SolStream to unlock exclusive benefits, 
               earn platform rewards, and participate in governance decisions.
             </p>
           </div>
@@ -561,7 +561,7 @@ export default function LandingPage() {
                   <Coins className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-white">$SOLTRAX</h3>
+                  <h3 className="text-2xl font-bold text-white">$SOLSTREAM</h3>
                   <p className="text-gray-400">Built on Solana</p>
                 </div>
               </div>
@@ -569,7 +569,7 @@ export default function LandingPage() {
               <div className="space-y-4">
                 <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
                   <p className="text-sm text-gray-400 mb-1">Token Symbol</p>
-                  <p className="text-lg font-semibold text-white">SOLTRAX</p>
+                  <p className="text-lg font-semibold text-white">SOLSTREAM</p>
                 </div>
                 <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
                   <p className="text-sm text-gray-400 mb-1">Network</p>
@@ -668,14 +668,14 @@ export default function LandingPage() {
 
           <div className="text-center mt-12">
             <p className="text-gray-400 mb-6">
-              SolTrax will be available for purchase and staking at launch
+              SolStream will be available for purchase and staking at launch
             </p>
             <button
               onClick={() => router.push("/dashboard")}
               className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all font-semibold text-lg shadow-lg shadow-blue-500/50 hover:scale-105"
             >
               <Coins className="w-5 h-5" />
-              Get SolTrax Soon
+              Get SolStream Soon
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>
@@ -894,7 +894,7 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="text-center md:text-left">
               <p className="text-gray-400">
-                © 2025 SolTrax Staking. Built on Solana with ❤️
+                © 2025 SolStream Staking. Built on Solana with ❤️
               </p>
             </div>
             
