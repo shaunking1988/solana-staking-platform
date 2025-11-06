@@ -378,7 +378,9 @@ export default function PoolsClient({ pools }: { pools: Pool[] }) {
                   </div>
                   <div className="text-right">
                     <p className="text-xl font-bold" style={{ color: '#fb57ff' }}>
-                      {pool.type === "locked" ? pool.apy : pool.apr}%
+                      {typeof (pool.type === "locked" ? pool.apy : pool.apr) === 'number'
+                        ? (pool.type === "locked" ? pool.apy : pool.apr)?.toFixed(2)
+                        : (pool.type === "locked" ? pool.apy : pool.apr) ?? "-"}%
                     </p>
                     <p className="text-xs text-gray-400">{pool.type === "locked" ? "APY" : "APR"}</p>
                   </div>
@@ -442,7 +444,10 @@ export default function PoolsClient({ pools }: { pools: Pool[] }) {
                   <div className="text-center">
                     <p className="text-xs text-gray-500 mb-1">{pool.type === "locked" ? "APY" : "APR"}</p>
                     <p className="text-lg font-bold" style={{ color: '#fb57ff' }}>
-                      {pool.type === "locked" ? pool.apy : pool.apr}%
+                      {(() => {
+                        const rate = (pool.type === "locked" ? pool.apy : pool.apr) ?? 0;
+                        return typeof rate === 'number' ? rate.toFixed(2) : rate ?? "-";
+                      })()}%
                     </p>
                   </div>
 
