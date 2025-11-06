@@ -995,7 +995,7 @@ export default function PoolCard(props: PoolCardProps) {
       {/* MODAL */}
       {openModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-50 p-3 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 border border-gray-700 p-4 sm:p-6 rounded-2xl shadow-2xl w-full max-w-[calc(100vw-24px)] sm:max-w-md max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+          <div className="bg-white/[0.02] border border-white/[0.05] p-4 sm:p-6 rounded-2xl shadow-2xl w-full max-w-[calc(100vw-24px)] sm:max-w-md max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h2 className="text-lg sm:text-2xl font-bold text-white flex items-center gap-2">
                 {openModal === "stake" && "💰"}
@@ -1013,7 +1013,7 @@ export default function PoolCard(props: PoolCardProps) {
               </button>
             </div>
 
-            <div className="bg-gray-800/50 border border-gray-700 p-2.5 sm:p-3 rounded-lg mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+            <div className="bg-white/[0.02] border border-white/[0.05] p-2.5 sm:p-3 rounded-lg mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
               {logo && <img src={logo} alt={name} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0" />}
               <div className="min-w-0 flex-1">
                 <p className="text-white font-semibold text-sm sm:text-base truncate">{name}</p>
@@ -1023,9 +1023,9 @@ export default function PoolCard(props: PoolCardProps) {
 
             {(openModal === "stake" || openModal === "unstake") && (
               <>
-                <div className="mb-3 sm:mb-4 p-3 sm:p-4 bg-purple-900/20 border border-purple-500/30 rounded-lg">
+                <div className="mb-3 sm:mb-4 p-3 sm:p-4 bg-white/[0.02] border border-white/[0.05] rounded-lg">
                   <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-                    <p className="text-purple-300 text-xs sm:text-sm font-semibold">
+                    <p className="text-gray-400 text-xs sm:text-sm font-semibold">
                       {openModal === "stake" ? "Available Balance" : "Staked Amount"}
                     </p>
                     {balanceLoading && <LoadingSpinner size="sm" />}
@@ -1052,7 +1052,7 @@ export default function PoolCard(props: PoolCardProps) {
                       type="number"
                       value={amount}
                       onChange={(e) => setAmount(Number(e.target.value))}
-                      className="w-full p-2.5 sm:p-3 pr-12 sm:pr-16 rounded-lg bg-slate-900 text-white border border-gray-700 focus:border-purple-500 focus:outline-none text-base sm:text-lg font-semibold"
+                      className="w-full p-2.5 sm:p-3 pr-12 sm:pr-16 rounded-lg bg-white/[0.02] text-white border border-white/[0.05] focus:border-[#fb57ff] focus:outline-none text-base sm:text-lg font-semibold"
                       placeholder="0.00"
                       disabled={isProcessing}
                       max={openModal === "stake" ? tokenBalance : userStakedAmount}
@@ -1064,7 +1064,7 @@ export default function PoolCard(props: PoolCardProps) {
                 </div>
 
                 {openModal === "stake" && amount > 0 && (
-                  <div className="mb-3 sm:mb-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg space-y-2 text-xs sm:text-sm">
+                  <div className="mb-3 sm:mb-4 p-3 bg-white/[0.02] border border-white/[0.05] rounded-lg space-y-2 text-xs sm:text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-400">Stake Amount:</span>
                       <span className="text-white font-semibold">{amount.toFixed(4)} {symbol}</span>
@@ -1077,9 +1077,9 @@ export default function PoolCard(props: PoolCardProps) {
                       <span className="text-gray-400">SOL Fee:</span>
                       <span className="text-yellow-400">-{flatSolFee} SOL</span>
                     </div>
-                    <div className="border-t border-gray-700 pt-2 flex justify-between">
-                      <span className="text-blue-300 font-semibold">You'll Stake:</span>
-                      <span className="text-blue-400 font-bold">{feeCalculation.amountAfterFee.toFixed(4)} {symbol}</span>
+                    <div className="border-t border-white/[0.05] pt-2 flex justify-between">
+                      <span className="font-semibold" style={{ color: '#fb57ff' }}>You'll Stake:</span>
+                      <span className="font-bold" style={{ color: '#fb57ff' }}>{feeCalculation.amountAfterFee.toFixed(4)} {symbol}</span>
                     </div>
                   </div>
                 )}
@@ -1090,7 +1090,9 @@ export default function PoolCard(props: PoolCardProps) {
                       key={percent}
                       onClick={() => handleQuickSelect(percent)}
                       disabled={isProcessing}
-                      className="px-2 py-2.5 sm:py-2 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-lg text-xs sm:text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 min-h-[44px]"
+                      className="px-2 py-2.5 sm:py-2 bg-white/[0.05] hover:bg-white/[0.08] active:bg-white/[0.1] border border-white/[0.05] rounded-lg text-xs sm:text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 min-h-[44px]"
+                      onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
+                      onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
                     >
                       {percent}%
                     </button>
@@ -1106,7 +1108,8 @@ export default function PoolCard(props: PoolCardProps) {
                     value={amount}
                     onChange={(e) => setAmount(Number(e.target.value))}
                     disabled={isProcessing}
-                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                    className="w-full h-2 bg-white/[0.05] rounded-lg appearance-none cursor-pointer"
+                    style={{ accentColor: '#fb57ff' }}
                   />
                   <div className="flex justify-between text-[10px] sm:text-xs text-gray-400 mt-1">
                     <span>0</span>
@@ -1115,28 +1118,28 @@ export default function PoolCard(props: PoolCardProps) {
                 </div>
 
                 {openModal === "stake" && amount > 0 && solBalance < (flatSolFee + 0.00089088) && (
-                  <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-red-900/20 border border-red-500/30 rounded-lg flex items-center gap-2 text-red-400 text-xs sm:text-sm">
+                  <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2 text-red-400 text-xs sm:text-sm">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     <span>Need {(flatSolFee + 0.00089088).toFixed(5)} SOL for fees (you have {solBalance.toFixed(5)})</span>
                   </div>
                 )}
 
                 {openModal === "stake" && amount > tokenBalance && (
-                  <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-red-900/20 border border-red-500/30 rounded-lg flex items-center gap-2 text-red-400 text-xs sm:text-sm">
+                  <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2 text-red-400 text-xs sm:text-sm">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     <span>Insufficient balance</span>
                   </div>
                 )}
 
                 {openModal === "unstake" && lockupInfo.isLocked && (
-                  <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-yellow-900/20 border border-yellow-500/30 rounded-lg flex items-center gap-2 text-yellow-400 text-xs sm:text-sm">
+                  <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg flex items-center gap-2 text-yellow-400 text-xs sm:text-sm">
                     <Clock className="w-4 h-4 flex-shrink-0" />
                     <span>Unlocks in {formatTimeRemaining(lockupInfo.remainingSeconds)}</span>
                   </div>
                 )}
 
                 {openModal === "unstake" && amount > userStakedAmount && (
-                  <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-red-900/20 border border-red-500/30 rounded-lg flex items-center gap-2 text-red-400 text-xs sm:text-sm">
+                  <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2 text-red-400 text-xs sm:text-sm">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     <span>Cannot unstake more than staked amount</span>
                   </div>
@@ -1145,8 +1148,8 @@ export default function PoolCard(props: PoolCardProps) {
             )}
 
             {(openModal === "claimRewards" || openModal === "claimSelf" || openModal === "claimExternal") && (
-              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
-                <p className="text-green-300 text-xs sm:text-sm mb-1.5 sm:mb-2">
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <p className="text-green-400 text-xs sm:text-sm mb-1.5 sm:mb-2">
                   {openModal === "claimRewards" ? "Available to claim:" : "Available reflections to claim:"}
                 </p>
                 <p className="text-white font-bold text-lg sm:text-xl break-all">
@@ -1158,8 +1161,8 @@ export default function PoolCard(props: PoolCardProps) {
                   </p>
                 )}
                 {(openModal === "claimSelf" || openModal === "claimExternal") && stakeData?.withdrawalWallet && openModal === "claimExternal" && (
-                  <div className="mt-3 p-2 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
-                    <p className="text-yellow-300 text-xs mb-1">⚠️ Withdrawal Wallet:</p>
+                  <div className="mt-3 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                    <p className="text-yellow-400 text-xs mb-1">⚠️ Withdrawal Wallet:</p>
                     <p className="text-white text-xs font-mono break-all">
                       {stakeData.withdrawalWallet.toString()}
                     </p>
@@ -1171,9 +1174,11 @@ export default function PoolCard(props: PoolCardProps) {
                     <button
                       onClick={handleRefreshReflections}
                       disabled={isProcessing || !effectiveMintAddress}
-                      className="w-full px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 rounded-lg text-blue-300 text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="w-full px-3 py-2 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.05] rounded-lg text-white text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
+                      onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
                     >
-                      <Sparkles className="w-4 h-4" />
+                      <Sparkles className="w-4 h-4" style={{ color: '#fb57ff' }} />
                       {isProcessing ? "Refreshing..." : "🔄 Refresh Reflections"}
                     </button>
                     <p className="text-gray-400 text-xs mt-1 text-center">
@@ -1188,7 +1193,7 @@ export default function PoolCard(props: PoolCardProps) {
             {openModal === "viewBalances" && (
               <div className="space-y-4">
                 {/* Accumulating Rewards */}
-                <div className="bg-gradient-to-r from-green-600/10 to-emerald-600/10 border border-green-500/30 p-4 rounded-lg">
+                <div className="bg-green-500/10 border border-green-500/30 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-3">
                     <Coins className="w-5 h-5 text-green-400" />
                     <span className="text-sm font-semibold text-gray-300">Accumulating Rewards</span>
@@ -1208,24 +1213,24 @@ export default function PoolCard(props: PoolCardProps) {
 
                 {/* Reflection Balance */}
                 {reflectionTokenAccount && (
-                  <div className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 border border-purple-500/30 p-4 rounded-lg">
+                  <div className="bg-white/[0.02] border border-white/[0.05] p-4 rounded-lg">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-purple-400" />
-                        <span className="text-sm font-semibold text-purple-300">Reflection Balance</span>
+                        <Sparkles className="w-5 h-5" style={{ color: '#fb57ff' }} />
+                        <span className="text-sm font-semibold text-gray-300">Reflection Balance</span>
                         {reflectionLoading && <LoadingSpinner size="sm" />}
                       </div>
                       <button
                         onClick={handleRefreshReflections}
                         disabled={!connected || !effectiveMintAddress || !isInitialized || isProcessing || !projectData?.reflectionVault}
-                        className="p-2 hover:bg-purple-500/20 rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="p-2 hover:bg-white/[0.05] rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                         title={projectData?.reflectionVault ? "Refresh reflection calculations" : "Reflections not enabled for this pool"}
                         type="button"
                       >
-                        <Repeat className="w-4 h-4 text-purple-400 hover:text-purple-300" />
+                        <Repeat className="w-4 h-4 text-gray-400 hover:text-white" />
                       </button>
                     </div>
-                    <div className="text-purple-400 font-bold text-2xl break-all">
+                    <div className="font-bold text-2xl break-all" style={{ color: '#fb57ff' }}>
                       {reflectionBalance > 0 
                         ? `${reflectionBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${reflectionTokenSymbol || 'REFLECT'}`
                         : `0.0000 ${reflectionTokenSymbol || 'REFLECT'}`
@@ -1236,7 +1241,7 @@ export default function PoolCard(props: PoolCardProps) {
 
                 {/* No Reflections Message */}
                 {!reflectionTokenAccount && (
-                  <div className="bg-gray-800/50 border border-gray-700 p-4 rounded-lg text-center">
+                  <div className="bg-white/[0.02] border border-white/[0.05] p-4 rounded-lg text-center">
                     <p className="text-gray-400 text-sm">No reflections available for this pool</p>
                   </div>
                 )}
@@ -1247,7 +1252,9 @@ export default function PoolCard(props: PoolCardProps) {
               {openModal === "viewBalances" ? (
                 <button
                   onClick={closeModal}
-                  className="w-full px-3 sm:px-4 py-3 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-lg text-sm sm:text-base font-semibold transition-all min-h-[48px]"
+                  className="w-full px-3 sm:px-4 py-3 bg-white/[0.05] hover:bg-white/[0.08] active:bg-white/[0.1] border border-white/[0.05] rounded-lg text-sm sm:text-base font-semibold transition-all min-h-[48px]"
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
                 >
                   Close
                 </button>
@@ -1256,14 +1263,17 @@ export default function PoolCard(props: PoolCardProps) {
                   <button
                     onClick={closeModal}
                     disabled={isProcessing}
-                    className="flex-1 px-3 sm:px-4 py-3 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-lg text-sm sm:text-base font-semibold transition-all disabled:opacity-50 min-h-[48px]"
+                    className="flex-1 px-3 sm:px-4 py-3 bg-white/[0.05] hover:bg-white/[0.08] active:bg-white/[0.1] border border-white/[0.05] rounded-lg text-sm sm:text-base font-semibold transition-all disabled:opacity-50 min-h-[48px]"
+                    onMouseEnter={(e) => !isProcessing && (e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)')}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleConfirmAction}
                     disabled={isProcessing || !validateTransaction().valid}
-                    className={`flex-1 px-3 sm:px-4 py-3 rounded-lg text-sm sm:text-base font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[48px] ${getModalColor()}`}
+                    className="flex-1 px-3 sm:px-4 py-3 rounded-lg text-sm sm:text-base font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[48px] text-white"
+                    style={{ background: (isProcessing || !validateTransaction().valid) ? 'rgba(255,255,255,0.05)' : 'linear-gradient(45deg, black, #fb57ff)' }}
                   >
                     {isProcessing ? (
                       <>
