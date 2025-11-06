@@ -38,18 +38,18 @@ export async function generateMetadata(): Promise<Metadata> {
 
   // Default metadata if no SEO data found
   return {
-    title: "POOL7 - Advanced Solana Staking Platform | Earn Passive Income",
+    title: "SOLTRAX - Stake Your Crypto & Earn Rewards",
     description:
       "Stake your Solana tokens and earn industry-leading APYs. Flexible lock periods, instant rewards, and reflection tokens. Join thousands earning passive income.",
     keywords: "solana, staking, defi, crypto, rewards, apy, blockchain, passive income",
     openGraph: {
-      title: "POOL7 - Stake Solana & Earn Rewards",
+      title: "SOLTRAX - Stake Your Crypto & Earn Rewards",
       description: "The most advanced staking platform on Solana. Earn passive income with high APYs.",
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
-      title: "POOL7 - Stake Solana & Earn Rewards",
+      title: "SOLTRAX - Stake Your Crypto & Earn Rewards",
       description: "The most advanced staking platform on Solana. Earn passive income with high APYs.",
     },
   };
