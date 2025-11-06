@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Mail,
 } from "lucide-react";
+import BlockchainBackground from "./BlockchainBackground";
 
 interface Pool {
   id: string;
@@ -298,6 +299,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-slate-950">
+    <BlockchainBackground />
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-900">
         {/* Animated Background Effects */}
