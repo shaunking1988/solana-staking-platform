@@ -42,7 +42,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             <circle cx="18" cy="18.5" r="1.2" fill="#000000" opacity="0.3"/>
           </svg>
         </div>
-        <h1 className="text-base font-bold text-white">StakeStream</h1>
+        <h1 className="text-base font-bold text-white">StakePoint</h1>
       </div>
 
       {/* Right Side - Wallet & Theme */}

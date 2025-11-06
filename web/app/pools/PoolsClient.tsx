@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import PoolCard from "@/components/PoolCard";
 import { useToast } from "@/components/ToastContainer";
 import { PoolCardSkeleton, LoadingSpinner } from "@/components/SkeletonLoaders";
-import { Search, Filter, X, SlidersHorizontal, Grid3x3, List } from "lucide-react";
+import { Search, Filter, X, SlidersHorizontal, Grid3x3, List, Plus } from "lucide-react";
+import CreatePoolModal from "@/components/CreatePoolModal";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 type Pool = {
   id: string;
@@ -41,8 +43,10 @@ export default function PoolsClient({ pools }: { pools: Pool[] }) {
   const [showFilters, setShowFilters] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [showCreatePoolModal, setShowCreatePoolModal] = useState(false);
   
-  const { showInfo } = useToast();
+  const { showInfo, showSuccess } = useToast();
+  const { connected } = useWallet();
 
   // Simulate initial loading
   useEffect(() => {
@@ -162,6 +166,32 @@ export default function PoolsClient({ pools }: { pools: Pool[] }) {
         </div>
 
         <div className="flex gap-2 w-full sm:w-auto">
+          {/* Create Pool Button */}
+          <button
+            onClick={() => {
+              if (!connected) {
+                showInfo("Please connect your wallet to create a pool");
+                return;
+              }
+              setShowCreatePoolModal(true);
+            }}
+            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg transition-all active:scale-95 text-sm sm:text-base flex-1 sm:flex-initial min-h-[44px] font-semibold"
+            style={{ 
+              background: 'linear-gradient(45deg, black, #fb57ff)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(45deg, #fb57ff, black)';
+              e.currentTarget.style.transform = 'scale(1.02)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(45deg, black, #fb57ff)';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span>Create Pool</span>
+          </button>
+
           {/* View Toggle Button - MOBILE RESPONSIVE */}
           <button
             onClick={toggleViewMode}
@@ -397,7 +427,7 @@ export default function PoolsClient({ pools }: { pools: Pool[] }) {
                   </div>
                   <div className="bg-white/[0.02] border border-white/[0.05] p-2 rounded">
                     <p className="text-gray-400 text-xs">Total Staked</p>
-                    <p className="text-white font-semibold">${(Number(pool.totalStaked) / 1000).toFixed(0)}K</p>
+                    <p className="text-white font-semibold">{Number(pool.totalStaked).toLocaleString(undefined, { maximumFractionDigits: 0 })} {pool.symbol}</p>
                   </div>
                 </div>
 
@@ -466,8 +496,8 @@ export default function PoolsClient({ pools }: { pools: Pool[] }) {
                   {/* TVL */}
                   <div className="text-center">
                     <p className="text-xs text-gray-500 mb-1">Staked</p>
-                    <p className="text-sm font-semibold text-white">
-                      ${(Number(pool.totalStaked) / 1000).toFixed(0)}K
+                    <p className="text-sm font-semibold text-white truncate" title={`${Number(pool.totalStaked).toLocaleString()} ${pool.symbol}`}>
+                      {Number(pool.totalStaked).toLocaleString(undefined, { maximumFractionDigits: 0 })} {pool.symbol}
                     </p>
                   </div>
 
@@ -504,6 +534,19 @@ export default function PoolsClient({ pools }: { pools: Pool[] }) {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Create Pool Modal */}
+      {showCreatePoolModal && (
+        <CreatePoolModal
+          onClose={() => setShowCreatePoolModal(false)}
+          onSuccess={() => {
+            setShowCreatePoolModal(false);
+            showSuccess("✅ Pool created successfully! Refreshing...");
+            // Reload the page to show new pool
+            setTimeout(() => window.location.reload(), 1500);
+          }}
+        />
       )}
     </div>
   );

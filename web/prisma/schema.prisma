@@ -53,6 +53,9 @@ model Pool {
   referralEnabled       Boolean  @default(false) @map("referral_enabled")
   referralWallet        String?  @map("referral_wallet")
   referralSplitPercent  Float?   @map("referral_split_percent")
+  
+  // User Pool Creation
+  creatorWallet         String?  @map("creator_wallet")
 
   stakes   Stake[]
   Activity Activity[]
