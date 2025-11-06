@@ -16,6 +16,7 @@ type Pool = {
   lockPeriod?: number | null;
   apr?: number | null;
   apy?: number | null;
+  rateMode?: number;
   totalStaked: number;
   rewards?: string | null;
   logo?: string | null;
@@ -378,11 +379,14 @@ export default function PoolsClient({ pools }: { pools: Pool[] }) {
                   </div>
                   <div className="text-right">
                     <p className="text-xl font-bold" style={{ color: '#fb57ff' }}>
-                      {typeof (pool.type === "locked" ? pool.apy : pool.apr) === 'number'
-                        ? (pool.type === "locked" ? pool.apy : pool.apr)?.toFixed(2)
-                        : (pool.type === "locked" ? pool.apy : pool.apr) ?? "-"}%
+                      {(() => {
+                        const rate = (pool.rateMode === 0 || pool.apy !== null ? pool.apy : pool.apr) ?? 0;
+                        return typeof rate === 'number' ? rate.toFixed(2) : rate ?? "-";
+                      })()}%
                     </p>
-                    <p className="text-xs text-gray-400">{pool.type === "locked" ? "APY" : "APR"}</p>
+                    <p className="text-xs text-gray-400">
+                      {pool.rateMode === 0 ? "APY" : pool.rateMode === 1 ? "APR" : (pool.apy ? "APY" : "APR")}
+                    </p>
                   </div>
                 </div>
 
@@ -442,11 +446,11 @@ export default function PoolsClient({ pools }: { pools: Pool[] }) {
                 <div className="col-span-4 grid grid-cols-4 gap-4">
                   {/* APY/APR */}
                   <div className="text-center">
-                    <p className="text-xs text-gray-500 mb-1">{pool.type === "locked" ? "APY" : "APR"}</p>
+                    <p className="text-xs text-gray-500 mb-1">{pool.rateMode === 0 ? "APY" : pool.rateMode === 1 ? "APR" : (pool.apy ? "APY" : "APR")}</p>
                     <p className="text-lg font-bold" style={{ color: '#fb57ff' }}>
                       {(() => {
-                        const rate = (pool.type === "locked" ? pool.apy : pool.apr) ?? 0;
-                        return typeof rate === 'number' ? rate.toFixed(2) : rate ?? "-";
+                        const rate = (pool.rateMode === 0 || pool.apy !== null ? pool.apy : pool.apr) ?? 0;
+                        return typeof rate === 'number' ? rate.toFixed(2) : "-";
                       })()}%
                     </p>
                   </div>
