@@ -6,3 +6,4 @@ dist/
 target/
 .anchor/
 .vercel
+.env.local

@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { verifyAdminToken } from "@/lib/adminMiddleware";
 
 // Add these to prevent static generation
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// ✅ GET ALL POOLS
+// ====================================================================
+// 🔓 PUBLIC ENDPOINT - No authentication required
+// Returns ALL pools including hidden ones (needed for admin panel display)
+// If you want to hide certain pools from public, create a separate
+// /api/pools endpoint that filters out hidden pools
+// ====================================================================
 export async function GET() {
   const pools = await prisma.pool.findMany({ 
     orderBy: { createdAt: "desc" } 
@@ -13,16 +19,29 @@ export async function GET() {
   return NextResponse.json(pools);
 }
 
-// ✅ CREATE POOL - FIXED with poolId support
+// ====================================================================
+// 🔒 PROTECTED ENDPOINT - Admin authentication required
+// Create new pool in database
+// ====================================================================
 export async function POST(req: Request) {
+  // 🛡️ SECURITY CHECK: Verify JWT token and admin status
+  const authResult = await verifyAdminToken(req);
+  if (!authResult.isValid) {
+    return NextResponse.json(
+      { error: authResult.error || "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
   try {
     const body = await req.json();
     
     console.log("📥 Creating pool with data:", body);
     
+    // ✅ Proceed with pool creation (admin verified)
     const pool = await prisma.pool.create({
       data: {
-        // ✅ FIXED: Use tokenMint instead of mintAddress
+        // ✅ Use tokenMint instead of mintAddress
         tokenMint: body.mintAddress || body.tokenMint,
         poolId: body.poolId ? parseInt(body.poolId) : 0,
         name: body.name,
@@ -40,7 +59,9 @@ export async function POST(req: Request) {
       },
     });
     
-    console.log("✅ Pool created:", pool);
+    // 📝 Log admin action for audit trail
+    console.log(`✅ Pool created by admin wallet: ${authResult.wallet}`, pool);
+    
     return NextResponse.json(pool);
   } catch (err: any) {
     console.error("❌ Error creating pool:", err);
@@ -48,13 +69,26 @@ export async function POST(req: Request) {
   }
 }
 
-// ✅ UPDATE POOL (PUT for full updates) - FIXED with poolId
+// ====================================================================
+// 🔒 PROTECTED ENDPOINT - Admin authentication required
+// Full update of pool data (PUT for complete replacement)
+// ====================================================================
 export async function PUT(req: Request) {
+  // 🛡️ SECURITY CHECK: Verify JWT token and admin status
+  const authResult = await verifyAdminToken(req);
+  if (!authResult.isValid) {
+    return NextResponse.json(
+      { error: authResult.error || "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
   try {
     const body = await req.json();
     
     console.log("📥 Updating pool (PUT) with data:", body);
     
+    // ✅ Proceed with pool update (admin verified)
     const pool = await prisma.pool.update({
       where: { id: body.id },
       data: {
@@ -75,7 +109,9 @@ export async function PUT(req: Request) {
       },
     });
     
-    console.log("✅ Pool updated (PUT):", pool);
+    // 📝 Log admin action for audit trail
+    console.log(`✅ Pool updated (PUT) by admin wallet: ${authResult.wallet}`, pool);
+    
     return NextResponse.json(pool);
   } catch (err: any) {
     console.error("❌ Error updating pool (PUT):", err);
@@ -83,8 +119,20 @@ export async function PUT(req: Request) {
   }
 }
 
-// ✅ UPDATE POOL (PATCH for partial updates) - FIXED VERSION
+// ====================================================================
+// 🔒 PROTECTED ENDPOINT - Admin authentication required
+// Partial update of pool data (PATCH for selective field updates)
+// ====================================================================
 export async function PATCH(req: Request) {
+  // 🛡️ SECURITY CHECK: Verify JWT token and admin status
+  const authResult = await verifyAdminToken(req);
+  if (!authResult.isValid) {
+    return NextResponse.json(
+      { error: authResult.error || "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
   try {
     const body = await req.json();
     const { id, ...updateData } = body;
@@ -103,11 +151,11 @@ export async function PATCH(req: Request) {
       if (value === null || value === undefined) {
         processedData[key] = null;
       } 
-      // ✅ FIXED: Handle mintAddress → tokenMint mapping
+      // ✅ Handle mintAddress → tokenMint mapping
       else if (key === 'mintAddress') {
         processedData['tokenMint'] = value;
       }
-      // ✅ FIXED: Handle poolId
+      // ✅ Handle poolId
       else if (key === 'poolId') {
         processedData[key] = parseInt(value as string);
       }
@@ -145,12 +193,14 @@ export async function PATCH(req: Request) {
     
     console.log("📤 Processed data for update:", processedData);
     
+    // ✅ Proceed with pool update (admin verified)
     const pool = await prisma.pool.update({
       where: { id },
       data: processedData,
     });
     
-    console.log("✅ Pool updated (PATCH):", pool);
+    // 📝 Log admin action for audit trail
+    console.log(`✅ Pool updated (PATCH) by admin wallet: ${authResult.wallet}`, pool);
     
     return NextResponse.json(pool);
   } catch (err: any) {

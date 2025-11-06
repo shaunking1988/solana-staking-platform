@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
+import { verifyAdminToken } from "@/lib/adminMiddleware";
 
 const CONFIG_FILE = path.join(process.cwd(), "data", "featured-tokens.json");
 
@@ -55,7 +56,10 @@ const DEFAULT_FEATURED_TOKENS: FeaturedToken[] = [
   },
 ];
 
-// GET - Fetch featured tokens
+// ====================================================================
+// 🔓 PUBLIC ENDPOINT - No authentication required
+// Anyone can view featured tokens (needed for frontend token selector)
+// ====================================================================
 export async function GET() {
   try {
     await ensureDataDirectory();
@@ -77,12 +81,25 @@ export async function GET() {
   }
 }
 
-// POST - Save featured tokens
+// ====================================================================
+// 🔒 PROTECTED ENDPOINT - Admin authentication required
+// Save/update featured tokens configuration
+// ====================================================================
 export async function POST(request: NextRequest) {
+  // 🛡️ SECURITY CHECK: Verify JWT token and admin status
+  const authResult = await verifyAdminToken(request);
+  if (!authResult.isValid) {
+    return NextResponse.json(
+      { error: authResult.error || "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { featuredTokens } = body;
 
+    // Validate input data
     if (!Array.isArray(featuredTokens)) {
       return NextResponse.json(
         { error: "Invalid featured tokens data" },
@@ -90,11 +107,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ✅ Proceed with saving featured tokens (admin verified)
     await ensureDataDirectory();
     await fs.writeFile(
       CONFIG_FILE,
       JSON.stringify({ featuredTokens }, null, 2)
     );
+
+    // 📝 Log admin action for audit trail
+    console.log(`[ADMIN] Featured tokens updated by wallet: ${authResult.wallet}`);
+    console.log(`[ADMIN] New token count: ${featuredTokens.length}`);
 
     return NextResponse.json({ success: true });
   } catch (error) {

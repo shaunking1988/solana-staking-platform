@@ -11,6 +11,7 @@ import { useToast } from "@/components/ToastContainer";
 import { getProgram, getPDAs } from "@/lib/anchor-program";
 import { useAdminProgram } from "@/hooks/useAdminProgram";
 import SEOManager from "@/components/SEOManager";
+import { authFetch } from "@/lib/authFetch";
 import { 
   ChevronDown, 
   ChevronUp, 
@@ -126,7 +127,7 @@ export default function AdminPage() {
   // ✅ Load Swap Configuration
   const loadSwapConfig = async () => {
     try {
-      const res = await fetch("/api/admin/config");
+      const res = await authFetch("/api/admin/config");
       if (res.ok) {
         const data = await res.json();
         setSwapConfig({
@@ -145,7 +146,7 @@ export default function AdminPage() {
   const handleSaveSwapConfig = async () => {
     setSavingSwapConfig(true);
     try {
-      const res = await fetch("/api/admin/config", {
+      const res = await authFetch("/api/admin/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(swapConfig),
@@ -165,7 +166,7 @@ export default function AdminPage() {
   const loadFeaturedTokens = async () => {
   setLoadingTokens(true);
   try {
-    const configRes = await fetch("/api/admin/featured-tokens");
+    const configRes = await authFetch("/api/admin/featured-tokens");
     if (configRes.ok) {
       const data = await configRes.json();
       setFeaturedTokens(data.featuredTokens || []);
@@ -173,7 +174,7 @@ export default function AdminPage() {
 
     // Use your API route
     console.log("Loading tokens from API...");
-    const tokensRes = await fetch("/api/swap/tokens");
+    const tokensRes = await authFetch("/api/swap/tokens");
     
     if (!tokensRes.ok) {
       throw new Error("Failed to fetch tokens");
@@ -200,7 +201,7 @@ const searchTokens = async (query: string) => {
   
   setLoadingTokens(true);
   try {
-    const res = await fetch(`/api/swap/tokens?q=${encodeURIComponent(query)}`);
+    const res = await authFetch(`/api/swap/tokens?q=${encodeURIComponent(query)}`);
     const tokens = await res.json();
     setAllTokens(Array.isArray(tokens) ? tokens : []);
   } catch (error) {
@@ -214,7 +215,7 @@ const searchTokens = async (query: string) => {
   const handleSaveFeaturedTokens = async () => {
     setSavingFeaturedTokens(true);
     try {
-      const response = await fetch("/api/admin/featured-tokens", {
+      const response = await authFetch("/api/admin/featured-tokens", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ featuredTokens }),
@@ -320,7 +321,7 @@ const searchTokens = async (query: string) => {
         console.log("Checking platform at:", platformPDA.toString());
         
         // Fetch the platform account
-        const platformAccount = await program.account.platform.fetch(platformPDA);
+        const platformAccount = await program.account.platform.authFetch(platformPDA);
         console.log("Platform account data:", platformAccount);
         console.log("Is initialized:", platformAccount.isInitialized);
         
@@ -546,7 +547,7 @@ const searchTokens = async (query: string) => {
 
   const refreshPools = async () => {
     try {
-      const res = await fetch("/api/admin/pools");
+      const res = await authFetch("/api/admin/pools");
       const data = await res.json();
       
       // If there are expanded pools, collapse them first
@@ -634,7 +635,7 @@ const searchTokens = async (query: string) => {
 
   const bulkHide = async () => {
     const promises = Array.from(selectedPools).map(id =>
-      fetch(`/api/admin/pools/${id}`, {
+      authFetch(`/api/admin/pools/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hidden: true }),
@@ -665,7 +666,7 @@ const searchTokens = async (query: string) => {
       return;
     }
     try {
-      const res = await fetch(
+      const res = await authFetch(
         `https://api.dexscreener.com/latest/dex/pairs/solana/${form.pairAddress}`
       );
       const data = await res.json();
@@ -746,7 +747,7 @@ const searchTokens = async (query: string) => {
       featured: false,
     };
 
-    const res = await fetch(url, {
+    const res = await authFetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -820,7 +821,7 @@ const searchTokens = async (query: string) => {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/pools/${id}`, { method: "DELETE" });
+      const res = await authFetch(`/api/admin/pools/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete pool");
       setPools((prev) => prev.filter((p) => p.id !== id));
       showSuccess("✅ Pool deleted");
@@ -833,7 +834,7 @@ const searchTokens = async (query: string) => {
     try {
       const pool = pools.find((p) => p.id === id);
       if (!pool) return;
-      const res = await fetch(`/api/admin/pools/${id}`, {
+      const res = await authFetch(`/api/admin/pools/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [field]: !pool[field] }),
