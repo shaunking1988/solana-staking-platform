@@ -96,7 +96,7 @@ export default function Sidebar() {
               </button>
 
               <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent pr-10">
-                SolTrax Staking
+                SolStream Staking
               </h1>
               <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
                 Stake & Earn Rewards
@@ -107,7 +107,7 @@ export default function Sidebar() {
           {/* Desktop Logo - Always visible on desktop */}
           <div className="hidden lg:block border-b border-gray-200 px-6 py-4 dark:border-gray-700">
             <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
-              SolTrax Staking
+              SolStream Staking
             </h1>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Stake & Earn Rewards

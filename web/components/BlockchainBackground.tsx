@@ -33,7 +33,7 @@ export default function BlockchainBackground() {
     window.addEventListener('resize', resize);
 
     // Initialize blocks
-    const blockCount = 50;
+    const blockCount = 100;
     blocksRef.current = Array.from({ length: blockCount }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
@@ -75,7 +75,7 @@ export default function BlockchainBackground() {
 
     // Animation loop
     const animate = () => {
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.1)'; // Dark overlay for trail effect
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.02)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const blocks = blocksRef.current;
@@ -122,8 +122,8 @@ export default function BlockchainBackground() {
 
           if (dist < 150) {
             const opacity = 1 - dist / 150;
-            ctx.strokeStyle = `rgba(59, 130, 246, ${opacity * 0.3})`;
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = `rgba(168, 85, 247, ${opacity * 0.6})`;
+            ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(block.x, block.y);
             ctx.lineTo(other.x, other.y);
@@ -132,11 +132,11 @@ export default function BlockchainBackground() {
         });
 
         // Draw block
-        ctx.fillStyle = '#3b82f6';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#3b82f6';
+        ctx.fillStyle = '#a855f7';
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = '#a855f7';
         ctx.beginPath();
-        ctx.arc(block.x, block.y, block.size, 0, Math.PI * 2);
+        ctx.arc(block.x, block.y, block.size * 2.5, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
       });
@@ -163,8 +163,8 @@ export default function BlockchainBackground() {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-auto"
-      style={{ zIndex: 0 }}
+      className="fixed inset-0 pointer-events-none"
+      style={{ zIndex: 50 }}
     />
   );
 }
