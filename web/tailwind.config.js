@@ -1,23 +1,34 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: "class", // always dark, no system light mode
+  darkMode: "class",
   content: [
     "./app/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['ui-sans-serif', 'system-ui', 'sans-serif', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
+      },
       colors: {
+        // Streamflow exact color palette
         dark: {
-          700: "#1E293B", // muted blue-gray
-          800: "#16213E", // deeper blue
-          850: "#0F1B33", // custom mid-dark blue
-          900: "#0A0F1F", // almost black navy
+          950: "#060609", // main background - almost pure black
+          900: "#0F1420", // secondary background - very dark
+          800: "#1A1F2E", // card background
+          700: "#242937", // elevated elements
+          600: "#2F3541", // borders/dividers - very subtle
+        },
+        primary: {
+          500: "#5B8DEF", // streamflow blue accent (softer)
+          600: "#4A7FE7", // hover state
+          700: "#3B71D4", // active state
         },
         accent: {
-          blue: "#2563EB", // vivid blue
-          green: "#10B981", // rewards green
-          purple: "#7C3AED", // optional accent
+          green: "#10B981", // success/rewards
+          red: "#EF4444", // error/danger
+          yellow: "#F59E0B", // warning
         },
       },
     },

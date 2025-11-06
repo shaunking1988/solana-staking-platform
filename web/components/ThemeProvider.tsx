@@ -82,7 +82,7 @@ export function ThemeToggle() {
   if (!mounted) {
     return (
       <button 
-        className="p-2 rounded-lg bg-slate-800 border border-slate-700 w-10 h-10"
+        className="p-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08] w-8 h-8"
         aria-label="Loading theme toggle"
       >
         {/* Empty placeholder */}
@@ -93,14 +93,14 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all duration-200 hover:scale-105"
+      className="p-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] hover:border-primary-500/30 transition-all"
       aria-label="Toggle theme"
       title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
     >
       {theme === "dark" ? (
-        <Sun className="w-5 h-5 text-yellow-400" />
+        <Sun className="w-3.5 h-3.5 text-gray-400" />
       ) : (
-        <Moon className="w-5 h-5 text-blue-400" />
+        <Moon className="w-3.5 h-3.5 text-gray-400" />
       )}
     </button>
   );

@@ -32,6 +32,7 @@ interface Pool {
   type: string;
   totalStaked: number;
   featured: boolean;
+  hidden?: boolean;
 }
 
 export default function LandingPage() {
@@ -59,8 +60,8 @@ export default function LandingPage() {
     twitter: "", // Add your Twitter link here
   };
 
-  // TODO: Add your SolStream token address here (SPL token mint address)
-  // Using BONK as example - replace with your SolStream token address when deployed
+  // TODO: Add your Stakeflow token address here (SPL token mint address)
+  // Using BONK as example - replace with your Stakeflow token address when deployed
   const SOLSTREAM_TOKEN_ADDRESS = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"; // BONK token - Replace with your token mint address
 
   useEffect(() => {
@@ -298,13 +299,12 @@ export default function LandingPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-950 relative">
+      <div className="min-h-screen bg-[#060609] relative">
         {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-900">
-        {/* Animated Background Effects */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl animate-pulse delay-1000" />
+      <section className="relative overflow-hidden bg-[#060609]">
+        {/* Subtle Background Glow */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-[800px] h-[800px] rounded-full blur-3xl" style={{ background: 'rgba(251, 87, 255, 0.05)' }} />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-6 py-20 lg:py-32">
@@ -314,38 +314,31 @@ export default function LandingPage() {
               href={socialLinks.telegram || "#"}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center w-10 h-10 bg-slate-800/50 backdrop-blur border border-slate-700 rounded-full hover:bg-slate-800 hover:border-blue-500/50 transition-all group"
+              className="flex items-center justify-center w-10 h-10 bg-white/[0.02] border border-white/[0.05] rounded-full hover:bg-white/[0.05] transition-all group"
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
               aria-label="Telegram"
             >
-              <Send className="w-5 h-5 text-gray-400 group-hover:text-blue-400 transition-colors" />
+              <Send className="w-5 h-5 text-gray-400 transition-colors" style={{ ['--hover-color' as any]: '#fb57ff' }} onMouseEnter={(e) => e.currentTarget.style.color = '#fb57ff'} onMouseLeave={(e) => e.currentTarget.style.color = ''} />
             </a>
             <a
               href={socialLinks.twitter || "#"}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center w-10 h-10 bg-slate-800/50 backdrop-blur border border-slate-700 rounded-full hover:bg-slate-800 hover:border-blue-500/50 transition-all group"
+              className="flex items-center justify-center w-10 h-10 bg-white/[0.02] border border-white/[0.05] rounded-full hover:bg-white/[0.05] transition-all group"
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
               aria-label="Twitter"
             >
-              <Twitter className="w-5 h-5 text-gray-400 group-hover:text-blue-400 transition-colors" />
+              <Twitter className="w-5 h-5 text-gray-400 transition-colors" style={{ ['--hover-color' as any]: '#fb57ff' }} onMouseEnter={(e) => e.currentTarget.style.color = '#fb57ff'} onMouseLeave={(e) => e.currentTarget.style.color = ''} />
             </a>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left: Content */}
             <div className="space-y-8 text-center lg:text-left">
-              <div className="inline-block">
-                <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/20 border border-blue-500/30 rounded-full text-blue-400 text-sm font-semibold animate-pulse">
-                  <Sparkles className="w-4 h-4" />
-                  Powered by SolStream Token
-                </span>
-              </div>
-
-              <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
-                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  Swap. Stake.
-                </span>
-                <br />
-                <span className="text-white">Earn. Stream.</span>
+              <h1 className="text-5xl lg:text-7xl font-bold leading-tight text-white">
+                Stake. Earn. Stream.
               </h1>
 
               <p className="text-xl text-gray-400 max-w-2xl">
@@ -356,18 +349,21 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <button
                   onClick={() => router.push("/dashboard")}
-                  className="group flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all font-semibold text-lg shadow-lg shadow-blue-500/50 hover:shadow-xl hover:shadow-blue-500/60 hover:scale-105"
+                  className="group flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg transition-all font-semibold text-sm"
+                  style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
                 >
-                  <Rocket className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                  <Rocket className="w-4 h-4 group-hover:rotate-12 transition-transform" />
                   Start Staking
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
 
                 <button
                   onClick={() => router.push("/pools")}
-                  className="flex items-center justify-center gap-2 px-8 py-4 bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl hover:bg-slate-800 transition-all font-semibold text-lg"
+                  className="flex items-center justify-center gap-2 px-6 py-2.5 bg-white/[0.05] border border-white/[0.05] rounded-lg hover:bg-white/[0.08] transition-all font-semibold text-sm"
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
                 >
-                  <BarChart3 className="w-5 h-5" />
+                  <BarChart3 className="w-4 h-4" />
                   Browse Pools
                 </button>
               </div>
@@ -376,7 +372,7 @@ export default function LandingPage() {
                 {stats.slice(0, 2).map((stat, idx) => (
                   <div key={idx} className="text-center lg:text-left">
                     <div className="flex items-center gap-2 text-3xl font-bold text-white mb-1">
-                      <stat.icon className="w-6 h-6 text-blue-400" />
+                      <stat.icon className="w-6 h-6" style={{ color: '#fb57ff' }} />
                       {stat.value}
                     </div>
                     <p className="text-sm text-gray-400">{stat.label}</p>
@@ -387,77 +383,91 @@ export default function LandingPage() {
 
             {/* Right: Featured Pools Preview */}
             <div className="lg:block">
-              <div className="bg-slate-900/50 backdrop-blur border border-slate-700 rounded-2xl p-6 space-y-4 shadow-2xl">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-white">
-                    🔥 Trending Pools
-                  </h3>
-                  <span className="text-sm text-gray-400">
-                    {pools.length} featured
-                  </span>
-                </div>
-
-                {loading ? (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className="h-24 bg-slate-800/50 rounded-xl animate-pulse"
-                      />
-                    ))}
+              <div className="relative overflow-hidden backdrop-blur-xl bg-white/[0.02] border border-white/[0.08] rounded-xl p-6 space-y-4">
+                {/* Subtle gradient glow */}
+                <div className="absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl pointer-events-none" style={{ background: 'rgba(251, 87, 255, 0.1)' }}></div>
+                
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-bold text-white mb-1">
+                        Trending Pools
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        {pools.length} pools available
+                      </p>
+                    </div>
                   </div>
-                ) : pools.length > 0 ? (
-                  <div className="space-y-3">
-                    {pools.map((pool) => (
-                      <div
-                        key={pool.id}
-                        className="flex items-center gap-4 p-4 bg-slate-800/50 rounded-xl hover:bg-slate-800 transition-all cursor-pointer group border border-slate-700 hover:border-blue-500/50"
-                      >
-                        {pool.logo ? (
-                          <img
-                            src={pool.logo}
-                            alt={pool.symbol}
-                            className="w-12 h-12 rounded-full"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center font-bold">
-                            {pool.symbol.slice(0, 2)}
+
+                  {loading ? (
+                    <div className="space-y-2">
+                      {[1, 2, 3].map((i) => (
+                        <div
+                          key={i}
+                          className="h-20 bg-white/[0.03] rounded-lg animate-pulse"
+                        />
+                      ))}
+                    </div>
+                  ) : pools.length > 0 ? (
+                    <div className="space-y-2">
+                      {pools.map((pool) => (
+                        <div
+                          key={pool.id}
+                          className="relative group p-3.5 bg-white/[0.03] hover:bg-white/[0.06] rounded-lg transition-all cursor-pointer border border-white/[0.05]"
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
+                        >
+                          <div className="flex items-center gap-3">
+                            {pool.logo ? (
+                              <img
+                                src={pool.logo}
+                                alt={pool.symbol}
+                                className="w-10 h-10 rounded-full ring-2 ring-white/[0.05]"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ring-2 ring-white/[0.05]" style={{ background: 'linear-gradient(135deg, rgba(251, 87, 255, 0.2), rgba(251, 87, 255, 0.1))', color: '#fb57ff' }}>
+                                {pool.symbol.slice(0, 2)}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-white text-sm truncate">
+                                {pool.name}
+                              </p>
+                              <p className="text-xs text-gray-500">{pool.symbol}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-accent-green">
+                                {pool.apy
+                                  ? `${pool.apy}%`
+                                  : pool.apr
+                                  ? `${pool.apr}%`
+                                  : "—"}
+                              </p>
+                              <p className="text-[10px] text-gray-500 uppercase tracking-wide">
+                                {pool.apy ? "APY" : pool.apr ? "APR" : "Variable"}
+                              </p>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-gray-600 group-hover:translate-x-0.5 transition-all flex-shrink-0 ml-1" style={{ ['--hover-color' as any]: '#fb57ff' }} onMouseEnter={(e) => e.currentTarget.style.color = '#fb57ff'} onMouseLeave={(e) => e.currentTarget.style.color = ''} />
                           </div>
-                        )}
-                        <div className="flex-1">
-                          <p className="font-semibold text-white">
-                            {pool.name}
-                          </p>
-                          <p className="text-sm text-gray-400">{pool.symbol}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-green-400">
-                            {pool.apy
-                              ? `${pool.apy}% APY`
-                              : pool.apr
-                              ? `${pool.apr}% APR`
-                              : "Variable"}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {pool.type === "locked" ? "🔒 Locked" : "🔓 Flexible"}
-                          </p>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-400">
-                    <p>No featured pools yet</p>
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      <p className="text-sm">No featured pools yet</p>
+                    </div>
+                  )}
 
-                <button
-                  onClick={() => router.push("/pools")}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-lg hover:from-blue-600/30 hover:to-purple-600/30 transition-all font-semibold text-blue-400"
-                >
-                  View All Pools →
-                </button>
+                  <button
+                    onClick={() => router.push("/pools")}
+                    className="w-full mt-4 px-4 py-2 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] rounded-lg transition-all font-medium text-xs text-gray-400"
+                    style={{ ['--hover-border' as any]: 'rgba(251, 87, 255, 0.3)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'; e.currentTarget.style.color = '#fb57ff'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.color = ''; }}
+                  >
+                    View All Pools →
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -465,15 +475,15 @@ export default function LandingPage() {
       </section>
 
       {/* Stats Bar */}
-      <section className="relative border-y border-slate-800 bg-slate-900">
+      <section className="relative border-y border-white/[0.05] bg-[#060609]">
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {stats.map((stat, idx) => (
               <div key={idx} className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-2">
-                  <stat.icon className="w-6 h-6 text-blue-400" />
+                  <stat.icon className="w-6 h-6" style={{ color: '#fb57ff' }} />
                   {platformStats.loading ? (
-                    <div className="h-9 bg-slate-700/50 rounded animate-pulse w-20"></div>
+                    <div className="h-9 bg-white/[0.05] rounded animate-pulse w-20"></div>
                   ) : (
                     <p className="text-3xl font-bold text-white">{stat.value}</p>
                   )}
@@ -486,39 +496,38 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="relative py-20 lg:py-32 bg-gradient-to-b from-slate-900 to-slate-950">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl" />
-        </div>
+      <section className="relative py-16 lg:py-20 bg-[#060609]">
         
         <div className="relative max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
-              Why Choose{" "}
-              <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Our Platform
-              </span>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-4xl font-bold mb-2" style={{ background: 'linear-gradient(45deg, white, #fb57ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+              Why Choose Our Platform
             </h2>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Built for the future of DeFi. Designed for you.
+            <p className="text-sm text-gray-500 max-w-2xl mx-auto">
+              Built for the future of DeFi
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {features.map((feature, idx) => (
               <div
                 key={idx}
-                className="group p-8 bg-slate-900/50 backdrop-blur border border-slate-700 rounded-2xl hover:border-slate-600 transition-all hover:scale-105"
+                className="group p-5 bg-white/[0.02] border border-white/[0.05] rounded-lg transition-all hover:bg-white/[0.04]"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.2)'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
               >
-                <div
-                  className={`inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-r ${feature.gradient} mb-6 group-hover:scale-110 transition-transform`}
-                >
-                  <feature.icon className="w-7 h-7 text-white" />
+                <div className="flex items-center gap-3 mb-3">
+                  <div
+                    className="inline-flex items-center justify-center w-10 h-10 rounded-lg transition-transform"
+                    style={{ background: 'rgba(251, 87, 255, 0.1)' }}
+                  >
+                    <feature.icon className="w-5 h-5" style={{ color: '#fb57ff' }} />
+                  </div>
+                  <h3 className="text-base font-semibold text-white">
+                    {feature.title}
+                  </h3>
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-3">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-400 leading-relaxed">
+                <p className="text-xs text-gray-500 leading-relaxed">
                   {feature.description}
                 </p>
               </div>
@@ -527,237 +536,103 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* SolStream Token Section */}
-      <section className="relative py-20 lg:py-32 bg-slate-950">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 right-1/3 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl animate-pulse delay-1000" />
-        </div>
-
-        <div className="relative max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <div className="inline-block mb-6">
-              <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/20 border border-blue-500/30 rounded-full text-blue-400 text-sm font-semibold">
-                <Sparkles className="w-4 h-4" />
-                Platform Token
-              </span>
-            </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
-              Introducing{" "}
-              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                SolStream Token
-              </span>
-            </h2>
-            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-              The native token powering our staking ecosystem. Hold SolStream to unlock exclusive benefits, 
-              earn platform rewards, and participate in governance decisions.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-            {/* Token Info Card */}
-            <div className="bg-slate-900/80 backdrop-blur border border-slate-700 rounded-2xl p-8">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                  <Coins className="w-8 h-8 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-white">$SOLSTREAM</h3>
-                  <p className="text-gray-400">Built on Solana</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                  <p className="text-sm text-gray-400 mb-1">Token Symbol</p>
-                  <p className="text-lg font-semibold text-white">SOLSTREAM</p>
-                </div>
-                <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                  <p className="text-sm text-gray-400 mb-1">Network</p>
-                  <p className="text-lg font-semibold text-white">Solana</p>
-                </div>
-                <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                  <p className="text-sm text-gray-400 mb-1">Contract Address</p>
-                  <p className="text-sm font-mono text-blue-400">Coming Soon</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Token Benefits */}
-            <div className="space-y-4">
-              <div className="bg-slate-900/80 backdrop-blur border border-slate-700 rounded-2xl p-6 hover:border-blue-500/50 transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-white mb-2">Platform Support Token</h4>
-                    <p className="text-gray-400">
-                      Token supported by the platform. Transaction fees are used to support the chart and maintain token value.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-slate-900/80 backdrop-blur border border-slate-700 rounded-2xl p-6 hover:border-purple-500/50 transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center">
-                    <Award className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-white mb-2">Early Access</h4>
-                    <p className="text-gray-400">
-                      Get early access to new staking pools before they're available to the public. Be first to stake and maximize returns.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-slate-900/80 backdrop-blur border border-slate-700 rounded-2xl p-6 hover:border-green-500/50 transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 flex items-center justify-center">
-                    <Users className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-white mb-2">Governance Rights</h4>
-                    <p className="text-gray-400">
-                      Vote on platform decisions and new features. Your voice matters in shaping the future of the platform.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Token Stats */}
-          <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-2xl p-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="text-center">
-                <p className="text-sm text-gray-400 mb-2">Total Supply (FDV)</p>
-                {tokenData.loading ? (
-                  <div className="h-8 bg-slate-700/50 rounded animate-pulse mx-auto w-24"></div>
-                ) : (
-                  <p className="text-2xl font-bold text-white">{tokenData.totalSupply}</p>
-                )}
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-400 mb-2">Liquidity</p>
-                {tokenData.loading ? (
-                  <div className="h-8 bg-slate-700/50 rounded animate-pulse mx-auto w-24"></div>
-                ) : (
-                  <p className="text-2xl font-bold text-white">{tokenData.circulatingSupply}</p>
-                )}
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-400 mb-2">Market Cap</p>
-                {tokenData.loading ? (
-                  <div className="h-8 bg-slate-700/50 rounded animate-pulse mx-auto w-24"></div>
-                ) : (
-                  <p className="text-2xl font-bold text-white">{tokenData.marketCap}</p>
-                )}
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-gray-400 mb-2">24h Transactions</p>
-                {tokenData.loading ? (
-                  <div className="h-8 bg-slate-700/50 rounded animate-pulse mx-auto w-24"></div>
-                ) : (
-                  <p className="text-2xl font-bold text-white">{tokenData.holders}</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center mt-12">
-            <p className="text-gray-400 mb-6">
-              SolStream will be available for purchase and staking at launch
-            </p>
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all font-semibold text-lg shadow-lg shadow-blue-500/50 hover:scale-105"
-            >
-              <Coins className="w-5 h-5" />
-              Get SolStream Soon
-              <ArrowRight className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </section>
-
       {/* Benefits Section */}
-      <section className="relative py-20 bg-gradient-to-b from-slate-950 to-slate-900">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-0 right-1/4 w-96 h-96 bg-green-600/10 rounded-full blur-3xl" />
-        </div>
+      <section className="relative py-16 lg:py-20 bg-[#060609]">
         
         <div className="relative max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
-                Everything you need to
-                <span className="bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
-                  {" "}
-                  maximize returns
-                </span>
-              </h2>
-              <p className="text-xl text-gray-400 mb-8">
-                Join thousands of users earning passive income with the most
-                flexible staking platform on Solana.
-              </p>
+          <div className="text-center mb-10">
+            <h2 className="text-3xl lg:text-4xl font-bold mb-2" style={{ background: 'linear-gradient(45deg, white, #fb57ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+              Everything You Need
+            </h2>
+            <p className="text-sm text-gray-500">
+              Join thousands earning passive income on Solana
+            </p>
+          </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {benefits.map((benefit, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-3 p-4 bg-slate-800/50 rounded-lg border border-slate-700"
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+            {/* Left: Benefits Slider */}
+            <div className="relative">
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-5 h-full flex flex-col">
+                <div className="mb-4">
+                  <h3 className="text-lg font-bold text-white mb-1">Platform Benefits</h3>
+                  <p className="text-xs text-gray-500">Everything you need to succeed</p>
+                </div>
+                
+                <div className="flex-1 overflow-hidden">
+                  <div 
+                    className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-2"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                   >
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-600/20 flex items-center justify-center">
-                      <Check className="w-4 h-4 text-green-400" />
-                    </div>
-                    <span className="text-gray-300">{benefit}</span>
+                    {benefits.map((benefit, idx) => (
+                      <div
+                        key={idx}
+                        className="flex-shrink-0 w-[calc(50%-6px)] snap-start"
+                      >
+                        <div 
+                          className="h-full flex flex-col items-center justify-center text-center p-4 bg-white/[0.02] rounded-lg border border-white/[0.05] hover:bg-white/[0.04] transition-all"
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.2)'}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
+                        >
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ background: 'rgba(251, 87, 255, 0.2)' }}>
+                            <Check className="w-5 h-5" style={{ color: '#fb57ff' }} />
+                          </div>
+                          <span className="text-sm text-gray-300 leading-snug">{benefit}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+                
+                <div className="flex justify-center gap-1.5 mt-4">
+                  {[0, 1, 2].map((dot) => (
+                    <div 
+                      key={dot} 
+                      className="w-1.5 h-1.5 rounded-full transition-all"
+                      style={{ background: dot === 0 ? '#fb57ff' : 'rgba(251, 87, 255, 0.2)' }}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-3xl blur-3xl" />
-              <div className="relative bg-slate-900/80 backdrop-blur border border-slate-700 rounded-2xl p-8 space-y-6">
-                <div className="flex items-center gap-4 pb-6 border-b border-slate-700">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                    <Rocket className="w-8 h-8 text-white" />
+            {/* Right: CTA Card */}
+            <div>
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-5 h-full flex flex-col">
+                <div className="flex items-center gap-3 mb-5 pb-5 border-b border-white/[0.05]">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(251, 87, 255, 0.2)' }}>
+                    <Rocket className="w-5 h-5" style={{ color: '#fb57ff' }} />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-white">
-                      Ready to Start?
-                    </h3>
-                    <p className="text-gray-400">Connect your wallet now</p>
+                    <h3 className="text-base font-bold text-white">Get Started</h3>
+                    <p className="text-xs text-gray-500">In 3 simple steps</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-600/20 flex items-center justify-center text-blue-400 font-bold">
+                <div className="space-y-3 mb-5 flex-1">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0" style={{ background: 'rgba(251, 87, 255, 0.1)', color: '#fb57ff' }}>
                       1
                     </div>
-                    <p className="text-gray-300">Connect your Solana wallet</p>
+                    <p className="text-xs text-gray-400 pt-1">Connect your Solana wallet</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-600/20 flex items-center justify-center text-blue-400 font-bold">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0" style={{ background: 'rgba(251, 87, 255, 0.1)', color: '#fb57ff' }}>
                       2
                     </div>
-                    <p className="text-gray-300">Choose a staking pool</p>
+                    <p className="text-xs text-gray-400 pt-1">Choose a staking pool</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-600/20 flex items-center justify-center text-blue-400 font-bold">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0" style={{ background: 'rgba(251, 87, 255, 0.1)', color: '#fb57ff' }}>
                       3
                     </div>
-                    <p className="text-gray-300">Stake & earn rewards</p>
+                    <p className="text-xs text-gray-400 pt-1">Stake & earn rewards</p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => router.push("/dashboard")}
-                  className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all font-semibold text-lg shadow-lg shadow-blue-500/50 hover:scale-105"
+                  className="w-full px-5 py-2.5 rounded-lg transition-all font-semibold text-sm"
+                  style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
                 >
                   Launch App →
                 </button>
@@ -768,79 +643,83 @@ export default function LandingPage() {
       </section>
 
       {/* List Your Project Section */}
-      <section className="relative py-20 lg:py-32 bg-slate-900">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl" />
-          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
-        </div>
+      <section className="relative py-16 lg:py-20 bg-[#060609] border-y border-white/[0.05]">
         
         <div className="relative max-w-5xl mx-auto px-6">
-          <div className="bg-slate-900/80 backdrop-blur border border-slate-700 rounded-3xl p-12 lg:p-16">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 mb-6 animate-pulse">
-                <Rocket className="w-10 h-10 text-white" />
+          <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-8 lg:p-10">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg mb-4" style={{ background: 'rgba(251, 87, 255, 0.2)' }}>
+                <Rocket className="w-6 h-6" style={{ color: '#fb57ff' }} />
               </div>
               
-              <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
+              <h2 className="text-3xl lg:text-4xl font-bold mb-3" style={{ background: 'linear-gradient(45deg, white, #fb57ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                 List Your Project
-                <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                  {" "}
-                  on Our Platform
-                </span>
               </h2>
               
-              <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-8">
-                Join the growing ecosystem of projects offering staking rewards to their communities. 
-                Increase engagement, build loyalty, and grow your token holder base.
+              <p className="text-sm text-gray-500 max-w-2xl mx-auto">
+                Join the growing ecosystem offering staking rewards. Increase engagement, build loyalty, and grow your holder base.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-              <div className="text-center p-6 bg-slate-800/50 rounded-xl border border-slate-700">
-                <div className="w-12 h-12 rounded-full bg-purple-600/20 flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-6 h-6 text-purple-400" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div 
+                className="text-center p-4 bg-white/[0.02] rounded-lg border border-white/[0.05] hover:bg-white/[0.04] transition-all"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.2)'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
+              >
+                <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(251, 87, 255, 0.1)' }}>
+                  <Users className="w-5 h-5" style={{ color: '#fb57ff' }} />
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">
+                <h3 className="text-sm font-semibold text-white mb-1.5">
                   Grow Your Community
                 </h3>
-                <p className="text-sm text-gray-400">
-                  Attract and retain token holders with staking rewards
+                <p className="text-xs text-gray-500">
+                  Attract and retain holders
                 </p>
               </div>
 
-              <div className="text-center p-6 bg-slate-800/50 rounded-xl border border-slate-700">
-                <div className="w-12 h-12 rounded-full bg-blue-600/20 flex items-center justify-center mx-auto mb-4">
-                  <TrendingUp className="w-6 h-6 text-blue-400" />
+              <div 
+                className="text-center p-4 bg-white/[0.02] rounded-lg border border-white/[0.05] hover:bg-white/[0.04] transition-all"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.2)'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
+              >
+                <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(251, 87, 255, 0.1)' }}>
+                  <TrendingUp className="w-5 h-5" style={{ color: '#fb57ff' }} />
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">
+                <h3 className="text-sm font-semibold text-white mb-1.5">
                   Increase Token Utility
                 </h3>
-                <p className="text-sm text-gray-400">
-                  Add real value and use cases for your token
+                <p className="text-xs text-gray-500">
+                  Add real value and use cases
                 </p>
               </div>
 
-              <div className="text-center p-6 bg-slate-800/50 rounded-xl border border-slate-700">
-                <div className="w-12 h-12 rounded-full bg-cyan-600/20 flex items-center justify-center mx-auto mb-4">
-                  <Shield className="w-6 h-6 text-cyan-400" />
+              <div 
+                className="text-center p-4 bg-white/[0.02] rounded-lg border border-white/[0.05] hover:bg-white/[0.04] transition-all"
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.2)'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
+              >
+                <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(251, 87, 255, 0.1)' }}>
+                  <Shield className="w-5 h-5" style={{ color: '#fb57ff' }} />
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">
+                <h3 className="text-sm font-semibold text-white mb-1.5">
                   Battle-Tested Security
                 </h3>
-                <p className="text-sm text-gray-400">
-                  Built on secure, audited smart contracts
+                <p className="text-xs text-gray-500">
+                  Audited smart contracts
                 </p>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
               <a
                 href="mailto:contact@example.com"
-                className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl hover:from-purple-500 hover:to-blue-500 transition-all font-semibold text-lg shadow-lg shadow-purple-500/50 hover:shadow-xl hover:shadow-purple-500/60 hover:scale-105"
+                className="group inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg transition-all font-semibold text-sm"
+                style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
               >
-                <Mail className="w-5 h-5" />
+                <Mail className="w-4 h-4" />
                 Get in Touch
-                <ExternalLink className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </a>
 
               {socialLinks.telegram && (
@@ -848,16 +727,18 @@ export default function LandingPage() {
                   href={socialLinks.telegram}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl hover:bg-slate-800 hover:border-blue-500/50 transition-all font-semibold text-lg"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-white/[0.05] border border-white/[0.05] rounded-lg hover:bg-white/[0.08] transition-all font-semibold text-sm"
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
                 >
-                  <Send className="w-5 h-5" />
+                  <Send className="w-4 h-4" />
                   Contact on Telegram
                 </a>
               )}
             </div>
 
-            <div className="mt-8 text-center">
-              <p className="text-sm text-gray-500">
+            <div className="text-center">
+              <p className="text-xs text-gray-600">
                 We review all applications and respond within 48 hours
               </p>
             </div>
@@ -866,36 +747,34 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-20 bg-gradient-to-b from-slate-900 to-slate-950">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl animate-pulse" />
-        </div>
+      <section className="relative py-16 bg-[#060609]">
         
         <div className="relative max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
+          <h2 className="text-3xl lg:text-4xl font-bold mb-3" style={{ background: 'linear-gradient(45deg, white, #fb57ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
             Start Earning Today
           </h2>
-          <p className="text-xl text-gray-400 mb-8">
+          <p className="text-sm text-gray-500 mb-6">
             Join the future of decentralized finance on Solana
           </p>
           <button
             onClick={() => router.push("/dashboard")}
-            className="inline-flex items-center gap-2 px-10 py-5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:from-blue-500 hover:to-purple-500 transition-all font-semibold text-xl shadow-2xl shadow-blue-500/50 hover:scale-110"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg transition-all font-semibold text-sm"
+            style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
           >
-            <Sparkles className="w-6 h-6" />
+            <Sparkles className="w-4 h-4" />
             Get Started Now
-            <ArrowRight className="w-6 h-6" />
+            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="relative border-t border-slate-800 bg-slate-950 py-12">
+      <footer className="relative border-t border-white/[0.05] bg-[#060609] py-12">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="text-center md:text-left">
               <p className="text-gray-400">
-                © 2025 SolStream Staking. Built on Solana with ❤️
+                © 2025 Stakeflow. Built on Solana with ❤️
               </p>
             </div>
             
@@ -905,19 +784,23 @@ export default function LandingPage() {
                 href={socialLinks.telegram || "#"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center w-10 h-10 bg-slate-800/50 backdrop-blur border border-slate-700 rounded-full hover:bg-slate-800 hover:border-blue-500/50 transition-all group"
+                className="flex items-center justify-center w-10 h-10 bg-white/[0.02] border border-white/[0.05] rounded-full hover:bg-white/[0.05] transition-all group"
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
                 aria-label="Telegram"
               >
-                <Send className="w-5 h-5 text-gray-400 group-hover:text-blue-400 transition-colors" />
+                <Send className="w-5 h-5 text-gray-400 transition-colors" style={{ ['--hover-color' as any]: '#fb57ff' }} onMouseEnter={(e) => e.currentTarget.style.color = '#fb57ff'} onMouseLeave={(e) => e.currentTarget.style.color = ''} />
               </a>
               <a
                 href={socialLinks.twitter || "#"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center w-10 h-10 bg-slate-800/50 backdrop-blur border border-slate-700 rounded-full hover:bg-slate-800 hover:border-blue-500/50 transition-all group"
+                className="flex items-center justify-center w-10 h-10 bg-white/[0.02] border border-white/[0.05] rounded-full hover:bg-white/[0.05] transition-all group"
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
                 aria-label="Twitter"
               >
-                <Twitter className="w-5 h-5 text-gray-400 group-hover:text-blue-400 transition-colors" />
+                <Twitter className="w-5 h-5 text-gray-400 transition-colors" style={{ ['--hover-color' as any]: '#fb57ff' }} onMouseEnter={(e) => e.currentTarget.style.color = '#fb57ff'} onMouseLeave={(e) => e.currentTarget.style.color = ''} />
               </a>
             </div>
           </div>

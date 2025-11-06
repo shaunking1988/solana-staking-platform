@@ -237,12 +237,12 @@ export default function HistoryPage() {
     return (
       <div className="p-6 space-y-6">
         <div className="space-y-2">
-          <div className="h-10 w-64 bg-slate-800 rounded animate-pulse" />
-          <div className="h-5 w-48 bg-slate-800 rounded animate-pulse" />
+          <div className="h-10 w-64 bg-white/[0.05] rounded animate-pulse" />
+          <div className="h-5 w-48 bg-white/[0.05] rounded animate-pulse" />
         </div>
         
-        <div className="bg-gray-800 rounded-lg p-6">
-          <div className="h-10 w-full bg-slate-700 rounded animate-pulse mb-4" />
+        <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-6">
+          <div className="h-10 w-full bg-white/[0.05] rounded animate-pulse mb-4" />
         </div>
         
         <ActivityListSkeleton count={8} />
@@ -254,10 +254,15 @@ export default function HistoryPage() {
   if (!connected) {
     return (
       <div className="p-6">
-        <h1 className="text-3xl font-bold text-white mb-2">Activity History</h1>
-        <p className="text-gray-400 mb-8">View your complete transaction history</p>
+        <h1 
+          className="text-3xl font-bold mb-2"
+          style={{ background: 'linear-gradient(45deg, white, #fb57ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
+        >
+          Activity History
+        </h1>
+        <p className="text-gray-500 mb-8">View your complete transaction history</p>
         
-        <div className="text-center py-20 bg-gray-800 rounded-xl">
+        <div className="text-center py-20 bg-white/[0.02] border border-white/[0.05] rounded-xl">
           <Wallet className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-white mb-2">Connect Your Wallet</h2>
           <p className="text-gray-400 mb-6">
@@ -276,10 +281,15 @@ export default function HistoryPage() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Activity History</h1>
-          <p className="text-gray-400">
-            Showing <span className="text-purple-400 font-semibold">{filteredActivities.length}</span> of{" "}
-            <span className="text-purple-400 font-semibold">{activities.length}</span> transactions
+          <h1 
+            className="text-3xl font-bold mb-2"
+            style={{ background: 'linear-gradient(45deg, white, #fb57ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
+          >
+            Activity History
+          </h1>
+          <p className="text-gray-500">
+            Showing <span className="font-semibold" style={{ color: '#fb57ff' }}>{filteredActivities.length}</span> of{" "}
+            <span className="font-semibold" style={{ color: '#fb57ff' }}>{activities.length}</span> transactions
           </p>
           <p className="text-xs text-gray-500 mt-1">
             Wallet: {publicKey?.toString().slice(0, 4)}...{publicKey?.toString().slice(-4)}
@@ -289,7 +299,7 @@ export default function HistoryPage() {
         <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-all hover:scale-105"
+            className="flex items-center gap-2 px-4 py-2 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.05] rounded-lg transition-all hover:scale-105"
           >
             <Filter className="w-5 h-5" />
             {showFilters ? "Hide Filters" : "Show Filters"}
@@ -298,7 +308,8 @@ export default function HistoryPage() {
           <button
             onClick={exportToCSV}
             disabled={isExporting || filteredActivities.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all hover:scale-105"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
           >
             {isExporting ? (
               <>
@@ -317,7 +328,7 @@ export default function HistoryPage() {
 
       {/* Filters Section */}
       {showFilters && (
-        <div className="bg-gray-800 rounded-lg p-6 space-y-4 animate-in slide-in-from-top duration-300">
+        <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-6 space-y-4 animate-in slide-in-from-top duration-300">
           {/* Search Bar */}
           <div>
             <label className="flex items-center gap-2 text-sm font-semibold text-gray-300 mb-2">
@@ -330,7 +341,8 @@ export default function HistoryPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by pool name, symbol, or transaction hash..."
-                className="w-full bg-gray-900 text-white pl-10 pr-10 py-3 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none transition-colors"
+                className="w-full bg-white/[0.05] text-white pl-10 pr-10 py-3 rounded-lg border border-white/[0.05] focus:outline-none transition-colors"
+                style={{ borderColor: searchQuery ? 'rgba(251, 87, 255, 0.3)' : '' }}
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
               {searchQuery && (
@@ -354,7 +366,7 @@ export default function HistoryPage() {
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as any)}
-                className="w-full bg-gray-900 text-white px-3 py-2.5 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none transition-colors"
+                className="w-full bg-white/[0.05] text-white px-3 py-2.5 rounded-lg border border-white/[0.05] focus:outline-none transition-colors"
               >
                 <option value="all">All Types</option>
                 <option value="stake">Stake</option>
@@ -372,7 +384,7 @@ export default function HistoryPage() {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="w-full bg-gray-900 text-white px-3 py-2.5 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none transition-colors"
+                className="w-full bg-white/[0.05] text-white px-3 py-2.5 rounded-lg border border-white/[0.05] focus:outline-none transition-colors"
               >
                 <option value="all">All Status</option>
                 <option value="completed">Completed</option>
@@ -390,7 +402,7 @@ export default function HistoryPage() {
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full bg-gray-900 text-white px-3 py-2.5 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none transition-colors"
+                className="w-full bg-white/[0.05] text-white px-3 py-2.5 rounded-lg border border-white/[0.05] focus:outline-none transition-colors"
               />
             </div>
 
@@ -403,17 +415,17 @@ export default function HistoryPage() {
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="w-full bg-gray-900 text-white px-3 py-2.5 rounded-lg border border-gray-700 focus:border-purple-500 focus:outline-none transition-colors"
+                className="w-full bg-white/[0.05] text-white px-3 py-2.5 rounded-lg border border-white/[0.05] focus:outline-none transition-colors"
               />
             </div>
           </div>
 
           {/* Clear Filters Button */}
           {hasActiveFilters && (
-            <div className="flex justify-end pt-2 border-t border-gray-700">
+            <div className="flex justify-end pt-2 border-t border-white/[0.05]">
               <button
                 onClick={clearFilters}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all hover:scale-105"
+                className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-600/30 text-red-400 rounded-lg font-semibold transition-all hover:scale-105"
               >
                 <X className="w-4 h-4" />
                 Clear Filters
@@ -425,7 +437,7 @@ export default function HistoryPage() {
           {hasActiveFilters && (
             <div className="flex flex-wrap gap-2 pt-2">
               {searchQuery && (
-                <span className="px-3 py-1 bg-purple-600/20 text-purple-300 rounded-full text-sm flex items-center gap-1">
+                <span className="px-3 py-1 rounded-full text-sm flex items-center gap-1 border" style={{ background: 'rgba(251, 87, 255, 0.2)', borderColor: 'rgba(251, 87, 255, 0.5)', color: '#fb57ff' }}>
                   Search: "{searchQuery}"
                   <button onClick={() => setSearchQuery("")} className="hover:text-white">
                     <X className="w-3 h-3" />
@@ -433,7 +445,7 @@ export default function HistoryPage() {
                 </span>
               )}
               {filterType !== "all" && (
-                <span className="px-3 py-1 bg-blue-600/20 text-blue-300 rounded-full text-sm flex items-center gap-1 capitalize">
+                <span className="px-3 py-1 rounded-full text-sm flex items-center gap-1 capitalize border" style={{ background: 'rgba(251, 87, 255, 0.2)', borderColor: 'rgba(251, 87, 255, 0.5)', color: '#fb57ff' }}>
                   Type: {filterType}
                   <button onClick={() => setFilterType("all")} className="hover:text-white">
                     <X className="w-3 h-3" />
@@ -441,7 +453,7 @@ export default function HistoryPage() {
                 </span>
               )}
               {filterStatus !== "all" && (
-                <span className="px-3 py-1 bg-yellow-600/20 text-yellow-300 rounded-full text-sm flex items-center gap-1 capitalize">
+                <span className="px-3 py-1 rounded-full text-sm flex items-center gap-1 capitalize border" style={{ background: 'rgba(251, 87, 255, 0.2)', borderColor: 'rgba(251, 87, 255, 0.5)', color: '#fb57ff' }}>
                   Status: {filterStatus}
                   <button onClick={() => setFilterStatus("all")} className="hover:text-white">
                     <X className="w-3 h-3" />
@@ -449,7 +461,7 @@ export default function HistoryPage() {
                 </span>
               )}
               {(dateFrom || dateTo) && (
-                <span className="px-3 py-1 bg-green-600/20 text-green-300 rounded-full text-sm flex items-center gap-1">
+                <span className="px-3 py-1 rounded-full text-sm flex items-center gap-1 border" style={{ background: 'rgba(251, 87, 255, 0.2)', borderColor: 'rgba(251, 87, 255, 0.5)', color: '#fb57ff' }}>
                   Date: {dateFrom || "Start"} - {dateTo || "End"}
                   <button onClick={() => { setDateFrom(""); setDateTo(""); }} className="hover:text-white">
                     <X className="w-3 h-3" />
@@ -476,7 +488,8 @@ export default function HistoryPage() {
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg font-semibold transition-all hover:scale-105"
+              className="px-6 py-3 text-white rounded-lg font-semibold transition-all hover:scale-105"
+              style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
             >
               Clear All Filters
             </button>
@@ -485,9 +498,9 @@ export default function HistoryPage() {
       ) : (
         <div className="space-y-6">
           {Object.entries(groupedActivities).map(([date, dayActivities]) => (
-            <div key={date} className="bg-gray-800 rounded-lg p-6 animate-in slide-in-from-bottom duration-300">
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-gray-700">
-                <Calendar className="w-5 h-5 text-purple-400" />
+            <div key={date} className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-6 animate-in slide-in-from-bottom duration-300">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b border-white/[0.05]">
+                <Calendar className="w-5 h-5" style={{ color: '#fb57ff' }} />
                 <h2 className="text-lg font-bold text-white">{date}</h2>
                 <span className="ml-auto text-sm text-gray-400">{dayActivities.length} transactions</span>
               </div>
@@ -496,8 +509,10 @@ export default function HistoryPage() {
                 {dayActivities.map((activity, index) => (
                   <div
                     key={activity.id}
-                    className="bg-gray-900/50 rounded-lg p-4 hover:bg-gray-900 transition-all border border-gray-700 hover:border-gray-600 animate-in slide-in-from-left duration-300"
+                    className="bg-white/[0.02] rounded-lg p-4 hover:bg-white/[0.04] transition-all border border-white/[0.05] animate-in slide-in-from-left duration-300"
                     style={{ animationDelay: `${index * 50}ms` }}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                       {/* Icon & Type */}
@@ -559,7 +574,7 @@ export default function HistoryPage() {
 
       {/* Pagination */}
       {filteredActivities.length > 0 && (
-        <div className="bg-gray-800 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Items per page */}
           <div className="flex items-center gap-2">
             <span className="text-gray-400 text-sm">Show</span>
@@ -569,7 +584,7 @@ export default function HistoryPage() {
                 setItemsPerPage(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              className="bg-gray-900 text-white px-3 py-1.5 rounded border border-gray-700 focus:border-purple-500 focus:outline-none text-sm"
+              className="bg-white/[0.05] text-white px-3 py-1.5 rounded border border-white/[0.05] focus:outline-none text-sm"
             >
               <option value={10}>10</option>
               <option value={25}>25</option>
@@ -589,7 +604,7 @@ export default function HistoryPage() {
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="p-2 bg-gray-900 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-all"
+              className="p-2 bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-50 disabled:cursor-not-allowed rounded transition-all"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -613,9 +628,10 @@ export default function HistoryPage() {
                     onClick={() => setCurrentPage(pageNum)}
                     className={`px-3 py-1 rounded transition-all ${
                       currentPage === pageNum
-                        ? "bg-purple-600 text-white"
-                        : "bg-gray-900 text-gray-400 hover:bg-gray-700"
+                        ? "text-white"
+                        : "bg-white/[0.05] text-gray-400 hover:bg-white/[0.08]"
                     }`}
+                    style={currentPage === pageNum ? { background: 'linear-gradient(45deg, black, #fb57ff)' } : {}}
                   >
                     {pageNum}
                   </button>
@@ -626,7 +642,7 @@ export default function HistoryPage() {
             <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
-              className="p-2 bg-gray-900 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-all"
+              className="p-2 bg-white/[0.05] hover:bg-white/[0.08] disabled:opacity-50 disabled:cursor-not-allowed rounded transition-all"
             >
               <ChevronRight className="w-5 h-5" />
             </button>

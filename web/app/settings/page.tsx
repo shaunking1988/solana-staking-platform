@@ -155,7 +155,10 @@ export default function SettingsPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div 
+            className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4" 
+            style={{ borderColor: '#fb57ff', borderTopColor: 'transparent' }}
+          />
           <p className="text-gray-400">Loading settings...</p>
         </div>
       </div>
@@ -166,14 +169,19 @@ export default function SettingsPage() {
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
-        <p className="text-gray-400">Manage your account preferences and settings</p>
+        <h1 
+          className="text-3xl font-bold mb-2"
+          style={{ background: 'linear-gradient(45deg, white, #fb57ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
+        >
+          Settings
+        </h1>
+        <p className="text-gray-500">Manage your account preferences and settings</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar Navigation */}
         <div className="lg:col-span-1">
-          <nav className="bg-slate-900 rounded-xl p-2 space-y-1 sticky top-6">
+          <nav className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-2 space-y-1 sticky top-6">
             {sections.map((section) => {
               const Icon = section.icon;
               return (
@@ -182,9 +190,10 @@ export default function SettingsPage() {
                   onClick={() => setActiveSection(section.id as SettingsSection)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                     activeSection === section.id
-                      ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg"
-                      : "text-gray-400 hover:bg-slate-800 hover:text-white"
+                      ? "text-white shadow-lg"
+                      : "text-gray-400 hover:bg-white/[0.05] hover:text-white"
                   }`}
+                  style={activeSection === section.id ? { background: 'linear-gradient(45deg, black, #fb57ff)' } : {}}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="font-medium">{section.label}</span>
@@ -197,7 +206,7 @@ export default function SettingsPage() {
 
         {/* Content Area */}
         <div className="lg:col-span-3">
-          <div className="bg-slate-900 rounded-xl p-6 space-y-6">
+          <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6 space-y-6">
             {/* Profile Settings */}
             {activeSection === "profile" && (
               <div className="space-y-6 animate-in fade-in duration-300">
@@ -218,7 +227,7 @@ export default function SettingsPage() {
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="Enter your name"
-                    className="w-full bg-slate-800 text-white px-4 py-3 rounded-lg border border-slate-700 focus:border-purple-500 focus:outline-none transition-colors"
+                    className="w-full bg-white/[0.05] text-white px-4 py-3 rounded-lg border border-white/[0.05] focus:outline-none transition-colors"
                   />
                 </div>
 
@@ -231,7 +240,7 @@ export default function SettingsPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your.email@example.com"
-                    className="w-full bg-slate-800 text-white px-4 py-3 rounded-lg border border-slate-700 focus:border-purple-500 focus:outline-none transition-colors"
+                    className="w-full bg-white/[0.05] text-white px-4 py-3 rounded-lg border border-white/[0.05] focus:outline-none transition-colors"
                   />
                   <p className="text-xs text-gray-500 mt-2">
                     Used for important account notifications
@@ -245,7 +254,7 @@ export default function SettingsPage() {
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full bg-slate-800 text-white px-4 py-3 rounded-lg border border-slate-700 focus:border-purple-500 focus:outline-none transition-colors"
+                    className="w-full bg-white/[0.05] text-white px-4 py-3 rounded-lg border border-white/[0.05] focus:outline-none transition-colors"
                   >
                     <option value="en">English</option>
                     <option value="es">Español</option>
@@ -269,7 +278,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <label className="flex items-center justify-between p-4 bg-slate-800 rounded-lg cursor-pointer hover:bg-slate-750 transition-colors">
+                  <label className="flex items-center justify-between p-4 bg-white/[0.05] rounded-lg cursor-pointer hover:bg-white/[0.08] transition-colors">
                     <div>
                       <p className="font-semibold text-white">Email Notifications</p>
                       <p className="text-sm text-gray-400">Receive updates via email</p>
@@ -278,11 +287,12 @@ export default function SettingsPage() {
                       type="checkbox"
                       checked={emailNotifications}
                       onChange={(e) => setEmailNotifications(e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-700 bg-gray-900 text-purple-600 focus:ring-purple-500"
+                      className="w-5 h-5 rounded"
+                      style={{ accentColor: '#fb57ff' }}
                     />
                   </label>
 
-                  <label className="flex items-center justify-between p-4 bg-slate-800 rounded-lg cursor-pointer hover:bg-slate-750 transition-colors">
+                  <label className="flex items-center justify-between p-4 bg-white/[0.05] rounded-lg cursor-pointer hover:bg-white/[0.08] transition-colors">
                     <div>
                       <p className="font-semibold text-white">Push Notifications</p>
                       <p className="text-sm text-gray-400">Browser push notifications</p>
@@ -291,42 +301,46 @@ export default function SettingsPage() {
                       type="checkbox"
                       checked={pushNotifications}
                       onChange={(e) => setPushNotifications(e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-700 bg-gray-900 text-purple-600 focus:ring-purple-500"
+                      className="w-5 h-5 rounded"
+                      style={{ accentColor: '#fb57ff' }}
                     />
                   </label>
                 </div>
 
-                <div className="border-t border-slate-700 pt-6">
+                <div className="border-t border-white/[0.05] pt-6">
                   <h3 className="font-semibold text-white mb-4">Notification Types</h3>
                   
                   <div className="space-y-3">
-                    <label className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg cursor-pointer">
+                    <label className="flex items-center justify-between p-3 bg-white/[0.05] rounded-lg cursor-pointer hover:bg-white/[0.08]">
                       <span className="text-white">Stake Confirmations</span>
                       <input
                         type="checkbox"
                         checked={notifyOnStake}
                         onChange={(e) => setNotifyOnStake(e.target.checked)}
-                        className="w-5 h-5 rounded border-gray-700 bg-gray-900 text-purple-600 focus:ring-purple-500"
+                        className="w-5 h-5 rounded"
+                        style={{ accentColor: '#fb57ff' }}
                       />
                     </label>
 
-                    <label className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg cursor-pointer">
+                    <label className="flex items-center justify-between p-3 bg-white/[0.05] rounded-lg cursor-pointer hover:bg-white/[0.08]">
                       <span className="text-white">Unstake Confirmations</span>
                       <input
                         type="checkbox"
                         checked={notifyOnUnstake}
                         onChange={(e) => setNotifyOnUnstake(e.target.checked)}
-                        className="w-5 h-5 rounded border-gray-700 bg-gray-900 text-purple-600 focus:ring-purple-500"
+                        className="w-5 h-5 rounded"
+                        style={{ accentColor: '#fb57ff' }}
                       />
                     </label>
 
-                    <label className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg cursor-pointer">
+                    <label className="flex items-center justify-between p-3 bg-white/[0.05] rounded-lg cursor-pointer hover:bg-white/[0.08]">
                       <span className="text-white">Reward Updates</span>
                       <input
                         type="checkbox"
                         checked={notifyOnRewards}
                         onChange={(e) => setNotifyOnRewards(e.target.checked)}
-                        className="w-5 h-5 rounded border-gray-700 bg-gray-900 text-purple-600 focus:ring-purple-500"
+                        className="w-5 h-5 rounded"
+                        style={{ accentColor: '#fb57ff' }}
                       />
                     </label>
                   </div>
@@ -357,9 +371,10 @@ export default function SettingsPage() {
                       }}
                       className={`p-4 rounded-lg border-2 transition-all ${
                         themeMode === "dark" && !autoTheme
-                          ? "border-purple-500 bg-purple-500/10"
-                          : "border-slate-700 bg-slate-800 hover:border-slate-600"
+                          ? "bg-white/[0.05]"
+                          : "bg-white/[0.02] hover:bg-white/[0.05]"
                       }`}
+                      style={themeMode === "dark" && !autoTheme ? { borderColor: '#fb57ff' } : { borderColor: 'rgba(255, 255, 255, 0.05)' }}
                     >
                       <div className="w-full h-16 bg-gradient-to-br from-slate-900 to-slate-800 rounded mb-2 flex items-center justify-center">
                         <Moon className="w-6 h-6 text-gray-400" />
@@ -436,7 +451,7 @@ export default function SettingsPage() {
                   <select
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
-                    className="w-full bg-slate-800 text-white px-4 py-3 rounded-lg border border-slate-700 focus:border-purple-500 focus:outline-none transition-colors"
+                    className="w-full bg-white/[0.05] text-white px-4 py-3 rounded-lg border border-white/[0.05] focus:outline-none transition-colors"
                   >
                     <option value="USD">USD - US Dollar ($)</option>
                     <option value="EUR">EUR - Euro (€)</option>
@@ -454,7 +469,7 @@ export default function SettingsPage() {
                   <select
                     value={numberFormat}
                     onChange={(e) => setNumberFormat(e.target.value)}
-                    className="w-full bg-slate-800 text-white px-4 py-3 rounded-lg border border-slate-700 focus:border-purple-500 focus:outline-none transition-colors"
+                    className="w-full bg-white/[0.05] text-white px-4 py-3 rounded-lg border border-white/[0.05] focus:outline-none transition-colors"
                   >
                     <option value="en-US">1,234.56 (US)</option>
                     <option value="de-DE">1.234,56 (DE)</option>
@@ -469,7 +484,7 @@ export default function SettingsPage() {
                   <select
                     value={timezone}
                     onChange={(e) => setTimezone(e.target.value)}
-                    className="w-full bg-slate-800 text-white px-4 py-3 rounded-lg border border-slate-700 focus:border-purple-500 focus:outline-none transition-colors"
+                    className="w-full bg-white/[0.05] text-white px-4 py-3 rounded-lg border border-white/[0.05] focus:outline-none transition-colors"
                   >
                     <option value="UTC">UTC</option>
                     <option value="America/New_York">Eastern Time (ET)</option>
@@ -494,7 +509,7 @@ export default function SettingsPage() {
                 </div>
 
                 {connected ? (
-                  <div className="bg-slate-800 rounded-lg p-6">
+                  <div className="bg-white/[0.05] rounded-lg p-6">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <p className="text-sm text-gray-400 mb-1">Connected Wallet</p>
@@ -511,13 +526,13 @@ export default function SettingsPage() {
                         disconnect();
                         showInfo("Wallet disconnected");
                       }}
-                      className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all"
+                      className="w-full px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-600/30 text-red-400 rounded-lg transition-all"
                     >
                       Disconnect Wallet
                     </button>
                   </div>
                 ) : (
-                  <div className="bg-slate-800 rounded-lg p-6 text-center">
+                  <div className="bg-white/[0.05] rounded-lg p-6 text-center">
                     <Wallet className="w-12 h-12 text-gray-600 mx-auto mb-3" />
                     <p className="text-gray-400 mb-4">No wallet connected</p>
                     <p className="text-sm text-gray-500">
@@ -540,7 +555,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <label className="flex items-center justify-between p-4 bg-slate-800 rounded-lg cursor-pointer hover:bg-slate-750 transition-colors">
+                  <label className="flex items-center justify-between p-4 bg-white/[0.05] rounded-lg cursor-pointer hover:bg-white/[0.08] transition-colors">
                     <div>
                       <p className="font-semibold text-white">Public Activity</p>
                       <p className="text-sm text-gray-400">Allow others to see your staking activity</p>
@@ -549,11 +564,12 @@ export default function SettingsPage() {
                       type="checkbox"
                       checked={activityPublic}
                       onChange={(e) => setActivityPublic(e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-700 bg-gray-900 text-purple-600 focus:ring-purple-500"
+                      className="w-5 h-5 rounded"
+                      style={{ accentColor: '#fb57ff' }}
                     />
                   </label>
 
-                  <label className="flex items-center justify-between p-4 bg-slate-800 rounded-lg cursor-pointer hover:bg-slate-750 transition-colors">
+                  <label className="flex items-center justify-between p-4 bg-white/[0.05] rounded-lg cursor-pointer hover:bg-white/[0.08] transition-colors">
                     <div>
                       <p className="font-semibold text-white">Show Balance</p>
                       <p className="text-sm text-gray-400">Display your balance publicly</p>
@@ -562,18 +578,20 @@ export default function SettingsPage() {
                       type="checkbox"
                       checked={showBalance}
                       onChange={(e) => setShowBalance(e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-700 bg-gray-900 text-purple-600 focus:ring-purple-500"
+                      className="w-5 h-5 rounded"
+                      style={{ accentColor: '#fb57ff' }}
                     />
                   </label>
                 </div>
 
-                <div className="border-t border-slate-700 pt-6">
+                <div className="border-t border-white/[0.05] pt-6">
                   <h3 className="font-semibold text-white mb-4">Data Management</h3>
                   
                   <div className="space-y-3">
                     <button
                       onClick={exportData}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-lg transition-all"
+                      style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
                     >
                       <Download className="w-5 h-5" />
                       Export My Data
@@ -592,11 +610,12 @@ export default function SettingsPage() {
             )}
 
             {/* Save Button */}
-            <div className="border-t border-slate-700 pt-6">
+            <div className="border-t border-white/[0.05] pt-6">
               <button
                 onClick={saveSettings}
                 disabled={isSaving}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg font-semibold transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 text-white rounded-lg font-semibold transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
               >
                 {isSaving ? (
                   <>

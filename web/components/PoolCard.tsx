@@ -733,56 +733,66 @@ export default function PoolCard(props: PoolCardProps) {
 
   return (
     <>
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300 rounded-xl p-3 sm:p-5 flex flex-col gap-3 sm:gap-4 relative overflow-hidden group">
-        <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col gap-1 items-end">
-          {showPoolNumber && (
-            <div className="bg-purple-500/20 border border-purple-500/50 text-purple-300 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold">
-              Pool #{poolId}
-            </div>
-          )}
-          {featured && (
-            <div className="bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold flex items-center gap-1">
-              ⭐ <span className="hidden sm:inline">Featured</span>
-            </div>
-          )}
-          {!isInitialized && (
-            <div className="bg-orange-500/20 border border-orange-500/30 text-orange-300 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold">
-              ⏳ Initializing
-            </div>
-          )}
-          {isPaused && (
-            <div className="bg-red-500/20 border border-red-500/30 text-red-300 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold">
-              ⏸ Paused
-            </div>
-          )}
-          {poolEndInfo.hasEnded && (
-            <div className="bg-red-500/20 border border-red-500/30 text-red-300 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold">
-              🔴 Ended
-            </div>
-          )}
-        </div>
-
-        {!effectiveMintAddress && (
-          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-red-500/20 border border-red-500/30 text-red-300 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold">
-            ⚠️ Not Configured
+      <div 
+        className="bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-all duration-200 rounded-lg p-3 sm:p-5 flex flex-col gap-3 sm:gap-4 relative group"
+        onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
+        onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
+      >
+        {/* Left side badges - positioned above the card */}
+        {(showPoolNumber || featured) && (
+          <div className="absolute -top-2 left-2 sm:-top-2 sm:left-3 flex flex-wrap gap-1 items-start z-20">
+            {showPoolNumber && (
+              <div className="px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-[10px] sm:text-xs font-semibold border backdrop-blur-sm" style={{ background: 'rgba(251, 87, 255, 0.2)', borderColor: 'rgba(251, 87, 255, 0.5)', color: '#fb57ff' }}>
+                Pool #{poolId}
+              </div>
+            )}
+            {featured && (
+              <div className="px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-[10px] sm:text-xs font-semibold border backdrop-blur-sm flex items-center gap-1" style={{ background: 'rgba(251, 87, 255, 0.2)', borderColor: 'rgba(251, 87, 255, 0.5)', color: '#fb57ff' }}>
+                ⭐ <span className="hidden sm:inline">Featured</span>
+              </div>
+            )}
           </div>
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        {/* Right side status badges - inside the card */}
+        {(!effectiveMintAddress || !isInitialized || isPaused || poolEndInfo.hasEnded) && (
+          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-wrap gap-1 items-start justify-end z-20">
+            {!effectiveMintAddress && (
+              <div className="px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-[10px] sm:text-xs font-semibold border backdrop-blur-sm bg-red-500/20 border-red-500/50 text-red-400">
+                ⚠️ Error
+              </div>
+            )}
+            {!isInitialized && effectiveMintAddress && (
+              <div className="px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-[10px] sm:text-xs font-semibold border backdrop-blur-sm bg-white/[0.05] border-white/[0.1] text-gray-400">
+                ⏳ Init
+              </div>
+            )}
+            {isPaused && (
+              <div className="px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-[10px] sm:text-xs font-semibold border backdrop-blur-sm bg-white/[0.05] border-white/[0.1] text-gray-400">
+                ⏸ Paused
+              </div>
+            )}
+            {poolEndInfo.hasEnded && (
+              <div className="px-1.5 py-0.5 sm:px-2 sm:py-1 rounded text-[10px] sm:text-xs font-semibold border backdrop-blur-sm bg-white/[0.05] border-white/[0.1] text-gray-400">
+                🔴 Ended
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center gap-2 sm:gap-3 relative z-10">
           <div className="relative flex-shrink-0">
             {logo ? (
-              <img src={logo} alt={name} className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full border-2 border-gray-700" />
+              <img src={logo} alt={name} className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full border-2 border-white/[0.1]" />
             ) : (
-              <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white font-bold text-sm sm:text-base md:text-lg">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base md:text-lg" style={{ background: 'rgba(251, 87, 255, 0.2)' }}>
                 {symbol.slice(0, 2)}
               </div>
             )}
             {type === "locked" ? (
-              <Lock className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 bg-red-500 text-white rounded-full p-0.5" />
+              <Lock className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white rounded-full p-0.5" style={{ background: '#fb57ff' }} />
             ) : (
-              <Unlock className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 bg-green-500 text-white rounded-full p-0.5" />
+              <Unlock className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white rounded-full p-0.5" style={{ background: '#fb57ff' }} />
             )}
           </div>
           
@@ -792,12 +802,12 @@ export default function PoolCard(props: PoolCardProps) {
             
             {priceLoading ? (
               <div className="flex items-center gap-1 mt-0.5 sm:mt-1">
-                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 border-2 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#fb57ff', borderTopColor: 'transparent' }}></div>
                 <span className="text-[9px] sm:text-[10px] text-gray-500">Loading...</span>
               </div>
             ) : price !== null ? (
               <div className="flex items-center gap-1 sm:gap-1.5 mt-0.5 sm:mt-1">
-                <p className="text-[10px] sm:text-xs font-semibold text-green-400 truncate">
+                <p className="text-[10px] sm:text-xs font-semibold text-gray-400 truncate">
                   ${price.toFixed(price < 0.01 ? 6 : price < 1 ? 4 : 2)}
                 </p>
                 {priceChange24h !== null && (
@@ -816,45 +826,37 @@ export default function PoolCard(props: PoolCardProps) {
         </div>
 
         <div className="relative z-10">
-          <div className={`p-2.5 sm:p-3 md:p-4 rounded-lg text-center ${
-            rate > 100
-              ? "bg-gradient-to-r from-green-600/30 to-emerald-600/30 border border-green-500/50"
-              : rate > 50
-              ? "bg-gradient-to-r from-yellow-600/30 to-orange-600/30 border border-yellow-500/50"
-              : "bg-gradient-to-r from-gray-700/30 to-gray-600/30 border border-gray-600/50"
-          }`}>
-            <p className="text-[9px] sm:text-[10px] md:text-xs text-gray-400 uppercase tracking-wide mb-0.5">
+          <div className="p-2.5 sm:p-3 md:p-4 rounded-lg text-center bg-white/[0.02] border border-white/[0.05]">
+            <p className="text-[9px] sm:text-[10px] md:text-xs text-gray-500 uppercase tracking-wide mb-0.5">
               {type === "locked" ? "APY" : "APR"}
             </p>
-            <p className={`text-xl sm:text-2xl md:text-3xl font-bold leading-none ${
-              rate > 100 ? "text-green-400" : rate > 50 ? "text-yellow-400" : "text-gray-300"
-            }`}>
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold leading-none" style={{ color: '#fb57ff' }}>
               {typeof rate === 'number' ? rate.toFixed(2) : rate ?? "-"}%
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm relative z-10">
-          <div className="bg-gray-800/50 p-2 rounded-lg border border-gray-700/50">
-            <p className="text-gray-400 text-[9px] sm:text-[10px] md:text-xs mb-0.5 leading-tight">Your Stake</p>
+          <div className="bg-white/[0.02] p-2 rounded-lg border border-white/[0.05]">
+            <p className="text-gray-500 text-[9px] sm:text-[10px] md:text-xs mb-0.5 leading-tight">Your Stake</p>
             <p className="text-white font-semibold text-[11px] sm:text-xs md:text-sm leading-tight truncate">
               {connected ? `${userStakedAmount.toFixed(2)}` : "-"}
             </p>
           </div>
           
-          <div className="bg-gray-800/50 p-2 rounded-lg border border-gray-700/50">
-            <p className="text-gray-400 text-[9px] sm:text-[10px] md:text-xs mb-0.5 leading-tight">
+          <div className="bg-white/[0.02] p-2 rounded-lg border border-white/[0.05]">
+            <p className="text-gray-500 text-[9px] sm:text-[10px] md:text-xs mb-0.5 leading-tight">
               {type === "locked" && lockupInfo.isLocked ? "Unlocks In" : "Lock Period"}
             </p>
             <p className="text-white font-semibold text-[11px] sm:text-xs md:text-sm leading-tight truncate">
               {type === "locked" ? (
                 lockupInfo.isLocked ? (
-                  <span className="text-yellow-400 flex items-center gap-1">
+                  <span className="flex items-center gap-1" style={{ color: '#fb57ff' }}>
                     <Clock className="w-3 h-3" />
                     {formatTimeRemaining(lockupInfo.remainingSeconds)}
                   </span>
                 ) : userStakedAmount > 0 ? (
-                  <span className="text-green-400">✓ Unlocked</span>
+                  <span style={{ color: '#fb57ff' }}>✓ Unlocked</span>
                 ) : (
                   lockPeriod && lockPeriod !== '0' ? `${lockPeriod}d` : "Unlocked"
                 )
@@ -864,13 +866,13 @@ export default function PoolCard(props: PoolCardProps) {
         </div>
 
         {poolEndTime && !poolEndInfo.hasEnded && (
-          <div className="bg-orange-500/10 border border-orange-500/30 p-2 rounded-lg relative z-10">
+          <div className="bg-white/[0.02] border border-white/[0.05] p-2 rounded-lg relative z-10">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1 sm:gap-1.5">
-                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-orange-400 flex-shrink-0" />
-                <span className="text-[9px] sm:text-[10px] md:text-xs text-orange-400">Pool Ends In</span>
+                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 flex-shrink-0" />
+                <span className="text-[9px] sm:text-[10px] md:text-xs text-gray-400">Pool Ends In</span>
               </div>
-              <span className="text-orange-400 font-bold text-[11px] sm:text-xs md:text-sm">
+              <span className="text-white font-bold text-[11px] sm:text-xs md:text-sm">
                 {formatTimeRemaining(poolEndInfo.remainingSeconds)}
               </span>
             </div>
@@ -880,18 +882,18 @@ export default function PoolCard(props: PoolCardProps) {
         <button
           onClick={() => setOpenModal("viewBalances")}
           disabled={!connected}
-          className="w-full bg-gradient-to-r from-green-600/20 to-purple-600/20 hover:from-green-600/30 hover:to-purple-600/30 border border-green-500/30 p-2.5 rounded-lg relative z-10 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+          className="w-full bg-white/[0.02] hover:bg-white/[0.04] border border-white/[0.05] p-2 rounded-lg relative z-10 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
         >
           <div className="flex items-center gap-2">
-            <Coins className="w-4 h-4 text-green-400" />
-            <span className="text-sm font-semibold text-white">View Balances</span>
+            <Coins className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium text-white">View Balances</span>
           </div>
           <div className="flex items-center gap-2">
             {realtimeRewards > 0 && (
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#fb57ff' }} />
             )}
             {reflectionBalance > 0 && (
-              <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#fb57ff' }} />
             )}
           </div>
         </button>
@@ -900,7 +902,8 @@ export default function PoolCard(props: PoolCardProps) {
           <button
             onClick={() => setOpenModal("stake")}
             disabled={isStakeDisabled}
-            className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white py-2 sm:py-2.5 md:py-3 px-2 rounded-lg text-[11px] sm:text-xs md:text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 min-h-[40px] sm:min-h-[44px] leading-tight"
+            className="text-white py-2 px-2 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[36px] leading-tight"
+            style={{ background: isStakeDisabled ? 'rgba(255,255,255,0.05)' : 'linear-gradient(45deg, black, #fb57ff)' }}
             title={isStakeDisabled ? (
               !isInitialized ? "Pool not initialized" :
               isPaused ? "Pool paused" :
@@ -914,7 +917,7 @@ export default function PoolCard(props: PoolCardProps) {
           <button
             onClick={() => setOpenModal("unstake")}
             disabled={isUnstakeDisabled}
-            className="bg-gray-600 hover:bg-gray-700 active:bg-gray-800 text-white py-2 sm:py-2.5 md:py-3 px-2 rounded-lg text-[11px] sm:text-xs md:text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 min-h-[40px] sm:min-h-[44px] leading-tight"
+            className="bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.05] text-white py-2 px-2 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[36px] leading-tight"
             title={isUnstakeDisabled ? (
               lockupInfo.isLocked ? `Locked for ${formatTimeRemaining(lockupInfo.remainingSeconds)}` :
               userStakedAmount <= 0 ? "No stake" :
@@ -928,7 +931,7 @@ export default function PoolCard(props: PoolCardProps) {
             <button
               onClick={() => setOpenModal("claimRewards")}
               disabled={isClaimDisabled}
-              className="col-span-2 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white py-2 sm:py-2.5 md:py-3 px-2 rounded-lg text-[11px] sm:text-xs md:text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 min-h-[40px] sm:min-h-[44px] leading-tight"
+              className="col-span-2 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.05] text-white py-2 px-2 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[36px] leading-tight"
               title={isClaimDisabled ? (
                 realtimeRewards <= 0 ? "No rewards yet" :
                 isPaused ? "Pool paused" :
@@ -942,7 +945,7 @@ export default function PoolCard(props: PoolCardProps) {
               <button
                 onClick={() => setOpenModal("claimRewards")}
                 disabled={isClaimDisabled}
-                className="bg-green-600 hover:bg-green-700 active:bg-green-800 text-white py-2 sm:py-2.5 md:py-3 px-2 rounded-lg text-[11px] sm:text-xs md:text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 min-h-[40px] sm:min-h-[44px] leading-tight"
+                className="bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.05] text-white py-2 px-2 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[36px] leading-tight"
                 title={isClaimDisabled ? (
                   realtimeRewards <= 0 ? "No rewards yet" :
                   isPaused ? "Pool paused" :
@@ -955,7 +958,7 @@ export default function PoolCard(props: PoolCardProps) {
               <button
                 onClick={() => setOpenModal(hasSelfReflections ? "claimSelf" : "claimExternal")}
                 disabled={isClaimReflectionsDisabled}
-                className="bg-yellow-600 hover:bg-yellow-700 active:bg-yellow-800 text-white py-2 sm:py-2.5 md:py-3 px-2 rounded-lg text-[11px] sm:text-xs md:text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 min-h-[40px] sm:min-h-[44px] leading-tight"
+                className="bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.05] text-white py-2 px-2 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all min-h-[36px] leading-tight"
                 title={isClaimReflectionsDisabled ? (
                   reflectionBalance <= 0 ? "No reflections yet" :
                   "Connect wallet"
@@ -968,21 +971,21 @@ export default function PoolCard(props: PoolCardProps) {
         </div>
 
         {!connected && (
-          <div className="relative z-10 flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-yellow-400 bg-yellow-600/10 border border-yellow-500/30 p-1.5 sm:p-2 rounded leading-tight">
+          <div className="relative z-10 flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-gray-400 bg-white/[0.02] border border-white/[0.05] p-1.5 sm:p-2 rounded leading-tight">
             <AlertCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
             <span>Connect wallet to interact</span>
           </div>
         )}
         
         {connected && !isInitialized && (
-          <div className="relative z-10 flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-orange-400 bg-orange-600/10 border border-orange-500/30 p-1.5 sm:p-2 rounded leading-tight">
+          <div className="relative z-10 flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-gray-400 bg-white/[0.02] border border-white/[0.05] p-1.5 sm:p-2 rounded leading-tight">
             <AlertTriangle className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
             <span>Pool initializing - check back soon</span>
           </div>
         )}
         
         {connected && isPaused && (
-          <div className="relative z-10 flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-red-400 bg-red-600/10 border border-red-500/30 p-1.5 sm:p-2 rounded leading-tight">
+          <div className="relative z-10 flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs text-gray-400 bg-white/[0.02] border border-white/[0.05] p-1.5 sm:p-2 rounded leading-tight">
             <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
             <span>Pool paused by admin</span>
           </div>

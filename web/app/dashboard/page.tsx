@@ -106,15 +106,17 @@ export default function Dashboard() {
         
         {/* Header */}
         <div className="mb-4 sm:mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2">Staking Dashboard</h1>
-          <p className="text-sm sm:text-base text-gray-400">Monitor your staking platform</p>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2" style={{ background: 'linear-gradient(45deg, white, #fb57ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            Staking Dashboard
+          </h1>
+          <p className="text-sm sm:text-base text-gray-500">Monitor your staking platform</p>
         </div>
 
         {/* Featured Pools Section */}
-        <div className="bg-gray-800 rounded-lg p-4 sm:p-6">
+        <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-4 sm:p-6">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-              <span className="text-yellow-400">⭐</span>
+              <span style={{ color: '#fb57ff' }}>⭐</span>
               Featured Pools
             </h2>
           </div>
@@ -122,13 +124,13 @@ export default function Dashboard() {
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
               {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="bg-gray-900 border border-gray-700 rounded-lg p-4 animate-pulse">
+                <div key={i} className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-4 animate-pulse">
                   <div className="flex flex-col items-center gap-2">
-                    <div className="w-14 h-14 rounded-full bg-gray-700"></div>
-                    <div className="w-20 h-4 bg-gray-700 rounded"></div>
-                    <div className="w-16 h-3 bg-gray-700 rounded"></div>
-                    <div className="w-16 h-6 bg-gray-700 rounded"></div>
-                    <div className="w-full h-9 bg-gray-700 rounded"></div>
+                    <div className="w-14 h-14 rounded-full bg-white/[0.05]"></div>
+                    <div className="w-20 h-4 bg-white/[0.05] rounded"></div>
+                    <div className="w-16 h-3 bg-white/[0.05] rounded"></div>
+                    <div className="w-16 h-6 bg-white/[0.05] rounded"></div>
+                    <div className="w-full h-9 bg-white/[0.05] rounded"></div>
                   </div>
                 </div>
               ))}
@@ -136,12 +138,17 @@ export default function Dashboard() {
           ) : featuredPools.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
               {featuredPools.map((pool) => (
-                <div key={pool.id} className="bg-gradient-to-r from-gray-900 to-gray-800 border border-purple-500/50 rounded-lg p-3 sm:p-4 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20 hover:border-purple-500">
+                <div 
+                  key={pool.id} 
+                  className="bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] rounded-lg p-3 sm:p-4 transition-all duration-200"
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
+                >
                   <div className="flex flex-col items-center text-center gap-2">
                     {pool.logo ? (
-                      <img src={pool.logo} alt={pool.name} className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-purple-500/50" />
+                      <img src={pool.logo} alt={pool.name} className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-white/[0.1]" />
                     ) : (
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0" style={{ background: 'rgba(251, 87, 255, 0.2)' }}>
                         {pool.symbol.slice(0, 2)}
                       </div>
                     )}
@@ -149,20 +156,18 @@ export default function Dashboard() {
                       <h3 className="font-bold text-white text-sm sm:text-base truncate" title={pool.name}>
                         {pool.name}
                       </h3>
-                      <p className="text-gray-400 text-xs truncate">{pool.symbol}</p>
+                      <p className="text-gray-500 text-xs truncate">{pool.symbol}</p>
                     </div>
                     <div className="w-full">
-                      <p className={`text-xl sm:text-2xl font-bold ${
-                        (pool.apy || pool.apr || 0) > 100 ? "text-green-400" : 
-                        (pool.apy || pool.apr || 0) > 50 ? "text-yellow-400" : "text-gray-300"
-                      }`}>
+                      <p className="text-xl sm:text-2xl font-bold" style={{ color: '#fb57ff' }}>
                         {pool.type === "locked" ? pool.apy : pool.apr}%
                       </p>
-                      <p className="text-xs text-gray-400">{pool.type === "locked" ? "APY" : "APR"}</p>
+                      <p className="text-xs text-gray-500">{pool.type === "locked" ? "APY" : "APR"}</p>
                     </div>
                     <button 
                       onClick={() => handleStakeNow(pool.id)}
-                      className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-lg font-semibold transition-all active:scale-95 text-sm"
+                      className="w-full px-3 py-2 text-white rounded-lg font-medium transition-all text-sm"
+                      style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
                     >
                       Stake Now
                     </button>
@@ -172,8 +177,8 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-400 text-sm">No featured pools available</p>
-              <p className="text-gray-500 text-xs mt-1">Set pools as featured in the admin panel</p>
+              <p className="text-gray-500 text-sm">No featured pools available</p>
+              <p className="text-gray-600 text-xs mt-1">Set pools as featured in the admin panel</p>
             </div>
           )}
         </div>
@@ -182,15 +187,15 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           
           {/* Total Value Locked */}
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-5 hover:bg-gray-700 transition-all duration-300">
+          <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-4 sm:p-5 hover:bg-white/[0.04] transition-all">
             <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <div className="text-gray-400 text-xs sm:text-sm">Total Value Locked</div>
-              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
+              <div className="text-gray-500 text-xs sm:text-sm">Total Value Locked</div>
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#fb57ff' }} />
             </div>
             {statsLoading ? (
               <div className="animate-pulse">
-                <div className="h-8 bg-gray-700 rounded w-24 mb-1"></div>
-                <div className="h-3 bg-gray-700 rounded w-16"></div>
+                <div className="h-8 bg-white/[0.05] rounded w-24 mb-1"></div>
+                <div className="h-3 bg-white/[0.05] rounded w-16"></div>
               </div>
             ) : (
               <>
@@ -200,28 +205,28 @@ export default function Dashboard() {
                     minimumFractionDigits: 2 
                   })}
                 </div>
-                <div className="text-xs text-green-400 mt-1">Tokens Staked</div>
+                <div className="text-xs mt-1" style={{ color: '#fb57ff' }}>Tokens Staked</div>
               </>
             )}
           </div>
 
           {/* Total Stakers */}
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-5 hover:bg-gray-700 transition-all duration-300">
+          <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-4 sm:p-5 hover:bg-white/[0.04] transition-all">
             <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <div className="text-gray-400 text-xs sm:text-sm">Total Stakers</div>
-              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+              <div className="text-gray-500 text-xs sm:text-sm">Total Stakers</div>
+              <Users className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#fb57ff' }} />
             </div>
             {statsLoading ? (
               <div className="animate-pulse">
-                <div className="h-8 bg-gray-700 rounded w-16 mb-1"></div>
-                <div className="h-3 bg-gray-700 rounded w-20"></div>
+                <div className="h-8 bg-white/[0.05] rounded w-16 mb-1"></div>
+                <div className="h-3 bg-white/[0.05] rounded w-20"></div>
               </div>
             ) : (
               <>
                 <div className="text-xl sm:text-2xl font-bold text-white">
                   {stats.totalStakers.toLocaleString()}
                 </div>
-                <div className="text-xs text-green-400 mt-1">
+                <div className="text-xs mt-1" style={{ color: '#fb57ff' }}>
                   {stats.totalStakes} Total Stakes
                 </div>
               </>
@@ -234,21 +239,21 @@ export default function Dashboard() {
         <UserStakedPools />
 
         {/* Recent Activity */}
-        <div className="bg-gray-800 rounded-lg p-4 sm:p-6">
+        <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-4 sm:p-6">
           <h2 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">Recent Activity</h2>
           
           {connected ? (
             <div className="space-y-2 sm:space-y-3">
-              <div className="bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 hover:border-purple-500/50 rounded-lg p-3 sm:p-4 transition-all duration-300">
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-3 sm:p-4">
                 <div>
                   <div className="text-white font-semibold text-sm">No activity yet</div>
-                  <div className="text-gray-400 text-xs mt-1">Your transactions will appear here</div>
+                  <div className="text-gray-500 text-xs mt-1">Your transactions will appear here</div>
                 </div>
               </div>
             </div>
           ) : (
             <div className="text-center py-6 sm:py-8">
-              <div className="text-sm sm:text-base text-gray-400">Connect your wallet to view activity</div>
+              <div className="text-sm sm:text-base text-gray-500">Connect your wallet to view activity</div>
             </div>
           )}
         </div>

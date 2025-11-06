@@ -373,19 +373,22 @@ export default function SwapPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <h1 
+            className="text-4xl font-bold"
+            style={{ background: 'linear-gradient(45deg, white, #fb57ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
+          >
             Token Swap
           </h1>
-          <p className="text-gray-400">
+          <p className="text-gray-500">
             Powered by Jupiter + Raydium • {config ? `${config.platformFeePercentage.toFixed(2)}% platform fee` : "Loading..."}
           </p>
           {config && config.platformFeePercentage > 3 && (
-            <div className="mt-2 bg-yellow-500/20 border border-yellow-500 rounded-lg p-2">
-              <p className="text-yellow-200 text-sm">
+            <div className="mt-2 border rounded-lg p-2" style={{ background: 'rgba(251, 87, 255, 0.2)', borderColor: 'rgba(251, 87, 255, 0.5)' }}>
+              <p className="text-sm" style={{ color: '#fb57ff' }}>
                 ⚠️ Platform fee is {config.platformFeePercentage}% - verify this is correct in admin settings
               </p>
             </div>
@@ -401,12 +404,12 @@ export default function SwapPage() {
         </div>
 
         {/* Swap Card */}
-        <div className="bg-slate-900/50 backdrop-blur border border-slate-700 rounded-2xl p-6 space-y-4">
+        <div className="bg-white/[0.02] backdrop-blur border border-white/[0.05] rounded-2xl p-6 space-y-4">
           {/* Settings Button */}
           <div className="flex justify-end">
             <button
               onClick={() => setShowSettings(!showSettings)}
-              className="p-2 rounded-lg hover:bg-slate-800 transition-all"
+              className="p-2 rounded-lg hover:bg-white/[0.05] transition-all"
             >
               <Settings className="w-5 h-5 text-gray-400" />
             </button>
@@ -414,20 +417,21 @@ export default function SwapPage() {
 
           {/* Settings Panel */}
           {showSettings && (
-            <div className="bg-slate-800/50 rounded-lg p-4 space-y-3">
+            <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-4 space-y-3">
               <div>
-                <label className="text-sm text-gray-400 mb-2 block">Slippage Tolerance</label>
+                <label className="text-sm text-gray-500 mb-2 block">Slippage Tolerance</label>
                 <div className="flex gap-2">
                   {[0.1, 0.5, 1.0].map((value) => (
                     <button
                       key={value}
                       onClick={() => setSlippage(value)}
                       disabled={config && value > config.maxSlippage}
-                      className={`flex-1 px-3 py-2 rounded-lg transition-all ${
+                      className={`flex-1 px-3 py-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                         slippage === value
-                          ? "bg-blue-600 text-white"
-                          : "bg-slate-700 text-gray-300 hover:bg-slate-600"
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          ? "text-white"
+                          : "bg-white/[0.05] text-gray-300 hover:bg-white/[0.08]"
+                      }`}
+                      style={slippage === value ? { background: 'linear-gradient(45deg, black, #fb57ff)' } : {}}
                     >
                       {value}%
                     </button>
@@ -442,7 +446,8 @@ export default function SwapPage() {
                       }
                     }}
                     max={config?.maxSlippage}
-                    className="w-20 px-3 py-2 bg-slate-700 rounded-lg text-white text-center focus:border-blue-500 focus:outline-none"
+                    className="w-20 px-3 py-2 bg-white/[0.05] border border-white/[0.05] rounded-lg text-white text-center focus:outline-none"
+                    style={{ borderColor: 'rgba(251, 87, 255, 0.3)' }}
                     step="0.1"
                     min="0.1"
                   />
@@ -458,12 +463,12 @@ export default function SwapPage() {
 
           {/* From Token */}
           <div className="space-y-2">
-            <label className="text-sm text-gray-400">You Pay</label>
-            <div className="bg-slate-800/50 rounded-xl p-4">
+            <label className="text-sm text-gray-500">You Pay</label>
+            <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
               <div className="flex items-center gap-3 mb-2">
                 <button
                   onClick={() => setShowTokenSelect("from")}
-                  className="flex items-center gap-2 px-3 py-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition-all"
+                  className="flex items-center gap-2 px-3 py-2 bg-white/[0.05] rounded-lg hover:bg-white/[0.08] transition-all"
                 >
                   {fromToken?.logoURI && (
                     <img src={fromToken.logoURI} alt={fromToken.symbol} className="w-6 h-6 rounded-full" />
@@ -488,20 +493,20 @@ export default function SwapPage() {
             <button
               onClick={switchTokens}
               disabled={config && !config.swapEnabled}
-              className="p-2 bg-slate-800 border-4 border-slate-900 rounded-xl hover:bg-slate-700 transition-all disabled:opacity-50"
+              className="p-2 bg-white/[0.05] border-4 border-[#060609] rounded-xl hover:bg-white/[0.08] transition-all disabled:opacity-50"
             >
-              <ArrowDownUp className="w-5 h-5" />
+              <ArrowDownUp className="w-5 h-5" style={{ color: '#fb57ff' }} />
             </button>
           </div>
 
           {/* To Token */}
           <div className="space-y-2">
-            <label className="text-sm text-gray-400">You Receive</label>
-            <div className="bg-slate-800/50 rounded-xl p-4">
+            <label className="text-sm text-gray-500">You Receive</label>
+            <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
               <div className="flex items-center gap-3 mb-2">
                 <button
                   onClick={() => setShowTokenSelect("to")}
-                  className="flex items-center gap-2 px-3 py-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition-all"
+                  className="flex items-center gap-2 px-3 py-2 bg-white/[0.05] rounded-lg hover:bg-white/[0.08] transition-all"
                 >
                   {toToken?.logoURI && (
                     <img src={toToken.logoURI} alt={toToken.symbol} className="w-6 h-6 rounded-full" />
@@ -522,22 +527,22 @@ export default function SwapPage() {
 
           {/* Info */}
           {fromAmount && toAmount && config && (
-            <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 space-y-2 text-sm">
+            <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-3 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-400">Rate</span>
-                <span>
+                <span className="text-gray-500">Rate</span>
+                <span className="text-white">
                   1 {fromToken?.symbol} ≈ {(parseFloat(toAmount) / parseFloat(fromAmount)).toFixed(6)} {toToken?.symbol}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Platform Fee ({config.platformFeePercentage.toFixed(2)}%)</span>
-                <span>
+                <span className="text-gray-500">Platform Fee ({config.platformFeePercentage.toFixed(2)}%)</span>
+                <span className="text-white">
                   {((parseFloat(fromAmount) * config.platformFeePercentage) / 100).toFixed(6)} {fromToken?.symbol}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Slippage Tolerance</span>
-                <span>{slippage}%</span>
+                <span className="text-gray-500">Slippage Tolerance</span>
+                <span className="text-white">{slippage}%</span>
               </div>
             </div>
           )}
@@ -548,7 +553,7 @@ export default function SwapPage() {
               href={getExplorerLink(lastTxSignature)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 p-3 bg-green-900/20 border border-green-500/30 rounded-lg hover:bg-green-900/30 transition-all"
+              className="flex items-center justify-center gap-2 p-3 bg-green-500/20 border border-green-500/30 rounded-lg hover:bg-green-500/30 transition-all"
             >
               <span className="text-sm text-green-200">View last transaction on Solscan</span>
               <ExternalLink className="w-4 h-4 text-green-400" />
@@ -567,7 +572,8 @@ export default function SwapPage() {
               parseFloat(fromAmount) <= 0 ||
               (config && !config.swapEnabled)
             }
-            className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl font-bold text-lg hover:from-blue-500 hover:to-purple-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-4 rounded-xl font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
           >
             {swapping ? (
               <>
@@ -588,9 +594,9 @@ export default function SwapPage() {
 
           {/* Warning */}
           {!publicKey && (
-            <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3 flex items-start gap-2">
-              <Info className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-yellow-200">
+            <div className="border rounded-lg p-3 flex items-start gap-2" style={{ background: 'rgba(251, 87, 255, 0.2)', borderColor: 'rgba(251, 87, 255, 0.5)' }}>
+              <Info className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#fb57ff' }} />
+              <p className="text-sm" style={{ color: '#fb57ff' }}>
                 Please connect your wallet to start swapping
               </p>
             </div>
@@ -599,32 +605,32 @@ export default function SwapPage() {
 
         {/* Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-4">
+          <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Zap className="w-5 h-5 text-blue-400" />
-              <span className="font-semibold">Fast Swaps</span>
+              <Zap className="w-5 h-5" style={{ color: '#fb57ff' }} />
+              <span className="font-semibold text-white">Fast Swaps</span>
             </div>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-500">
               Jupiter aggregator + Raydium fallback
             </p>
           </div>
 
-          <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-4">
+          <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-5 h-5 text-green-400" />
-              <span className="font-semibold">Best Prices</span>
+              <TrendingUp className="w-5 h-5" style={{ color: '#fb57ff' }} />
+              <span className="font-semibold text-white">Best Prices</span>
             </div>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-500">
               Supports low-liquidity tokens
             </p>
           </div>
 
-          <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-4">
+          <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Info className="w-5 h-5 text-purple-400" />
-              <span className="font-semibold">Platform Fee</span>
+              <Info className="w-5 h-5" style={{ color: '#fb57ff' }} />
+              <span className="font-semibold text-white">Platform Fee</span>
             </div>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-500">
               {config ? config.platformFeePercentage.toFixed(2) : "1.00"}% goes to treasury
             </p>
           </div>

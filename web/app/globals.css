@@ -14,23 +14,35 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ========== THEME VARIABLES ========== */
 :root {
-  /* Dark theme (default) */
-  --bg-primary: #020617;
-  --bg-secondary: #0f172a;
-  --bg-tertiary: #1e293b;
-  --text-primary: #ffffff;
-  --text-secondary: #94a3b8;
-  --border-color: #334155;
+  /* Dark theme - Streamflow exact colors */
+  --bg-primary: #060609;
+  --bg-secondary: #0F1420;
+  --bg-tertiary: #1A1F2E;
+  --bg-elevated: #242937;
+  --text-primary: #FFFFFF;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+  --border-color: #2F3541;
+  --accent-blue: #5B8DEF;
+  --accent-green: #10B981;
+  
+  /* Fonts */
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 html.light {
   /* Light theme */
   --bg-primary: #ffffff;
-  --bg-secondary: #f1f5f9;
-  --bg-tertiary: #e2e8f0;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --bg-elevated: #e2e8f0;
   --text-primary: #0f172a;
   --text-secondary: #475569;
+  --text-muted: #64748b;
   --border-color: #cbd5e1;
+  --accent-blue: #3B82F6;
+  --accent-green: #10B981;
 }
 
 /* Smooth theme transition */
@@ -322,4 +334,48 @@ html {
 
 .scale-105 {
   transform: scale(1.05);
+}
+
+/* ========== WALLET ADAPTER BUTTON OVERRIDES ========== */
+.wallet-adapter-button {
+  height: auto !important;
+  padding: 0.5rem 1rem !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  min-height: unset !important;
+  border-radius: 0.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.wallet-adapter-button-trigger {
+  height: auto !important;
+  padding: 0.5rem 1rem !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  min-height: unset !important;
+}
+
+/* Add wallet icon before button text */
+.wallet-adapter-button:not(.wallet-adapter-button-trigger)::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12V7H5a2 2 0 0 1 0-4h14v4'%3E%3C/path%3E%3Cpath d='M3 5v14a2 2 0 0 0 2 2h16v-5'%3E%3C/path%3E%3Cpath d='M18 12a2 2 0 0 0 0 4h4v-4Z'%3E%3C/path%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+/* ========== HIDE SCROLLBAR UTILITY ========== */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

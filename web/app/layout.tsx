@@ -4,11 +4,8 @@ import type { Metadata } from "next";
 import { SolanaWalletProvider } from "@/components/SolanaWalletProvider";
 import { ToastProvider } from "@/components/ToastContainer";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { PoolDataProvider } from "@/hooks/usePoolData"; // ✅ ADD THIS
-import dynamic from "next/dynamic";
-
-// ✅ Import Sidebar dynamically to prevent SSR issues
-const Sidebar = dynamic(() => import("@/components/Sidebar"), { ssr: false });
+import { PoolDataProvider } from "@/hooks/usePoolData";
+import LayoutContent from "@/components/LayoutContent";
 
 export const metadata: Metadata = {
   title: "Solana Staking Dashboard",
@@ -22,20 +19,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className="bg-dark-900 text-gray-100 min-h-screen">
+      <body className="bg-[#060609] text-gray-100 min-h-screen font-sans">
         <ThemeProvider>
           <SolanaWalletProvider>
-            <PoolDataProvider> {/* ✅ ADD THIS WRAPPER */}
+            <PoolDataProvider>
               <ToastProvider>
-                <div className="flex">
-                  <Sidebar />
-                  {/* MOBILE RESPONSIVE: No margin on mobile, sidebar margin on desktop */}
-                  <main className="flex-1 w-full lg:ml-64 p-4 sm:p-6 lg:p-8 transition-all duration-300">
-                    {children}
-                  </main>
-                </div>
+                <LayoutContent>{children}</LayoutContent>
               </ToastProvider>
-            </PoolDataProvider> {/* ✅ CLOSE IT HERE */}
+            </PoolDataProvider>
           </SolanaWalletProvider>
         </ThemeProvider>
       </body>

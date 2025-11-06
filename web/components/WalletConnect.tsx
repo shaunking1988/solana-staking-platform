@@ -1,20 +1,21 @@
-// components/WalletConnect.tsx
-// REPLACE YOUR ENTIRE FILE WITH THIS
-
 'use client';
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useState } from 'react';
+import { Copy, LogOut, Wallet } from 'lucide-react';
 
 export default function WalletConnect() {
   const { publicKey, disconnect, connected } = useWallet();
   const [showMenu, setShowMenu] = useState(false);
 
-  // If not connected, show the connect button
+  // If not connected, show the connect button with gradient style
   if (!connected || !publicKey) {
     return (
-      <WalletMultiButton className="!bg-gradient-to-r !from-purple-600 !to-pink-600 hover:!from-purple-700 hover:!to-pink-700 !rounded-lg !font-semibold !transition-all !w-full" />
+      <WalletMultiButton 
+        className="!rounded-lg !font-medium !transition-all !w-auto !whitespace-nowrap !min-w-0"
+        style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
+      />
     );
   }
 
@@ -26,19 +27,13 @@ export default function WalletConnect() {
     <div className="relative">
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className="w-full flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-lg text-white font-semibold transition-all shadow-md"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-all text-sm font-medium whitespace-nowrap"
+        style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
       >
-        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-          </svg>
-        </div>
-        <div className="flex-1 text-left">
-          <div className="text-xs opacity-80">Connected</div>
-          <div className="text-sm font-mono">{shortAddress}</div>
-        </div>
+        <Wallet className="w-3.5 h-3.5 flex-shrink-0" />
+        <span className="text-sm font-mono">{shortAddress}</span>
         <svg 
-          className={`w-4 h-4 transition-transform ${showMenu ? 'rotate-180' : ''}`} 
+          className={`w-3 h-3 transition-transform flex-shrink-0 ${showMenu ? 'rotate-180' : ''}`} 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
@@ -52,15 +47,15 @@ export default function WalletConnect() {
         <>
           {/* Backdrop to close menu */}
           <div 
-            className="fixed inset-0 z-40" 
+            className="fixed inset-0 z-[60]" 
             onClick={() => setShowMenu(false)}
           />
           
           {/* Menu */}
-          <div className="absolute bottom-full left-0 right-0 mb-2 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
-            <div className="p-3 border-b border-gray-700">
-              <div className="text-xs text-gray-400 mb-1">Wallet Address</div>
-              <div className="text-sm font-mono text-white break-all">{address}</div>
+          <div className="absolute top-full right-0 mt-2 w-64 bg-[#1A1F2E] border border-white/[0.08] rounded-md shadow-2xl z-[70] overflow-hidden">
+            <div className="p-3 border-b border-white/[0.05]">
+              <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-wide">Wallet Address</div>
+              <div className="text-xs font-mono text-gray-300 break-all">{address}</div>
             </div>
             
             <button
@@ -68,12 +63,10 @@ export default function WalletConnect() {
                 navigator.clipboard.writeText(address);
                 setShowMenu(false);
               }}
-              className="w-full px-4 py-3 text-left text-sm text-gray-300 hover:bg-gray-700 transition-colors flex items-center gap-2"
+              className="w-full px-3 py-2.5 text-left text-sm text-gray-300 hover:bg-white/5 transition-colors flex items-center gap-2.5"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Copy Address
+              <Copy className="w-4 h-4 text-gray-500" />
+              <span>Copy Address</span>
             </button>
             
             <button
@@ -81,12 +74,10 @@ export default function WalletConnect() {
                 disconnect();
                 setShowMenu(false);
               }}
-              className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-gray-700 transition-colors flex items-center gap-2"
+              className="w-full px-3 py-2.5 text-left text-sm text-accent-red hover:bg-white/5 transition-colors flex items-center gap-2.5 border-t border-white/[0.05]"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              Disconnect
+              <LogOut className="w-4 h-4" />
+              <span>Disconnect</span>
             </button>
           </div>
         </>
