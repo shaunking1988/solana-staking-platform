@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import WalletConnect from "@/components/WalletConnect";
-import { ThemeToggle } from "@/components/ThemeProvider";
 import { Menu } from "lucide-react";
 
 interface NavbarProps {
@@ -45,12 +43,10 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
         <h1 className="text-base font-bold text-white">StakePoint</h1>
       </div>
 
-      {/* Right Side - Wallet & Theme */}
+      {/* Right Side - Wallet Only */}
       <div className="flex items-center gap-2">
-        <ThemeToggle />
         <WalletConnect />
       </div>
     </nav>
   );
 }
-
