@@ -9,7 +9,7 @@ import { Home, Coins, Clock, Settings, Shield, Menu, X, Sparkles, ArrowDownUp } 
 
 const navItems = [
   { name: "Home", href: "/landing", icon: Sparkles },
-  { name: "Dashboard", href: "/", icon: Home },
+  { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Staking Pools", href: "/pools", icon: Coins },
   { name: "Swap", href: "/swap", icon: ArrowDownUp },
   { name: "History", href: "/history", icon: Clock },

@@ -32,3 +32,4 @@ anchor build && anchor deploy
 # Redeploy with DIRECT_URL
 # Apply env vars to all environments
 # Fix env var format
+# Fix env var format
