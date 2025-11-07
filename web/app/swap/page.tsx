@@ -188,7 +188,7 @@ export default function SwapPage() {
       });
       
       const quoteResponse = await fetch(
-        `/api/swap/quote?` +
+        `/api/swap/raydium-quote?` +
         `inputMint=${fromToken.address}&` +
         `outputMint=${toToken.address}&` +
         `amount=${amount}&` +
