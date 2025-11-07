@@ -178,20 +178,20 @@ export default function SwapPage() {
 
     setQuoteLoading(true);
     try {
-      const amount = parseFloat(fromAmount) * Math.pow(10, fromToken.decimals);
+      const amount = (parseFloat(fromAmount) * Math.pow(10, fromToken.decimals)).toFixed(0);
       
       console.log('🔍 Fetching quote:', {
         from: fromToken.symbol,
         to: toToken.symbol,
         fromAmount,
-        amountLamports: Math.floor(amount),
+        amountLamports: amount,
       });
       
       const quoteResponse = await fetch(
         `/api/swap/quote?` +
         `inputMint=${fromToken.address}&` +
         `outputMint=${toToken.address}&` +
-        `amount=${Math.floor(amount)}&` +
+        `amount=${amount}&` +
         `slippageBps=${Math.floor(slippage * 100)}`
       );
 
@@ -237,7 +237,7 @@ export default function SwapPage() {
     setLastTxSignature(null);
     
     try {
-      const amount = parseFloat(fromAmount) * Math.pow(10, fromToken.decimals);
+      const amount = (parseFloat(fromAmount) * Math.pow(10, fromToken.decimals)).toFixed(0);
 
       console.log('🔄 Requesting swap transaction...');
 
@@ -248,7 +248,7 @@ export default function SwapPage() {
           userPublicKey: publicKey.toString(),
           inputMint: fromToken.address,
           outputMint: toToken.address,
-          amount: Math.floor(amount),
+          amount: amount,
           slippageBps: Math.floor(slippage * 100),
         }),
       });
@@ -323,8 +323,16 @@ export default function SwapPage() {
         }
       }
       
-      // Record stats
+      // Record stats with USD value
       try {
+        const { calculateSwapVolumeUSD } = await import('@/lib/price-utils');
+        
+        const { volumeUsd, priceUsd } = await calculateSwapVolumeUSD(
+          fromToken.address,
+          parseFloat(fromAmount) * Math.pow(10, fromToken.decimals),
+          fromToken.decimals
+        );
+        
         await fetch("/api/swap/stats", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -334,6 +342,8 @@ export default function SwapPage() {
             fromAmount: parseFloat(fromAmount),
             toAmount: parseFloat(toAmount),
             userAddress: publicKey.toString(),
+            volumeUsd: volumeUsd,
+            priceUsd: priceUsd,
             txid: txid,
             source: data.source,
           }),
@@ -384,7 +394,7 @@ export default function SwapPage() {
             Token Swap
           </h1>
           <p className="text-gray-500">
-            Powered by Jupiter + Raydium • {config ? `${config.platformFeePercentage.toFixed(2)}% platform fee` : "Loading..."}
+            Powered by StakePoint
           </p>
           {config && config.platformFeePercentage > 3 && (
             <div className="mt-2 border rounded-lg p-2" style={{ background: 'rgba(251, 87, 255, 0.2)', borderColor: 'rgba(251, 87, 255, 0.5)' }}>
@@ -611,7 +621,7 @@ export default function SwapPage() {
               <span className="font-semibold text-white">Fast Swaps</span>
             </div>
             <p className="text-sm text-gray-500">
-              Jupiter aggregator + Raydium fallback
+              Swaps routed through Raydium
             </p>
           </div>
 
@@ -628,30 +638,30 @@ export default function SwapPage() {
           <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Info className="w-5 h-5" style={{ color: '#fb57ff' }} />
-              <span className="font-semibold text-white">Platform Fee</span>
+              <span className="font-semibold text-white">User Swap Rewards</span>
             </div>
             <p className="text-sm text-gray-500">
-              {config ? config.platformFeePercentage.toFixed(2) : "1.00"}% goes to treasury
+              1% of transactions collected towards user rewards
             </p>
           </div>
         </div>
       </div>
 
       {/* Token Select Modal */}
-      {showTokenSelect && (
-        <TokenSelectModal
-          featuredTokens={featuredTokens}
-          onSelect={(token) => {
-            if (showTokenSelect === "from") {
-              setFromToken(token);
-            } else {
-              setToToken(token);
-            }
-            setShowTokenSelect(null);
-          }}
-          onClose={() => setShowTokenSelect(null)}
-        />
-      )}
+      <TokenSelectModal
+        featuredTokens={featuredTokens}
+        isOpen={showTokenSelect !== null}
+        onSelectToken={(token) => {
+          if (showTokenSelect === "from") {
+            setFromToken(token);
+          } else {
+            setToToken(token);
+          }
+          setShowTokenSelect(null);
+        }}
+        onClose={() => setShowTokenSelect(null)}
+        title={showTokenSelect === "from" ? "Select token to pay" : "Select token to receive"}
+      />
     </div>
   );
 }

@@ -179,8 +179,8 @@ export async function GET(request: Request) {
     const minAmountOutDecimal = amountOutDecimal * (1 - slippage);
     
     // Convert to raw amounts (lamports/smallest unit)
-    const outAmount = Math.floor(amountOutDecimal * Math.pow(10, decimalsOut));
-    const minOutAmount = Math.floor(minAmountOutDecimal * Math.pow(10, decimalsOut));
+    const outAmount = (amountOutDecimal * Math.pow(10, decimalsOut)).toFixed(0);
+    const minOutAmount = (minAmountOutDecimal * Math.pow(10, decimalsOut)).toFixed(0);
     
     // Calculate price impact
     const priceImpact = (amountInDecimal / reserveIn) * 100;
@@ -213,7 +213,7 @@ export async function GET(request: Request) {
           outAmount: outAmount.toString(),
           priceImpactPct: parseFloat(priceImpact.toFixed(4)),
           lpFee: {
-            amount: Math.floor(amountInDecimal * feeRate * Math.pow(10, decimalsIn)).toString(),
+            amount: (amountInDecimal * feeRate * Math.pow(10, decimalsIn)).toFixed(0),
             mint: inputMint,
             pct: feeRate * 100,
           },

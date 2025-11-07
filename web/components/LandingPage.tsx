@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
@@ -16,6 +16,7 @@ import {
   Users,
   Award,
   ChevronRight,
+  ChevronLeft,
   Send,
   Twitter,
   ExternalLink,
@@ -39,6 +40,11 @@ export default function LandingPage() {
   const router = useRouter();
   const [pools, setPools] = useState<Pool[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // ✅ ADD: Carousel state
+  const [currentBenefit, setCurrentBenefit] = useState(0);
+  const benefitsRef = useRef<HTMLDivElement>(null);
+  
   const [tokenData, setTokenData] = useState({
     totalSupply: "TBA",
     circulatingSupply: "TBA",
@@ -54,22 +60,60 @@ export default function LandingPage() {
     loading: true,
   });
 
-  // TODO: Add your social media links here
   const socialLinks = {
-    telegram: "https://t.me/StakePointPortal", // Add your Telegram link here
-    twitter: "https://x.com/StakePointApp", // Add your Twitter link here
+    telegram: "https://t.me/StakePointPortal",
+    twitter: "https://x.com/StakePointApp",
   };
 
-  // TODO: Add your Stakeflow token address here (SPL token mint address)
-  // Using BONK as example - replace with your Stakeflow token address when deployed
-  const SOLSTREAM_TOKEN_ADDRESS = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"; // BONK token - Replace with your token mint address
+  const SOLSTREAM_TOKEN_ADDRESS = "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263";
+
+  const benefits = [
+    "No minimum staking amount!",
+    "Withdraw anytime! (unlocked pools)",
+    "Claim rewards anytime!",
+    "Reflection tokens compatible!",
+    "Competetive platform fees!",
+    "Lifetime referral program!",
+  ];
+
+  // ✅ ADD: Auto-scroll effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentBenefit((prev) => (prev + 2) % benefits.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [benefits.length]);
+
+  // ✅ ADD: Scroll synchronization
+  useEffect(() => {
+    if (benefitsRef.current) {
+      const container = benefitsRef.current;
+      const cardWidth = container.scrollWidth / Math.ceil(benefits.length / 2);
+      container.scrollTo({
+        left: (currentBenefit / 2) * cardWidth,
+        behavior: 'smooth'
+      });
+    }
+  }, [currentBenefit, benefits.length]);
+
+  // ✅ ADD: Navigation functions
+  const nextBenefit = () => {
+    setCurrentBenefit((prev) => (prev + 2) % benefits.length);
+  };
+
+  const prevBenefit = () => {
+    setCurrentBenefit((prev) => (prev - 2 + benefits.length) % benefits.length);
+  };
+
+  const goToBenefit = (index: number) => {
+    setCurrentBenefit(index * 2);
+  };
 
   useEffect(() => {
     fetchFeaturedPools();
     fetchPlatformStats();
     if (SOLSTREAM_TOKEN_ADDRESS) {
       fetchTokenData();
-      // Refresh token data every 60 seconds
       const interval = setInterval(fetchTokenData, 60000);
       return () => clearInterval(interval);
     }
@@ -84,7 +128,6 @@ export default function LandingPage() {
         throw new Error(data.error || "Failed to fetch stats");
       }
 
-      // Format numbers for display
       const formatNumber = (num: number) => {
         if (num >= 1_000_000) {
           return `${(num / 1_000_000).toFixed(2)}M`;
@@ -94,7 +137,6 @@ export default function LandingPage() {
         return num.toFixed(2);
       };
 
-      // Format whole numbers (no decimals)
       const formatWholeNumber = (num: number) => {
         if (num >= 1_000_000) {
           return `${Math.floor(num / 1_000_000)}M`;
@@ -104,12 +146,10 @@ export default function LandingPage() {
         return Math.floor(num).toString();
       };
 
-      // Get pools count from database
       const poolsRes = await fetch("/api/pools");
       const poolsData = await poolsRes.json();
       const visiblePools = poolsData.filter((p: any) => !p.hidden);
 
-      // Calculate average APY from visible pools
       const poolsWithAPY = visiblePools.filter((p: any) => p.apy && p.apy > 0);
       const poolsWithAPR = visiblePools.filter((p: any) => p.apr && p.apr > 0);
       
@@ -153,7 +193,6 @@ export default function LandingPage() {
 
   const fetchTokenData = async () => {
     try {
-      // Fetch from DexScreener API
       const response = await fetch(
         `https://api.dexscreener.com/latest/dex/tokens/${SOLSTREAM_TOKEN_ADDRESS}`
       );
@@ -165,7 +204,6 @@ export default function LandingPage() {
       const data = await response.json();
 
       if (data.pairs && data.pairs.length > 0) {
-        // Sort pairs by liquidity and get the most liquid pair
         const sortedPairs = data.pairs.sort((a: any, b: any) => {
           const liquidityA = a.liquidity?.usd || 0;
           const liquidityB = b.liquidity?.usd || 0;
@@ -174,7 +212,6 @@ export default function LandingPage() {
         
         const mainPair = sortedPairs[0];
 
-        // Format numbers for display
         const formatNumber = (num: number | string) => {
           const value = typeof num === 'string' ? parseFloat(num) : num;
           if (isNaN(value)) return "TBA";
@@ -189,7 +226,6 @@ export default function LandingPage() {
           return value.toFixed(2);
         };
 
-        // Debug log to see what data we're getting
         console.log("DexScreener main pair data:", mainPair);
 
         setTokenData({
@@ -208,7 +244,6 @@ export default function LandingPage() {
           loading: false,
         });
       } else {
-        // No pairs found yet
         setTokenData({
           totalSupply: "TBA",
           circulatingSupply: "TBA",
@@ -219,7 +254,6 @@ export default function LandingPage() {
       }
     } catch (error) {
       console.error("Failed to fetch token data from DexScreener:", error);
-      // Keep showing TBA on error
       setTokenData({
         totalSupply: "TBA",
         circulatingSupply: "TBA",
@@ -238,7 +272,6 @@ export default function LandingPage() {
     try {
       const res = await fetch("/api/pools");
       const data = await res.json();
-      // Get top 3 featured pools
       const featured = data
         .filter((p: Pool) => p.featured && !p.hidden)
         .slice(0, 3);
@@ -276,7 +309,7 @@ export default function LandingPage() {
       icon: Coins,
       title: "Reflection Rewards",
       description:
-        "Earn additional tokens through self-reflections or external reflection tokens like USDC, SOL or your favourite SPL.",
+        "Earn additional tokens through reflection tokens like USDC, SOL or your favourite SPL.",
       gradient: "from-green-600 to-emerald-600",
     },
   ];
@@ -288,27 +321,16 @@ export default function LandingPage() {
     { label: "Average APY", value: platformStats.averageReturn, icon: Award },
   ];
 
-  const benefits = [
-    "No minimum staking amount!",
-    "Withdraw anytime! (unlocked pools)",
-    "Claim rewards anytime!",
-    "Reflection tokens compatible!",
-    "Competetive platform fees!",
-    "Lifetime referral program!",
-  ];
-
   return (
     <>
       <div className="min-h-screen bg-[#060609] relative">
         {/* Hero Section */}
       <section className="relative overflow-hidden bg-[#060609]">
-        {/* Subtle Background Glow */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-0 left-1/4 w-[800px] h-[800px] rounded-full blur-3xl" style={{ background: 'rgba(251, 87, 255, 0.05)' }} />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-6 py-20 lg:py-32">
-          {/* Social Links - Top Right */}
           <div className="absolute top-8 right-8 flex items-center gap-3">
             <a
               href={socialLinks.telegram || "#"}
@@ -335,10 +357,9 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Left: Content */}
             <div className="space-y-8 text-center lg:text-left">
               <h1 className="text-5xl lg:text-7xl font-bold leading-tight text-white">
-                Stake. Earn. Stream.
+                Stake. Earn. Claim.
               </h1>
 
               <p className="text-xl text-gray-400 max-w-2xl">
@@ -381,10 +402,8 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right: Featured Pools Preview */}
             <div className="lg:block">
               <div className="relative overflow-hidden backdrop-blur-xl bg-white/[0.02] border border-white/[0.08] rounded-xl p-6 space-y-4">
-                {/* Subtle gradient glow */}
                 <div className="absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl pointer-events-none" style={{ background: 'rgba(251, 87, 255, 0.1)' }}></div>
                 
                 <div className="relative">
@@ -474,7 +493,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Stats Bar */}
       <section className="relative border-y border-white/[0.05] bg-[#060609]">
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
@@ -495,9 +513,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features Section */}
       <section className="relative py-16 lg:py-20 bg-[#060609]">
-        
         <div className="relative max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold mb-2" style={{ background: 'linear-gradient(45deg, white, #fb57ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
@@ -536,9 +552,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Benefits Section */}
+      {/* ✅ FIXED: Benefits Section */}
       <section className="relative py-16 lg:py-20 bg-[#060609]">
-        
         <div className="relative max-w-7xl mx-auto px-6">
           <div className="text-center mb-10">
             <h2 className="text-3xl lg:text-4xl font-bold mb-2" style={{ background: 'linear-gradient(45deg, white, #fb57ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
@@ -550,7 +565,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-            {/* Left: Benefits Slider */}
+            {/* ✅ FIXED: Left Benefits Slider with Navigation */}
             <div className="relative">
               <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-5 h-full flex flex-col">
                 <div className="mb-4">
@@ -558,9 +573,32 @@ export default function LandingPage() {
                   <p className="text-xs text-gray-500">Everything you need to succeed</p>
                 </div>
                 
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 relative">
+                  {/* Navigation Arrows */}
+                  <button
+                    onClick={prevBenefit}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.05] flex items-center justify-center transition-all"
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
+                    aria-label="Previous benefits"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-gray-400" />
+                  </button>
+
+                  <button
+                    onClick={nextBenefit}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.05] flex items-center justify-center transition-all"
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
+                    aria-label="Next benefits"
+                  >
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </button>
+
+                  {/* Scrollable Container */}
                   <div 
-                    className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-2"
+                    ref={benefitsRef}
+                    className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-2 px-8"
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                   >
                     {benefits.map((benefit, idx) => (
@@ -583,12 +621,19 @@ export default function LandingPage() {
                   </div>
                 </div>
                 
+                {/* ✅ FIXED: Clickable dots */}
                 <div className="flex justify-center gap-1.5 mt-4">
                   {[0, 1, 2].map((dot) => (
-                    <div 
-                      key={dot} 
-                      className="w-1.5 h-1.5 rounded-full transition-all"
-                      style={{ background: dot === 0 ? '#fb57ff' : 'rgba(251, 87, 255, 0.2)' }}
+                    <button
+                      key={dot}
+                      onClick={() => goToBenefit(dot)}
+                      className="rounded-full transition-all hover:scale-125"
+                      style={{ 
+                        background: Math.floor(currentBenefit / 2) === dot ? '#fb57ff' : 'rgba(251, 87, 255, 0.2)',
+                        width: Math.floor(currentBenefit / 2) === dot ? '12px' : '6px',
+                        height: '6px',
+                      }}
+                      aria-label={`Go to benefit page ${dot + 1}`}
                     />
                   ))}
                 </div>
@@ -644,7 +689,6 @@ export default function LandingPage() {
 
       {/* List Your Project Section */}
       <section className="relative py-16 lg:py-20 bg-[#060609] border-y border-white/[0.05]">
-        
         <div className="relative max-w-5xl mx-auto px-6">
           <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-8 lg:p-10">
             <div className="text-center mb-8">
@@ -748,7 +792,6 @@ export default function LandingPage() {
 
       {/* CTA Section */}
       <section className="relative py-16 bg-[#060609]">
-        
         <div className="relative max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold mb-3" style={{ background: 'linear-gradient(45deg, white, #fb57ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
             Start Earning Today
@@ -774,11 +817,10 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="text-center md:text-left">
               <p className="text-gray-400">
-                © 2025 StakeStream. Built on Solana with ❤️
+                © 2025 StakePoint. Built on Solana with ❤️
               </p>
             </div>
             
-            {/* Footer Social Links */}
             <div className="flex items-center gap-4">
               <a
                 href={socialLinks.telegram || "#"}

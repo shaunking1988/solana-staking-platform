@@ -3,24 +3,42 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// GET - Fetch swap statistics
-export async function GET() {
+// GET - Fetch swap statistics with USD volumes
+export async function GET(req: NextRequest) {
   try {
-    // Get overall statistics
+    // Get date range from query params
+    const searchParams = req.nextUrl.searchParams;
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    
+    // Build date filter
+    const dateFilter: any = {};
+    if (startDate) {
+      dateFilter.gte = new Date(startDate);
+    }
+    if (endDate) {
+      dateFilter.lte = new Date(endDate);
+    }
+
+    const whereClause = Object.keys(dateFilter).length > 0 
+      ? { createdAt: dateFilter }
+      : {};
+
+    // Get overall statistics (USD volume)
     const stats = await prisma.swapStats.aggregate({
+      where: whereClause,
       _count: { id: true },
       _sum: {
-        fromAmount: true,
-        toAmount: true,
+        volumeUsd: true,
       },
     });
 
-    // Calculate time-based volumes
+    // Calculate time-based volumes (USD)
     const now = new Date();
     const day24Ago = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const day7Ago = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    // Last 24h volume
+    // Last 24h volume (USD)
     const last24hStats = await prisma.swapStats.aggregate({
       where: {
         createdAt: {
@@ -28,11 +46,11 @@ export async function GET() {
         },
       },
       _sum: {
-        fromAmount: true,
+        volumeUsd: true,
       },
     });
 
-    // Last 7d volume
+    // Last 7d volume (USD)
     const last7dStats = await prisma.swapStats.aggregate({
       where: {
         createdAt: {
@@ -40,40 +58,65 @@ export async function GET() {
         },
       },
       _sum: {
-        fromAmount: true,
+        volumeUsd: true,
       },
     });
 
-    // Get top trading pairs
+    // Get top trading pairs (by USD volume)
     const topPairsRaw = await prisma.swapStats.groupBy({
+      where: whereClause,
       by: ["fromToken", "toToken"],
       _count: { id: true },
-      _sum: { fromAmount: true },
-      orderBy: { _count: { id: "desc" } },
+      _sum: { volumeUsd: true },
+      orderBy: { _sum: { volumeUsd: "desc" } },
       take: 10,
     });
 
-    // Format top pairs for admin panel
+    // Format top pairs
     const topPairs = topPairsRaw.map((pair) => ({
       pair: `${pair.fromToken}/${pair.toToken}`,
-      volume: pair._sum.fromAmount || 0,
+      volumeUsd: pair._sum.volumeUsd || 0,
       swaps: pair._count.id,
     }));
 
-    // Calculate total fees (assuming platform fee is 0.5% = 50 basis points)
-    // You can adjust this or fetch from config
-    const platformFeeBps = 50; // 0.5%
-    const totalVolume = stats._sum.fromAmount || 0;
-    const totalFees = (totalVolume * platformFeeBps) / 10000;
+    // ✅ Get top wallets by USD volume (LEADERBOARD)
+    const topWalletsRaw = await prisma.swapStats.groupBy({
+      where: whereClause,
+      by: ["userAddress"],
+      _count: { id: true },
+      _sum: { volumeUsd: true },
+      orderBy: { _sum: { volumeUsd: "desc" } },
+      take: 100, // Top 100 wallets
+    });
 
-    // Return data in the format the admin panel expects
+    // Format top wallets with rank
+    const topWallets = topWalletsRaw.map((wallet, index) => ({
+      rank: index + 1,
+      address: wallet.userAddress,
+      volumeUsd: wallet._sum.volumeUsd || 0,
+      swaps: wallet._count.id,
+    }));
+
+    // Get platform fee from config
+    const config = await prisma.swapConfig.findFirst();
+    const platformFeeBps = config?.platformFeeBps || 100;
+    
+    const totalVolumeUsd = stats._sum.volumeUsd || 0;
+    const totalFeesUsd = (totalVolumeUsd * platformFeeBps) / 10000;
+
     return NextResponse.json({
       totalSwaps: stats._count.id || 0,
-      totalVolume: totalVolume,
-      totalFees: totalFees,
-      last24hVolume: last24hStats._sum.fromAmount || 0,
-      last7dVolume: last7dStats._sum.fromAmount || 0,
+      totalVolumeUsd: totalVolumeUsd,
+      totalFeesUsd: totalFeesUsd,
+      last24hVolumeUsd: last24hStats._sum.volumeUsd || 0,
+      last7dVolumeUsd: last7dStats._sum.volumeUsd || 0,
       topPairs: topPairs,
+      topWallets: topWallets,
+      platformFeeBps: platformFeeBps,
+      dateRange: {
+        start: startDate || null,
+        end: endDate || null,
+      },
     });
   } catch (error) {
     console.error("Error fetching swap stats:", error);
@@ -84,11 +127,19 @@ export async function GET() {
   }
 }
 
-// POST - Record a new swap
+// POST - Record a new swap with USD value
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { fromToken, toToken, fromAmount, toAmount, userAddress, feeAmount } = body;
+    const { 
+      fromToken, 
+      toToken, 
+      fromAmount, 
+      toAmount, 
+      userAddress, 
+      volumeUsd,
+      priceUsd 
+    } = body;
 
     if (!fromToken || !toToken || !fromAmount || !toAmount) {
       return NextResponse.json(
@@ -104,6 +155,8 @@ export async function POST(req: NextRequest) {
         fromAmount,
         toAmount,
         userAddress: userAddress || "anonymous",
+        volumeUsd: volumeUsd || 0,
+        priceUsd: priceUsd || 0,
       },
     });
 
