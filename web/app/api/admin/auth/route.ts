@@ -3,19 +3,19 @@ import jwt from "jsonwebtoken";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
 
-// ====================================================================
-// ADMIN AUTHENTICATION ENDPOINT
-// POST /api/admin/auth
-// Verifies wallet signature and issues JWT token
-// ====================================================================
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { wallet, signature, message } = body;
 
+    console.log('🔍 Auth request received:');
+    console.log('  Wallet:', wallet);
+    console.log('  Signature (first 20 chars):', signature?.substring(0, 20));
+    console.log('  Message:', message);
+
     // 1️⃣ Validate request body
     if (!wallet || !signature || !message) {
+      console.log('❌ Missing required fields');
       return NextResponse.json(
         { error: "Missing required fields: wallet, signature, message" },
         { status: 400 }
@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
     const adminWallets = process.env.ADMIN_WALLETS?.split(",").map((w) =>
       w.trim()
     );
+
+    console.log('🔐 Admin wallets:', adminWallets);
 
     if (!adminWallets || adminWallets.length === 0) {
       console.error("❌ ADMIN_WALLETS not configured");
@@ -44,14 +46,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('✅ Wallet is authorized');
+
     // 4️⃣ Verify the signature
     try {
+      console.log('🔍 Starting signature verification...');
+      
       // Convert message to bytes
       const messageBytes = new TextEncoder().encode(message);
+      console.log('  Message bytes length:', messageBytes.length);
 
       // Decode signature and public key from base58
       const signatureBytes = bs58.decode(signature);
+      console.log('  Signature bytes length:', signatureBytes.length);
+      
       const publicKeyBytes = bs58.decode(wallet);
+      console.log('  Public key bytes length:', publicKeyBytes.length);
 
       // Verify signature
       const isValid = nacl.sign.detached.verify(
@@ -60,12 +70,17 @@ export async function POST(request: NextRequest) {
         publicKeyBytes
       );
 
+      console.log('  Signature valid:', isValid);
+
       if (!isValid) {
+        console.log('❌ Signature verification failed');
         return NextResponse.json(
           { error: "Invalid signature" },
           { status: 401 }
         );
       }
+
+      console.log('✅ Signature verified successfully');
     } catch (error) {
       console.error("❌ Signature verification error:", error);
       return NextResponse.json(
@@ -86,15 +101,13 @@ export async function POST(request: NextRequest) {
 
     // 6️⃣ Generate JWT token
     const token = jwt.sign(
-      { wallet }, // Payload
+      { wallet },
       jwtSecret,
-      { expiresIn: "24h" } // Token expires in 24 hours
+      { expiresIn: "24h" }
     );
 
-    // 📝 Log successful authentication
     console.log(`✅ Admin authenticated: ${wallet}`);
 
-    // 7️⃣ Return token to client
     return NextResponse.json({
       success: true,
       token,
@@ -109,12 +122,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// ====================================================================
-// VERIFY TOKEN ENDPOINT (Optional)
-// GET /api/admin/auth
-// Allows frontend to check if current token is still valid
-// ====================================================================
 
 export async function GET(request: NextRequest) {
   try {
