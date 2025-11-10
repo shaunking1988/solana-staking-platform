@@ -1,20 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import prisma from '@/lib/prisma';
+import { verifyAdminToken } from '@/lib/adminMiddleware';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // GET all pop-up ads (admin)
-export async function GET() {
-  try {
-    const { data, error } = await supabase
-      .from('pop_up_ads')
-      .select('*')
-      .order('created_at', { ascending: false });
+export async function GET(req: Request) {
+  const authResult = await verifyAdminToken(req);
+  if (!authResult.isValid) {
+    return NextResponse.json(
+      { error: authResult.error || "Unauthorized" },
+      { status: 401 }
+    );
+  }
 
-    if (error) throw error;
+  try {
+    const data = await prisma.popUpAd.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
@@ -27,27 +33,33 @@ export async function GET() {
 }
 
 // POST create new pop-up ad
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
+  const authResult = await verifyAdminToken(req);
+  if (!authResult.isValid) {
+    return NextResponse.json(
+      { error: authResult.error || "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
   try {
-    const body = await request.json();
+    const body = await req.json();
     
-    const { data, error } = await supabase
-      .from('pop_up_ads')
-      .insert({
+    const data = await prisma.popUpAd.create({
+      data: {
         title: body.title,
         description: body.description,
-        image_url: body.image_url,
-        cta_text: body.cta_text,
-        cta_link: body.cta_link,
-        is_active: body.is_active ?? true,
-        start_date: body.start_date,
-        end_date: body.end_date,
-        display_frequency: body.display_frequency ?? 'once_per_session',
-      })
-      .select()
-      .single();
+        imageUrl: body.image_url,
+        ctaText: body.cta_text,
+        ctaLink: body.cta_link,
+        isActive: body.is_active ?? true,
+        startDate: body.start_date ? new Date(body.start_date) : null,
+        endDate: body.end_date ? new Date(body.end_date) : null,
+        displayFrequency: body.display_frequency ?? 'once_per_session',
+      }
+    });
 
-    if (error) throw error;
+    console.log(`[ADMIN] Pop-up ad created by wallet: ${authResult.wallet}`);
 
     return NextResponse.json({ success: true, data });
   } catch (error) {

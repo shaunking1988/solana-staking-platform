@@ -1,27 +1,35 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import prisma from '@/lib/prisma';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
-    const now = new Date().toISOString();
+    const now = new Date();
     
-    const { data, error } = await supabase
-      .from('pop_up_ads')
-      .select('*')
-      .eq('is_active', true)
-      .or(`start_date.is.null,start_date.lte.${now}`)
-      .or(`end_date.is.null,end_date.gte.${now}`)
-      .order('created_at', { ascending: false })
-      .limit(1);
+    const data = await prisma.popUpAd.findFirst({
+      where: {
+        isActive: true,
+        OR: [
+          { startDate: null },
+          { startDate: { lte: now } }
+        ],
+        AND: [
+          {
+            OR: [
+              { endDate: null },
+              { endDate: { gte: now } }
+            ]
+          }
+        ]
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
 
-    if (error) throw error;
-
-    return NextResponse.json({ success: true, data: data?.[0] || null });
+    return NextResponse.json({ success: true, data: data || null });
   } catch (error) {
     console.error('Error fetching active pop-up ad:', error);
     return NextResponse.json(
