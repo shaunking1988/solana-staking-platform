@@ -1,8 +1,14 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer, Mint};
-use anchor_spl::associated_token::AssociatedToken;  // ✅ ADD: For reflection ATA support
-use anchor_spl::token_interface;
+use anchor_spl::token::{self, Token, Transfer};  // Keep old token for CPI helpers
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_interface::{
+    self as token_interface,
+    Mint,
+    TokenAccount,
+    TokenInterface,
+    TransferChecked,
+};
 
 declare_id!("CK5MvNapq49YA9NMS7dsPVWiCBpdnkBiJGwZDjxg7uio");
 
@@ -1491,7 +1497,7 @@ if stake.amount > 0 && project.total_staked > 0 {
 fn update_reflection(
     project: &mut Account<Project>,
     stake: &mut Account<Stake>,
-    reflection_vault: Option<&Account<TokenAccount>>,
+    reflection_vault: Option<&InterfaceAccount<TokenAccount>>,
 ) -> Result<()> {
     if project.reflection_vault.is_none() {
         return Ok(());
@@ -1636,8 +1642,9 @@ pub struct CreateProject<'info> {
         bump,
         token::mint = token_mint,
         token::authority = project,
+        token::token_program = token_program,
     )]
-    pub staking_vault: Account<'info, TokenAccount>,
+    pub staking_vault: InterfaceAccount<'info, TokenAccount>,
     
     #[account(
         init,
@@ -1646,15 +1653,16 @@ pub struct CreateProject<'info> {
         bump,
         token::mint = token_mint,
         token::authority = project,
+        token::token_program = token_program,
     )]
-    pub reward_vault: Account<'info, TokenAccount>,
+    pub reward_vault: InterfaceAccount<'info, TokenAccount>,
     
-    pub token_mint: Account<'info, Mint>,
+    pub token_mint: InterfaceAccount<'info, Mint>,
     
     #[account(mut)]
     pub admin: Signer<'info>,
     
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
 
@@ -1673,7 +1681,7 @@ pub struct InitializePool<'info> {
         seeds = [b"staking_vault", project.key().as_ref()],
         bump,
     )]
-    pub staking_vault: Account<'info, TokenAccount>,
+    pub staking_vault: InterfaceAccount<'info, TokenAccount>,
     
     /// CHECK: Optional reflection token mint - validated in instruction logic
     pub reflection_token_mint: Option<AccountInfo<'info>>,
@@ -1688,7 +1696,7 @@ pub struct InitializePool<'info> {
     /// CHECK: Only used if reflections enabled
     pub associated_token_program: Option<AccountInfo<'info>>,
     pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
@@ -1723,16 +1731,16 @@ pub struct Deposit<'info> {
         constraint = staking_vault.mint == token_mint @ ErrorCode::WrongTokenType,
         constraint = staking_vault.key() == project.staking_vault @ ErrorCode::UnauthorizedVault
     )]
-    pub staking_vault: Account<'info, TokenAccount>,
+    pub staking_vault: InterfaceAccount<'info, TokenAccount>,
     
     #[account(mut)]
-    pub user_token_account: Account<'info, TokenAccount>,
+    pub user_token_account: InterfaceAccount<'info, TokenAccount>,
     
     #[account(
         mut,
         constraint = fee_collector_token_account.owner == platform.fee_collector @ ErrorCode::InvalidFeeCollector
     )]
-    pub fee_collector_token_account: Account<'info, TokenAccount>,
+    pub fee_collector_token_account: InterfaceAccount<'info, TokenAccount>,
     
     /// CHECK: Fee collector wallet
     #[account(mut)]
@@ -1742,12 +1750,14 @@ pub struct Deposit<'info> {
     pub referrer: Option<AccountInfo<'info>>,
     
     /// CHECK: Optional reflection vault
-    pub reflection_vault: Option<Account<'info, TokenAccount>>,
+    pub reflection_vault: Option<InterfaceAccount<'info, TokenAccount>>,
+    
+    pub token_mint_account: InterfaceAccount<'info, Mint>,
     
     #[account(mut)]
     pub user: Signer<'info>,
     
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
 
@@ -1783,19 +1793,19 @@ pub struct Withdraw<'info> {
         constraint = staking_vault.mint == token_mint @ ErrorCode::WrongTokenType,
         constraint = staking_vault.key() == project.staking_vault @ ErrorCode::UnauthorizedVault
     )]
-    pub staking_vault: Account<'info, TokenAccount>,
+    pub staking_vault: InterfaceAccount<'info, TokenAccount>,
     
     #[account(
         mut,
         constraint = withdrawal_token_account.owner == stake.withdrawal_wallet @ ErrorCode::InvalidWithdrawalWallet
     )]
-    pub withdrawal_token_account: Account<'info, TokenAccount>,
+    pub withdrawal_token_account: InterfaceAccount<'info, TokenAccount>,
     
     #[account(
         mut,
         constraint = fee_collector_token_account.owner == platform.fee_collector @ ErrorCode::InvalidFeeCollector
     )]
-    pub fee_collector_token_account: Account<'info, TokenAccount>,
+    pub fee_collector_token_account: InterfaceAccount<'info, TokenAccount>,
     
     /// CHECK: Fee collector wallet
     #[account(mut)]
@@ -1805,12 +1815,14 @@ pub struct Withdraw<'info> {
     pub referrer: Option<AccountInfo<'info>>,
     
     /// CHECK: Optional reflection vault
-    pub reflection_vault: Option<Account<'info, TokenAccount>>,
+    pub reflection_vault: Option<InterfaceAccount<'info, TokenAccount>>,
+    
+    pub token_mint_account: InterfaceAccount<'info, Mint>,
     
     #[account(mut)]
     pub user: Signer<'info>,
     
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
 
@@ -1846,10 +1858,10 @@ pub struct Claim<'info> {
         constraint = reward_vault.mint == token_mint @ ErrorCode::WrongTokenType,
         constraint = reward_vault.key() == project.reward_vault @ ErrorCode::UnauthorizedVault
     )]
-    pub reward_vault: Account<'info, TokenAccount>,
+    pub reward_vault: InterfaceAccount<'info, TokenAccount>,
     
     #[account(mut)]
-    pub user_token_account: Account<'info, TokenAccount>,
+    pub user_token_account: InterfaceAccount<'info, TokenAccount>,
     
     /// CHECK: Fee collector wallet
     #[account(mut)]
@@ -1861,7 +1873,7 @@ pub struct Claim<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
     
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
 
@@ -1888,18 +1900,18 @@ pub struct ClaimReflections<'info> {
         seeds = [b"staking_vault", project.key().as_ref()],
         bump,
     )]
-    pub staking_vault: Account<'info, TokenAccount>,
+    pub staking_vault: InterfaceAccount<'info, TokenAccount>,
     
     #[account(mut)]
-    pub reflection_vault: Account<'info, TokenAccount>,
+    pub reflection_vault: InterfaceAccount<'info, TokenAccount>,
     
     #[account(mut)]
-    pub user_reflection_account: Account<'info, TokenAccount>,
+    pub user_reflection_account: InterfaceAccount<'info, TokenAccount>,
     
     #[account(mut)]
     pub user: Signer<'info>,
     
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
@@ -1922,7 +1934,7 @@ pub struct RefreshReflections<'info> {
     pub stake: Account<'info, Stake>,
     
     #[account(mut)]
-    pub reflection_vault: Account<'info, TokenAccount>,
+    pub reflection_vault: InterfaceAccount<'info, TokenAccount>,
     
     pub user: Signer<'info>,
 }
@@ -1945,15 +1957,15 @@ pub struct DepositRewards<'info> {
         constraint = reward_vault.mint == token_mint @ ErrorCode::WrongTokenType,
         constraint = reward_vault.key() == project.reward_vault @ ErrorCode::UnauthorizedVault
     )]
-    pub reward_vault: Account<'info, TokenAccount>,
+    pub reward_vault: InterfaceAccount<'info, TokenAccount>,
     
     #[account(mut)]
-    pub admin_token_account: Account<'info, TokenAccount>,
+    pub admin_token_account: InterfaceAccount<'info, TokenAccount>,
     
     #[account(mut)]
     pub admin: Signer<'info>,
     
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
@@ -1981,18 +1993,18 @@ pub struct EmergencyReturnStake<'info> {
         constraint = staking_vault.mint == token_mint @ ErrorCode::WrongTokenType,
         constraint = staking_vault.key() == project.staking_vault @ ErrorCode::UnauthorizedVault
     )]
-    pub staking_vault: Account<'info, TokenAccount>,
+    pub staking_vault: InterfaceAccount<'info, TokenAccount>,
     
     #[account(
         mut,
         constraint = user_withdrawal_account.owner == stake.withdrawal_wallet @ ErrorCode::InvalidWithdrawalWallet
     )]
-    pub user_withdrawal_account: Account<'info, TokenAccount>,
+    pub user_withdrawal_account: InterfaceAccount<'info, TokenAccount>,
     
     #[account(mut)]
     pub admin: Signer<'info>,
     
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
@@ -2110,7 +2122,7 @@ pub struct ToggleReflections<'info> {
     pub project: Account<'info, Project>,
     
     /// CHECK: Optional reflection vault
-    pub reflection_vault: Option<Account<'info, TokenAccount>>,
+    pub reflection_vault: Option<InterfaceAccount<'info, TokenAccount>>,
     
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -2174,15 +2186,15 @@ pub struct ClaimUnclaimedTokens<'info> {
         mut,
         constraint = vault.mint == token_mint @ ErrorCode::WrongTokenType
     )]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: InterfaceAccount<'info, TokenAccount>,
     
     #[account(mut)]
-    pub admin_token_account: Account<'info, TokenAccount>,
+    pub admin_token_account: InterfaceAccount<'info, TokenAccount>,
     
     #[account(mut)]
     pub admin: Signer<'info>,
     
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 #[derive(Accounts)]
