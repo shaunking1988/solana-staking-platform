@@ -24,6 +24,7 @@
     "@solana/web3.js": "^1.95.3",
     "bn.js": "^5.2.2",
     "bs58": "^6.0.0",
+    "date-fns": "^4.1.0",
     "decimal.js": "^10.6.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.545.0",
