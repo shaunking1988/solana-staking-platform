@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/router';
+import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyAdminToken } from '@/lib/adminMiddleware';
 
