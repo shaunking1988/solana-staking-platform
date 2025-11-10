@@ -294,7 +294,7 @@ export default function CreateLockModal({
           new PublicKey(matchingPool?.poolAddress || selectedToken.mint).toBuffer(),
           publicKey.toBuffer(),
         ],
-        new PublicKey("CK5MvNapq49YA9NMS7dsPVWiCBpdnkBiJGwZDjxg7uio") // Your program ID
+        new PublicKey("EbKDgqVRjxvxW6sKTrCR9Dzt5viehGnYRBVTvgNyV25W") // Your program ID
       );
       
       // Save to database

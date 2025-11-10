@@ -12,7 +12,7 @@ staking_program = "Cxj21a71eRjRSyWbSCEsmyKehqKqyrjMCqZi1sJoTHwj"
 staking_program = "Cxj21a71eRjRSyWbSCEsmyKehqKqyrjMCqZi1sJoTHwj"
 
 [programs.mainnet]
-staking_program = "CK5MvNapq49YA9NMS7dsPVWiCBpdnkBiJGwZDjxg7uio"
+staking_program = "EbKDgqVRjxvxW6sKTrCR9Dzt5viehGnYRBVTvgNyV25W"
 
 [registry]
 url = "https://api.apr.dev"

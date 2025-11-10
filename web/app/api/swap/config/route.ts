@@ -13,7 +13,7 @@ export async function GET() {
       config = await prisma.swapConfig.create({
         data: {
           platformFeeBps: 50, // 0.5%
-          treasuryWallet: "66oZ17EyWhmRXPYpuVpoojvmaz3AZWAaewekTWqJFhfB",
+          treasuryWallet: "Hc1Wk7NDPNjxT5qaSaPEJzMEtUhE3ZqXe2yQB6TQpbFb",
           enabled: true,
         },
       });
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       create: {
         id: 1,
         platformFeeBps: platformFeeBps || 50,
-        treasuryWallet: treasuryWallet || "66oZ17EyWhmRXPYpuVpoojvmaz3AZWAaewekTWqJFhfB",
+        treasuryWallet: treasuryWallet || "Hc1Wk7NDPNjxT5qaSaPEJzMEtUhE3ZqXe2yQB6TQpbFb",
         enabled: swapEnabled !== undefined ? swapEnabled : true,
         maxSlippageBps: maxSlippageBps || 100,
       },
