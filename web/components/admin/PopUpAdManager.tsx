@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Eye, EyeOff, Calendar, ExternalLink } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, Calendar, ExternalLink, RefreshCw, Sparkles, X } from 'lucide-react';
 import { useToast } from '@/components/ToastContainer';
+import { authFetch } from '@/lib/authFetch';
 
 interface PopUpAd {
   id: string;
@@ -44,7 +45,7 @@ export default function PopUpAdManager() {
   const fetchPopUps = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/admin/popup-ads');
+      const response = await authFetch('/api/admin/popup-ads');
       const result = await response.json();
       if (result.success) {
         setPopUps(result.data);
@@ -72,7 +73,7 @@ export default function PopUpAdManager() {
       
       const method = editingId ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -97,7 +98,7 @@ export default function PopUpAdManager() {
     if (!confirm('Are you sure you want to delete this pop-up ad?')) return;
 
     try {
-      const response = await fetch(`/api/admin/popup-ads/${id}`, {
+      const response = await authFetch(`/api/admin/popup-ads/${id}`, {
         method: 'DELETE',
       });
 
@@ -116,7 +117,7 @@ export default function PopUpAdManager() {
 
   const toggleActive = async (popUp: PopUpAd) => {
     try {
-      const response = await fetch(`/api/admin/popup-ads/${popUp.id}`, {
+      const response = await authFetch(`/api/admin/popup-ads/${popUp.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...popUp, is_active: !popUp.is_active }),
