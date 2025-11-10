@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import nacl from "tweetnacl";
+import { PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
+import nacl from "tweetnacl";
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,32 +49,38 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Wallet is authorized');
 
-    // 4️⃣ Verify the signature
+    // 4️⃣ Verify the signature using Solana's method
     try {
-      console.log('🔍 Starting signature verification...');
+      console.log('🔍 Starting signature verification (Solana method)...');
       
-      // Convert message to bytes
+      // Convert message to Uint8Array
       const messageBytes = new TextEncoder().encode(message);
       console.log('  Message bytes length:', messageBytes.length);
 
-      // Decode signature and public key from base58
+      // Decode signature from base58
       const signatureBytes = bs58.decode(signature);
       console.log('  Signature bytes length:', signatureBytes.length);
       
-      const publicKeyBytes = bs58.decode(wallet);
-      console.log('  Public key bytes length:', publicKeyBytes.length);
+      // Create PublicKey object
+      const publicKey = new PublicKey(wallet);
+      console.log('  Public key:', publicKey.toBase58());
 
-      // Verify signature
+      // Verify using nacl with the correct format
       const isValid = nacl.sign.detached.verify(
         messageBytes,
         signatureBytes,
-        publicKeyBytes
+        publicKey.toBytes()
       );
 
       console.log('  Signature valid:', isValid);
 
       if (!isValid) {
         console.log('❌ Signature verification failed');
+        console.log('  Debug info:');
+        console.log('    Message (hex):', Buffer.from(messageBytes).toString('hex').substring(0, 40) + '...');
+        console.log('    Signature (hex):', Buffer.from(signatureBytes).toString('hex').substring(0, 40) + '...');
+        console.log('    PublicKey (hex):', Buffer.from(publicKey.toBytes()).toString('hex'));
+        
         return NextResponse.json(
           { error: "Invalid signature" },
           { status: 401 }
