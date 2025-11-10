@@ -42,7 +42,9 @@ export function getProgram(wallet: AnchorWallet, connection: Connection): Progra
   
   // ✅ FIX: Cast IDL properly and use PROGRAM_ID constant
   const program = new Program(
-    idlJson as Idl,  // Cast to Idl type
+    idlJson as Idl,
+    PROGRAM_ID,
+    PROGRAM_ID,
     provider
   );
 
