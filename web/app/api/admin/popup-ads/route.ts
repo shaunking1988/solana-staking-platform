@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyAdminToken } from '@/lib/adminMiddleware';
 
@@ -22,7 +22,21 @@ export async function GET(req: Request) {
       }
     });
 
-    return NextResponse.json({ success: true, data });
+    const response = data.map(ad => ({
+      id: ad.id,
+      title: ad.title,
+      description: ad.description,
+      image_url: ad.imageUrl,
+      cta_text: ad.ctaText,
+      cta_link: ad.ctaLink,
+      is_active: ad.isActive,
+      start_date: ad.startDate?.toISOString(),
+      end_date: ad.endDate?.toISOString(),
+      display_frequency: ad.displayFrequency,
+      created_at: ad.createdAt.toISOString(),
+    }));
+
+    return NextResponse.json({ success: true, data: response });
   } catch (error) {
     console.error('Error fetching pop-up ads:', error);
     return NextResponse.json(
@@ -48,10 +62,10 @@ export async function POST(req: Request) {
     const data = await prisma.popUpAd.create({
       data: {
         title: body.title,
-        description: body.description,
-        imageUrl: body.image_url,
-        ctaText: body.cta_text,
-        ctaLink: body.cta_link,
+        description: body.description || null,
+        imageUrl: body.image_url || null,
+        ctaText: body.cta_text || null,
+        ctaLink: body.cta_link || null,
         isActive: body.is_active ?? true,
         startDate: body.start_date ? new Date(body.start_date) : null,
         endDate: body.end_date ? new Date(body.end_date) : null,
@@ -61,7 +75,21 @@ export async function POST(req: Request) {
 
     console.log(`[ADMIN] Pop-up ad created by wallet: ${authResult.wallet}`);
 
-    return NextResponse.json({ success: true, data });
+    const response = {
+      id: data.id,
+      title: data.title,
+      description: data.description,
+      image_url: data.imageUrl,
+      cta_text: data.ctaText,
+      cta_link: data.ctaLink,
+      is_active: data.isActive,
+      start_date: data.startDate?.toISOString(),
+      end_date: data.endDate?.toISOString(),
+      display_frequency: data.displayFrequency,
+      created_at: data.createdAt.toISOString(),
+    };
+
+    return NextResponse.json({ success: true, data: response });
   } catch (error) {
     console.error('Error creating pop-up ad:', error);
     return NextResponse.json(

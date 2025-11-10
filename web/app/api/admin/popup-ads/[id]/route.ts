@@ -25,10 +25,10 @@ export async function PUT(
       where: { id: params.id },
       data: {
         title: body.title,
-        description: body.description,
-        imageUrl: body.image_url,
-        ctaText: body.cta_text,
-        ctaLink: body.cta_link,
+        description: body.description || null,
+        imageUrl: body.image_url || null,
+        ctaText: body.cta_text || null,
+        ctaLink: body.cta_link || null,
         isActive: body.is_active,
         startDate: body.start_date ? new Date(body.start_date) : null,
         endDate: body.end_date ? new Date(body.end_date) : null,
@@ -38,7 +38,21 @@ export async function PUT(
 
     console.log(`[ADMIN] Pop-up ad ${params.id} updated by wallet: ${authResult.wallet}`);
 
-    return NextResponse.json({ success: true, data });
+    const response = {
+      id: data.id,
+      title: data.title,
+      description: data.description,
+      image_url: data.imageUrl,
+      cta_text: data.ctaText,
+      cta_link: data.ctaLink,
+      is_active: data.isActive,
+      start_date: data.startDate?.toISOString(),
+      end_date: data.endDate?.toISOString(),
+      display_frequency: data.displayFrequency,
+      created_at: data.createdAt.toISOString(),
+    };
+
+    return NextResponse.json({ success: true, data: response });
   } catch (error) {
     console.error('Error updating pop-up ad:', error);
     return NextResponse.json(
