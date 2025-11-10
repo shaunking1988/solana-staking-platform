@@ -2,11 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import bs58 from "bs58";
 
-// ====================================================================
-// ADMIN AUTHENTICATION HOOK
-// Manages JWT token state and authentication flow
-// ====================================================================
-
 interface AuthState {
   isAuthenticated: boolean;
   token: string | null;
@@ -23,7 +18,6 @@ export function useAdminAuth() {
     error: null,
   });
 
-  // 1️⃣ Check for existing token on mount
   useEffect(() => {
     const checkExistingAuth = async () => {
       const storedToken = localStorage.getItem("admin_token");
@@ -38,7 +32,6 @@ export function useAdminAuth() {
         return;
       }
 
-      // Verify token is still valid
       try {
         const response = await fetch("/api/admin/auth", {
           headers: {
@@ -54,7 +47,6 @@ export function useAdminAuth() {
             error: null,
           });
         } else {
-          // Token invalid/expired, clear it
           localStorage.removeItem("admin_token");
           setAuthState({
             isAuthenticated: false,
@@ -78,7 +70,6 @@ export function useAdminAuth() {
     checkExistingAuth();
   }, []);
 
-  // 2️⃣ Login function - signs message and gets JWT token
   const login = useCallback(async () => {
     if (!publicKey || !signMessage) {
       setAuthState((prev) => ({
@@ -97,28 +88,42 @@ export function useAdminAuth() {
     try {
       // Create message to sign
       const message = `Sign this message to authenticate as admin.\n\nWallet: ${publicKey.toString()}\nTimestamp: ${Date.now()}`;
+      
+      console.log('📝 Message to sign:', message);
+      console.log('🔑 Wallet:', publicKey.toString());
+      
       const messageBytes = new TextEncoder().encode(message);
 
       // Request signature from wallet
+      console.log('✍️ Requesting signature from wallet...');
       const signature = await signMessage(messageBytes);
+      console.log('✅ Signature received, length:', signature.length);
 
       // Convert signature to base58
       const signatureBase58 = bs58.encode(signature);
+      console.log('📦 Signature (base58):', signatureBase58.substring(0, 20) + '...');
 
+      const payload = {
+        wallet: publicKey.toString(),
+        signature: signatureBase58,
+        message,
+      };
+
+      console.log('📤 Sending auth request...');
+      
       // Send to backend for verification
       const response = await fetch("/api/admin/auth", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          wallet: publicKey.toString(),
-          signature: signatureBase58,
-          message,
-        }),
+        body: JSON.stringify(payload),
       });
 
+      console.log('📥 Response status:', response.status);
+      
       const data = await response.json();
+      console.log('📥 Response data:', data);
 
       if (!response.ok) {
         throw new Error(data.error || "Authentication failed");
@@ -138,6 +143,12 @@ export function useAdminAuth() {
       return true;
     } catch (error: any) {
       console.error("❌ Login error:", error);
+      console.error("❌ Error details:", {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      
       setAuthState({
         isAuthenticated: false,
         token: null,
@@ -148,7 +159,6 @@ export function useAdminAuth() {
     }
   }, [publicKey, signMessage]);
 
-  // 3️⃣ Logout function
   const logout = useCallback(() => {
     localStorage.removeItem("admin_token");
     setAuthState({
@@ -160,7 +170,6 @@ export function useAdminAuth() {
     console.log("🔓 Admin logged out");
   }, []);
 
-  // 4️⃣ Helper to get auth headers for API calls
   const getAuthHeaders = useCallback(() => {
     if (!authState.token) {
       return {};
