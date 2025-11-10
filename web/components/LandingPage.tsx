@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import PopUpAd from '@/components/PopUpAd';
 import {
   Sparkles,
   Shield,
@@ -323,6 +324,7 @@ export default function LandingPage() {
 
   return (
     <>
+      <PopUpAd /> {/* ✅ ADD ONLY THIS LINE */}
       <div className="min-h-screen bg-[#060609] relative">
         {/* Hero Section */}
       <section className="relative overflow-hidden bg-[#060609]">

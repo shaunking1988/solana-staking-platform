@@ -12,6 +12,7 @@ import { getProgram, getPDAs } from "@/lib/anchor-program";
 import { useAdminProgram } from "@/hooks/useAdminProgram";
 import SEOManager from "@/components/SEOManager";
 import { authFetch } from "@/lib/authFetch";
+import PopUpAdManager from "@/components/admin/PopUpAdManager";
 import { 
   ChevronDown, 
   ChevronUp, 
@@ -120,7 +121,7 @@ export default function AdminPage() {
   const [poolSearchQuery, setPoolSearchQuery] = useState("");
   const [expandedPools, setExpandedPools] = useState<Set<string>>(new Set());
   
-  const [activeTab, setActiveTab] = useState<"dashboard" | "pools" | "create" | "seo" | "swap">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "pools" | "create" | "seo" | "swap" | "popups">("dashboard");
   
   const [selectedPools, setSelectedPools] = useState<Set<string>>(new Set());
 
@@ -922,6 +923,17 @@ const searchTokens = async (query: string) => {
             <Globe className="w-5 h-5" />
             SEO
           </button>
+          <button
+            onClick={() => setActiveTab("popups")}
+            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${
+              activeTab === "popups"
+                ? "text-blue-400 border-b-2 border-blue-400"
+                : "text-gray-400 hover:text-gray-300"
+            }`}
+          >
+             <Sparkles className="w-5 h-5" />
+             Pop-Ups
+        </button>
         </div>
 
         {activeTab === "dashboard" && (
@@ -1799,6 +1811,10 @@ const searchTokens = async (query: string) => {
             onSuccess={showSuccess}
             onError={showError}
           />
+        )}
+        {/* ✅ Pop-Up Ads Tab Content */}
+        {activeTab === "popups" && (
+          <PopUpAdManager />
         )}
       </div>
 
