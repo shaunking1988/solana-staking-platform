@@ -37,13 +37,11 @@ export function getProgram(wallet: AnchorWallet, connection: Connection): Progra
 
   console.log("Creating Program with:");
   console.log("- Program ID from constant:", PROGRAM_ID.toString());
-  console.log("- IDL address:", idlJson.address);
   console.log("- Wallet:", wallet.publicKey.toString());
   
   // ✅ FIX: Cast IDL properly and use PROGRAM_ID constant
   const program = new Program(
     idlJson as Idl,
-    PROGRAM_ID,
     PROGRAM_ID,
     provider
   );
@@ -79,6 +77,7 @@ export function getReadOnlyProgram(connection: Connection): Program {
 
   const program = new Program(
     idlJson as Idl,
+    PROGRAM_ID,
     provider
   );
 
