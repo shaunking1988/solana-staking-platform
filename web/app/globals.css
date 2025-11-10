@@ -45,6 +45,20 @@ html.light {
   --accent-green: #10B981;
 }
 
+/* Shimmer animation for lock progress */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
 /* Smooth theme transition */
 body {
   transition: background-color 0.3s ease, color 0.3s ease;

@@ -38,7 +38,11 @@ async function getPools(): Promise<Pool[]> {
     const pools = await prisma.pool.findMany({
       where: {
         hidden: false,
-        isPaused: false
+        isPaused: false,
+        // Ensure we only show staking pools, not locks
+        type: {
+          in: ['locked', 'unlocked']
+        }
       },
       orderBy: [
         { featured: 'desc' },
