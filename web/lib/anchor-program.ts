@@ -1,7 +1,7 @@
 import { AnchorProvider, Program, Idl } from "@coral-xyz/anchor";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { AnchorWallet } from "@solana/wallet-adapter-react";
-import idlJson from "./staking.json";
+import idlJson from "./staking_program.json";
 
 // ✅ CRITICAL FIX: Define Program ID as PublicKey directly
 export const PROGRAM_ID = new PublicKey("CK5MvNapq49YA9NMS7dsPVWiCBpdnkBiJGwZDjxg7uio");
