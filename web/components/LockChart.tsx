@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 
 interface LockChartProps {
@@ -9,17 +9,25 @@ interface LockChartProps {
 }
 
 export default function LockChart({ createdAt, unlockTime }: LockChartProps) {
+  const [mounted, setMounted] = useState(false);
   const startDate = new Date(createdAt);
   const endDate = new Date(unlockTime);
-  const now = new Date();
+  const [now, setNow] = useState<Date | null>(null);
+  
+  useEffect(() => {
+    setMounted(true);
+    setNow(new Date());
+  }, []);
 
   const progress = useMemo(() => {
+    if (!now) return 0;
     const total = endDate.getTime() - startDate.getTime();
     const elapsed = now.getTime() - startDate.getTime();
     return Math.min((elapsed / total) * 100, 100);
   }, [startDate, endDate, now]);
 
   const timePoints = useMemo(() => {
+    if (!now) return [];
     const points = [];
     const total = endDate.getTime() - startDate.getTime();
     const segments = 10;
@@ -41,6 +49,7 @@ export default function LockChart({ createdAt, unlockTime }: LockChartProps) {
   }, [startDate, endDate, now]);
 
   const milestones = useMemo(() => {
+    if (!now) return [];
     const total = endDate.getTime() - startDate.getTime();
     return [
       {
@@ -63,6 +72,14 @@ export default function LockChart({ createdAt, unlockTime }: LockChartProps) {
       },
     ];
   }, [startDate, endDate, now]);
+  
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center h-48 text-gray-400">
+        Loading chart...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

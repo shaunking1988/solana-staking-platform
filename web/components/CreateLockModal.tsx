@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { X, Lock, AlertCircle, Loader2, Search, ChevronDown } from "lucide-react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import { useStakingProgram } from "@/hooks/useStakingProgram";
+import { useAdminProgram } from "@/hooks/useAdminProgram";
 
 interface CreateLockModalProps {
   isOpen: boolean;
@@ -32,6 +34,8 @@ export default function CreateLockModal({
 }: CreateLockModalProps) {
   const { publicKey } = useWallet();
   const { connection } = useConnection();
+  const { stake } = useStakingProgram();
+  const { initializePool, createProject } = useAdminProgram();
   const [userTokens, setUserTokens] = useState<TokenInfo[]>([]);
   const [selectedToken, setSelectedToken] = useState<TokenInfo | null>(null);
   const [showTokenSelector, setShowTokenSelector] = useState(false);
@@ -58,25 +62,45 @@ export default function CreateLockModal({
     setStatusMessage("Fetching your tokens...");
 
     try {
-      const allAccounts = await connection.getParsedTokenAccountsByOwner(
+      // Fetch regular SPL tokens
+      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
         publicKey,
         { programId: TOKEN_PROGRAM_ID }
       );
+      console.log("✅ Found", tokenAccounts.value.length, "SPL token accounts");
 
-      console.log(`Found ${allAccounts.value.length} token accounts`);
+      // Fetch Token-2022 tokens
+      const token2022Accounts = await connection.getParsedTokenAccountsByOwner(
+        publicKey,
+        { programId: TOKEN_2022_PROGRAM_ID }
+      );
+      console.log("✅ Found", token2022Accounts.value.length, "Token-2022 accounts");
+
+      const allAccounts = [
+        ...tokenAccounts.value.map(acc => ({ ...acc, programId: "SPL Token", programIdKey: TOKEN_PROGRAM_ID.toString() })),
+        ...token2022Accounts.value.map(acc => ({ ...acc, programId: "Token-2022", programIdKey: TOKEN_2022_PROGRAM_ID.toString() }))
+      ];
+
+      console.log(`📊 Total accounts to process: ${allAccounts.length}`);
 
       const tokens: TokenInfo[] = [];
       let processed = 0;
 
-      for (const account of allAccounts.value) {
+      for (const account of allAccounts) {
         try {
+          // Check if account has the expected structure
+          if (!account?.account?.data?.parsed?.info) {
+            console.warn("Skipping account with unexpected structure:", account);
+            continue;
+          }
+
           const tokenAmount = account.account.data.parsed.info.tokenAmount;
           const mint = account.account.data.parsed.info.mint;
-          const balance = tokenAmount.uiAmount || 0;
+          const balance = tokenAmount?.uiAmount || 0;
 
           if (balance >= 0) {
             processed++;
-            setStatusMessage(`Fetching metadata... (${processed}/${allAccounts.value.length})`);
+            setStatusMessage(`Fetching metadata... (${processed}/${allAccounts.length})`);
             
             // Fetch token info from BirdEye
             try {
@@ -93,13 +117,13 @@ export default function CreateLockModal({
                 symbol: tokenInfo.symbol || "UNKNOWN",
                 name: tokenInfo.name || "Unknown",
                 logoURI: tokenInfo.logoURI,
-                programId: account.account.owner.toString(),
+                programId: account.programIdKey,
                 price: tokenInfo.price,
                 liquidity: tokenInfo.liquidity,
                 marketCap: tokenInfo.marketCap,
               });
               
-              console.log(`✅ Added token:`, tokenInfo.symbol || "UNKNOWN");
+              console.log(`✅ Added token:`, tokenInfo.symbol || "UNKNOWN", `(${account.programId})`);
             } catch (err) {
               console.error(`❌ Failed to fetch info for ${mint}:`, err);
               // Still add token but without metadata
@@ -107,7 +131,7 @@ export default function CreateLockModal({
                 mint,
                 balance,
                 decimals: tokenAmount.decimals,
-                programId: account.account.owner.toString(),
+                programId: account.programIdKey,
                 symbol: "UNKNOWN",
                 name: "Unknown",
               });
@@ -161,6 +185,12 @@ export default function CreateLockModal({
       return;
     }
 
+    // Check if token is Token-2022 (not supported yet)
+    if (selectedToken.programId && !selectedToken.programId.includes("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")) {
+      setError("❌ Token-2022 tokens are not supported for locks yet. Please select a standard SPL token.");
+      return;
+    }
+
     // Calculate final lock duration in seconds
     let finalDuration: number;
     if (selectedDuration === "custom") {
@@ -177,11 +207,103 @@ export default function CreateLockModal({
     }
 
     setIsCreating(true);
+    setStatusMessage("Preparing lock transaction...");
 
     try {
-      // Calculate lock ID (you might want to fetch the next available ID from the API)
-      const lockId = Math.floor(Math.random() * 1000000);
-
+      // Convert duration to days for poolId
+      const durationDays = Math.floor(finalDuration / 86400);
+      const poolId = durationDays; // Use duration in days as poolId
+      
+      setStatusMessage("Checking if pool exists...");
+      
+      // Check if pool exists in database
+      const poolsResponse = await fetch(`/api/pools/by-token/${selectedToken.mint}`);
+      const existingPools = poolsResponse.ok ? await poolsResponse.json() : [];
+      
+      // Find pool with matching lockup
+      let matchingPool = existingPools.find((p: any) => 
+        p.poolId === poolId || p.lockPeriod === finalDuration
+      );
+      
+      // If no matching pool exists, we need to create one
+      if (!matchingPool) {
+        setStatusMessage("Creating lock pool on-chain...");
+        
+        try {
+          // Step 1: Create project
+          await createProject(selectedToken.mint, poolId);
+          console.log("✅ Project created");
+          
+          // Step 2: Initialize pool with lockup
+          await initializePool({
+            tokenMint: selectedToken.mint,
+            poolId: poolId,
+            rateBpsPerYear: 0, // No rewards for locks
+            rateMode: 0, // Fixed rate
+            lockupSeconds: finalDuration,
+            poolDurationSeconds: 0, // No end date
+            referrer: null,
+            referrerSplitBps: null,
+            enableReflections: false,
+            reflectionToken: null,
+            poolTokenFeeBps: 0,
+            poolSolFee: 0,
+          });
+          console.log("✅ Pool initialized with lockup");
+          
+          // Sync pool to database
+          const syncResponse = await fetch("/api/admin/pools/create-user-pool", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tokenMint: selectedToken.mint,
+              poolId: poolId,
+              name: selectedToken.name || selectedToken.symbol,
+              symbol: selectedToken.symbol || "UNKNOWN",
+              logo: selectedToken.logoURI,
+              type: "locked",
+              lockPeriod: finalDuration,
+            }),
+          });
+          
+          if (syncResponse.ok) {
+            matchingPool = await syncResponse.json();
+            console.log("✅ Pool synced to database");
+          }
+        } catch (createError: any) {
+          console.error("Pool creation error:", createError);
+          throw new Error(`Failed to create lock pool: ${createError.message}`);
+        }
+      }
+      
+      setStatusMessage("Locking tokens on-chain...");
+      
+      // Execute stake transaction (this locks the tokens)
+      const amountInTokens = parseFloat(amount) * Math.pow(10, selectedToken.decimals);
+      const tx = await stake(selectedToken.mint, amountInTokens, poolId, undefined);
+      
+      if (!tx) {
+        throw new Error("Transaction failed");
+      }
+      
+      console.log("✅ Tokens locked on-chain:", tx);
+      
+      setStatusMessage("Saving lock details...");
+      
+      // Calculate lock ID based on timestamp
+      const lockId = Date.now();
+      
+      // Get the stake PDA
+      const [stakePDA] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("stake"),
+          new PublicKey(matchingPool?.poolAddress || selectedToken.mint).toBuffer(),
+          publicKey.toBuffer(),
+        ],
+        new PublicKey("CK5MvNapq49YA9NMS7dsPVWiCBpdnkBiJGwZDjxg7uio") // Your program ID
+      );
+      
+      // Save to database
       const response = await fetch("/api/locks", {
         method: "POST",
         headers: {
@@ -195,27 +317,34 @@ export default function CreateLockModal({
           amount: parseFloat(amount),
           lockDuration: finalDuration,
           creatorWallet: publicKey.toString(),
+          poolAddress: matchingPool?.poolAddress || null,
+          stakePda: stakePDA.toString(),
           logo: selectedToken.logoURI || null,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create lock");
+        console.warn("Failed to save lock to database, but tokens are locked on-chain");
       }
 
+      setStatusMessage("Lock created successfully! ✅");
+      
       // Reset form
       setSelectedToken(null);
       setAmount("");
       setCustomDays("");
       setSelectedDuration("");
 
-      onSuccess();
-      onClose();
-    } catch (err) {
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 1000);
+    } catch (err: any) {
       console.error("Error creating lock:", err);
-      setError(err instanceof Error ? err.message : "Failed to create lock");
+      setError(err.message || "Failed to create lock");
     } finally {
       setIsCreating(false);
+      setTimeout(() => setStatusMessage(""), 2000);
     }
   };
 
@@ -359,7 +488,18 @@ export default function CreateLockModal({
                               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#fb57ff] to-purple-600" />
                             )}
                             <div className="flex-1">
-                              <p className="font-semibold text-white">{token.symbol}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold text-white">{token.symbol}</p>
+                                <span 
+                                  className="text-xs px-2 py-0.5 rounded"
+                                  style={{ 
+                                    backgroundColor: token.programId?.includes("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") ? 'rgba(96, 165, 250, 0.1)' : 'rgba(251, 87, 255, 0.1)',
+                                    color: token.programId?.includes("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") ? '#60a5fa' : '#fb57ff'
+                                  }}
+                                >
+                                  {token.programId?.includes("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") ? "SPL" : "2022"}
+                                </span>
+                              </div>
                               <p className="text-xs text-gray-400">{token.name}</p>
                             </div>
                             <div className="text-right">

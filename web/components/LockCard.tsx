@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Lock, Calendar, Clock, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { formatDistance } from "date-fns";
@@ -20,19 +21,32 @@ interface LockCardProps {
 }
 
 export default function LockCard({ lock }: LockCardProps) {
+  const [mounted, setMounted] = useState(false);
   const unlockDate = new Date(lock.unlockTime);
   const createdDate = new Date(lock.createdAt);
-  const now = new Date();
-  const isUnlockable = unlockDate <= now;
-  const timeRemaining = unlockDate > now
-    ? formatDistance(unlockDate, now, { addSuffix: true })
-    : "Unlocked";
+  
+  // Only calculate time-sensitive values on client
+  const [now, setNow] = useState<Date | null>(null);
+  
+  useEffect(() => {
+    setMounted(true);
+    setNow(new Date());
+  }, []);
 
-  const progress = isUnlockable
-    ? 100
-    : ((now.getTime() - createdDate.getTime()) /
-        (unlockDate.getTime() - createdDate.getTime())) *
-      100;
+  const isUnlockable = now ? unlockDate <= now : false;
+  const timeRemaining = mounted && now
+    ? (unlockDate > now
+        ? formatDistance(unlockDate, now, { addSuffix: true })
+        : "Unlocked")
+    : "...";
+
+  const progress = mounted && now
+    ? (isUnlockable
+        ? 100
+        : ((now.getTime() - createdDate.getTime()) /
+            (unlockDate.getTime() - createdDate.getTime())) *
+          100)
+    : 0;
 
   return (
     <Link
@@ -124,7 +138,7 @@ export default function LockCard({ lock }: LockCardProps) {
             <Calendar className="w-4 h-4 text-gray-400" />
             <span className="text-gray-400">Unlock date:</span>
             <span className="text-white font-medium">
-              {unlockDate.toLocaleDateString()}
+              {mounted ? unlockDate.toLocaleDateString() : "..."}
             </span>
           </div>
         </div>

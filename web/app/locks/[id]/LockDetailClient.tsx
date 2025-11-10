@@ -40,21 +40,32 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
   const [lock, setLock] = useState(initialLock);
   const [copied, setCopied] = useState<string | null>(null);
   const [shareTooltip, setShareTooltip] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const unlockDate = new Date(lock.unlockTime);
   const createdDate = new Date(lock.createdAt);
-  const now = new Date();
-  const isUnlockable = unlockDate <= now;
+  
+  // Only calculate time-sensitive values on client
+  const [now, setNow] = useState<Date | null>(null);
+  
+  useEffect(() => {
+    setMounted(true);
+    setNow(new Date());
+  }, []);
+
+  const isUnlockable = now ? unlockDate <= now : false;
   const isOwner = publicKey && lock.creatorWallet === publicKey.toString();
 
-  const timeRemaining = unlockDate > now
-    ? formatDistance(unlockDate, now, { addSuffix: true })
-    : "Unlocked";
+  const timeRemaining = mounted && now
+    ? (unlockDate > now
+        ? formatDistance(unlockDate, now, { addSuffix: true })
+        : "Unlocked")
+    : "...";
 
-  const progress =
-    ((now.getTime() - createdDate.getTime()) /
-      (unlockDate.getTime() - createdDate.getTime())) *
-    100;
+  const progress = mounted && now
+    ? ((now.getTime() - createdDate.getTime()) /
+        (unlockDate.getTime() - createdDate.getTime())) * 100
+    : 0;
 
   const copyToClipboard = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -182,7 +193,7 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
                 <span className="text-sm">Unlock Date</span>
               </div>
               <p className="text-lg font-semibold text-white">
-                {format(unlockDate, "MMM dd, yyyy")}
+                {mounted ? format(unlockDate, "MMM dd, yyyy") : "..."}
               </p>
             </div>
 
@@ -246,7 +257,7 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
             <div>
               <p className="text-sm text-gray-400 mb-1">Created</p>
               <p className="text-white font-medium">
-                {format(createdDate, "MMM dd, yyyy HH:mm")}
+                {mounted ? format(createdDate, "MMM dd, yyyy HH:mm") : "..."}
               </p>
             </div>
           </div>
