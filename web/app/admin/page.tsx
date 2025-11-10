@@ -1422,6 +1422,15 @@ const searchTokens = async (query: string) => {
                           <p className="font-bold">
                             {pool.name} ({pool.symbol})
                           </p>
+                          <a
+                            href={`/pool/${pool.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-[#fb57ff] hover:underline inline-flex items-center gap-1 mt-1"
+                          >
+                            <Globe className="w-3 h-3" />
+                            /pool/{pool.id.slice(0, 8)}...
+                          </a>
                           <div className="flex gap-2 mt-1 flex-wrap">
                             {pool.isInitialized && (
                               <span className="text-xs bg-green-600/30 text-green-400 px-2 py-0.5 rounded">

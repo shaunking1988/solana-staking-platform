@@ -2,21 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
-import { 
-  VersionedTransaction, 
-  Transaction, 
-  PublicKey,
-  Connection 
-} from "@solana/web3.js";
-import {
-  createTransferInstruction,
-  createAssociatedTokenAccountInstruction,
-  getAssociatedTokenAddress,
-  TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
+import { VersionedTransaction } from "@solana/web3.js";
 import { ArrowDownUp, Settings, Info, TrendingUp, Zap, ExternalLink } from "lucide-react";
 import { useToast } from "@/components/ToastContainer";
 import TokenSelectModal from "./TokenSelectModal";
+import { executeJupiterSwap, getJupiterQuote } from "@/lib/jupiter-swap";
+import { executeRaydiumSwap, getRaydiumQuote } from "@/lib/raydium-swap";
 
 interface Token {
   address: string;
@@ -29,12 +20,14 @@ interface Token {
 interface SwapConfig {
   swapEnabled: boolean;
   platformFeePercentage: number;
+  platformFeeBps: number;
   maxSlippage: number;
   priorityFee: number;
+  treasuryWallet: string;
 }
 
 export default function SwapPage() {
-  const { publicKey, signTransaction, signAllTransactions } = useWallet();
+  const { publicKey, signTransaction } = useWallet();
   const { connection } = useConnection();
   const { showSuccess, showError, showInfo } = useToast();
 
@@ -76,13 +69,17 @@ export default function SwapPage() {
           setConfig({
             swapEnabled: data.swapEnabled ?? true,
             platformFeePercentage, // e.g., 100 bps = 1%
+            platformFeeBps: data.platformFeeBps || 100, // Store original bps value
             maxSlippage, // e.g., 5000 bps = 50%
-            priorityFee: 0.0001
+            priorityFee: 0.0001,
+            treasuryWallet: data.treasuryWallet || "",
           });
           
-          console.log('✅ Config loaded successfully:', {
+          console.log('✅ Config loaded:', {
             swapEnabled: data.swapEnabled,
+            platformFeeBps: data.platformFeeBps,
             platformFeePercentage: platformFeePercentage + '%',
+            treasuryWallet: data.treasuryWallet,
             maxSlippage: maxSlippage + '%',
           });
           
@@ -101,9 +98,11 @@ export default function SwapPage() {
           // Use defaults
           setConfig({
             swapEnabled: true,
-            platformFeePercentage: 1.0,
-            maxSlippage: 50.0,
-            priorityFee: 0.0001
+            platformFeePercentage: 1.0, // 1% default
+            platformFeeBps: 100, // 100 bps = 1%
+            maxSlippage: 50.0, // 50% default
+            priorityFee: 0.0001,
+            treasuryWallet: "",
           });
         }
       } catch (error) {
@@ -111,8 +110,10 @@ export default function SwapPage() {
         setConfig({
           swapEnabled: true,
           platformFeePercentage: 1.0,
+          platformFeeBps: 100,
           maxSlippage: 50.0,
-          priorityFee: 0.0001
+          priorityFee: 0.0001,
+          treasuryWallet: "",
         });
       }
     };
@@ -187,7 +188,7 @@ export default function SwapPage() {
 
     setQuoteLoading(true);
     try {
-      const amount = (parseFloat(fromAmount) * Math.pow(10, fromToken.decimals)).toFixed(0);
+      const amount = Math.floor(parseFloat(fromAmount) * Math.pow(10, fromToken.decimals));
       
       console.log('🔍 Fetching quote:', {
         from: fromToken.symbol,
@@ -196,32 +197,55 @@ export default function SwapPage() {
         amountLamports: amount,
       });
       
-      // Jupiter Legacy Swap API - proven stable endpoint
-      const params = new URLSearchParams({
-        inputMint: fromToken.address,
-        outputMint: toToken.address,
-        amount: amount,
-        slippageBps: Math.floor(slippage * 100).toString(),
-        onlyDirectRoutes: 'false',
-        swapMode: 'ExactIn',
-        asLegacyTransaction: 'true', // FORCE LEGACY - avoids ALT issues
-      });
-
-      const quoteResponse = await fetch(
-        `https://lite-api.jup.ag/swap/v1/quote?${params}`
+      // Try Jupiter first
+      console.log('🪐 Trying Jupiter...');
+      let quote = await getJupiterQuote(
+        fromToken.address,
+        toToken.address,
+        amount,
+        Math.floor(slippage * 100),
+        config?.platformFeeBps,
+        config?.treasuryWallet
       );
-
-      if (!quoteResponse.ok) {
-        console.error('❌ Quote API error:', quoteResponse.status);
-        const errorData = await quoteResponse.text();
-        console.error('Error details:', errorData);
+      
+      let source = 'Jupiter';
+      
+      // If Jupiter fails, try Raydium
+      if (!quote) {
+        console.log('⚠️ Jupiter failed, trying Raydium...');
+        const raydiumQuote = await getRaydiumQuote(
+          connection,
+          fromToken.address,
+          toToken.address,
+          amount,
+          Math.floor(slippage * 100)
+        );
+        
+        if (raydiumQuote) {
+          // Convert Raydium response to Jupiter-like format
+          quote = {
+            inputMint: raydiumQuote.data.inputMint,
+            inAmount: raydiumQuote.data.inputAmount,
+            outputMint: raydiumQuote.data.outputMint,
+            outAmount: raydiumQuote.data.outputAmount,
+            otherAmountThreshold: raydiumQuote.data.otherAmountThreshold,
+            swapMode: raydiumQuote.data.swapType,
+            slippageBps: raydiumQuote.data.slippageBps,
+            platformFee: null,
+            priceImpactPct: raydiumQuote.data.priceImpactPct.toString(),
+            routePlan: raydiumQuote.data.routePlan,
+          };
+          source = 'Raydium';
+        }
+      }
+      
+      if (!quote) {
+        console.error('❌ Both Jupiter and Raydium failed to provide quote');
         setToAmount("");
         return;
       }
-
-      const quote = await quoteResponse.json();
-      console.log('📊 Quote received');
-      console.log('📊 Route:', quote.routePlan?.map((r: any) => r.swapInfo?.label).join(' → '));
+      
+      console.log(`📊 Quote received from ${source}`);
       
       if (quote.outAmount) {
         const outAmountDecimal = parseFloat(quote.outAmount) / Math.pow(10, toToken.decimals);
@@ -240,7 +264,7 @@ export default function SwapPage() {
   };
 
   const handleSwap = async () => {
-    if (!publicKey || !signAllTransactions || !fromToken || !toToken || !fromAmount) {
+    if (!publicKey || !signTransaction || !fromToken || !toToken || !fromAmount) {
       showError("❌ Please connect wallet and fill in all fields");
       return;
     }
@@ -254,334 +278,89 @@ export default function SwapPage() {
     setLastTxSignature(null);
     
     try {
-      const amount = (parseFloat(fromAmount) * Math.pow(10, fromToken.decimals)).toFixed(0);
+      const amount = Math.floor(parseFloat(fromAmount) * Math.pow(10, fromToken.decimals));
 
-      console.log('🔄 Getting Jupiter quote...');
+      console.log('🔄 Executing swap...');
 
-      // Step 1: Get Jupiter quote (Legacy API - lite-api)
-      const quoteParams = new URLSearchParams({
-        inputMint: fromToken.address,
-        outputMint: toToken.address,
-        amount: amount,
-        slippageBps: Math.floor(slippage * 100).toString(),
-        onlyDirectRoutes: 'false',
-        swapMode: 'ExactIn',
-        asLegacyTransaction: 'true', // MUST match swap request
-      });
-
-      const quoteResponse = await fetch(`https://lite-api.jup.ag/swap/v1/quote?${quoteParams}`);
-      if (!quoteResponse.ok) throw new Error('Failed to get Jupiter quote');
+      // Try Jupiter first
+      console.log('🪐 Attempting swap with Jupiter...');
+      let txid = await executeJupiterSwap(
+        connection,
+        publicKey,
+        fromToken.address,
+        toToken.address,
+        amount,
+        Math.floor(slippage * 100),
+        signTransaction,
+        config?.platformFeeBps,
+        config?.treasuryWallet
+      );
       
-      const quoteData = await quoteResponse.json();
-      console.log('✅ Quote received');
-      console.log('📊 Route:', quoteData.routePlan?.map((r: any) => r.swapInfo?.label).join(' → '));
-
-      // Step 2: Get Jupiter swap transaction (Legacy API - lite-api)
-      console.log('📝 Creating swap transaction...');
+      let source = 'Jupiter';
       
-      const swapResponse = await fetch('https://lite-api.jup.ag/swap/v1/swap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quoteResponse: quoteData,
-          userPublicKey: publicKey.toString(),
-          wrapAndUnwrapSol: true,
-          dynamicComputeUnitLimit: true, // Estimate compute units accurately
-          skipUserAccountsRpcCalls: false, // Check accounts exist
-          asLegacyTransaction: true, // CRITICAL - Must use legacy to avoid ALT issues
-          prioritizationFeeLamports: {
-            priorityLevelWithMaxLamports: {
-              priorityLevel: 'high', // Use high priority for better inclusion
-              maxLamports: 5000000 // Max 0.005 SOL for priority fees
-            }
-          },
-          // Don't specify blockhashSlotsToExpiry - we'll replace with fresh blockhash anyway
-        }),
-      });
-
-      if (!swapResponse.ok) {
-        const errorText = await swapResponse.text();
-        console.error('Swap API error:', swapResponse.status, errorText);
-        
-        let errorDetail = 'Unknown error';
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorDetail = errorJson.error || errorJson.message || errorText;
-        } catch {
-          errorDetail = errorText;
-        }
-        
-        throw new Error(`Failed to create swap transaction: ${errorDetail}`);
-      }
-      
-      const swapData = await swapResponse.json();
-      
-      // Validate response
-      if (!swapData.swapTransaction) {
-        console.error('Invalid swap response:', swapData);
-        throw new Error('No swap transaction in response');
-      }
-      
-      console.log('✅ Transaction received from Jupiter');
-      console.log('📊 lastValidBlockHeight:', swapData.lastValidBlockHeight);
-      console.log('📊 prioritizationFeeLamports:', swapData.prioritizationFeeLamports);
-      
-      const txReceivedTime = Date.now();
-
-      // Use connection from wallet
-      const rpcConnection = connection;
-
-      // Deserialize swap transaction (legacy format when asLegacyTransaction: true)
-      const jupiterTxBuffer = Buffer.from(swapData.swapTransaction, 'base64');
-      let jupiterTx: Transaction;
-      
-      try {
-        // Try legacy first (since we're using asLegacyTransaction: true)
-        jupiterTx = Transaction.from(jupiterTxBuffer);
-        console.log('📝 Deserialized as Legacy Transaction');
-        console.log('📊 Transaction details:', {
-          signatures: jupiterTx.signatures.length,
-          instructions: jupiterTx.instructions.length,
-          feePayer: jupiterTx.feePayer?.toString(),
-          recentBlockhash: jupiterTx.recentBlockhash,
-        });
-      } catch (e) {
-        console.error('Failed to deserialize transaction:', e);
-        throw new Error('Transaction deserialization failed');
-      }
-
-      // CRITICAL FIX: Get a FRESH blockhash right now and replace Jupiter's
-      // Jupiter's blockhash might already be old by the time we get it
-      console.log('🔄 Getting fresh blockhash...');
-      const { blockhash: freshBlockhash, lastValidBlockHeight: freshLastValidBlockHeight } = 
-        await rpcConnection.getLatestBlockhash('finalized');
-      
-      console.log('📊 Replacing blockhash:', {
-        old: jupiterTx.recentBlockhash,
-        new: freshBlockhash,
-        lastValidBlockHeight: freshLastValidBlockHeight
-      });
-      
-      jupiterTx.recentBlockhash = freshBlockhash;
-      jupiterTx.feePayer = publicKey;
-
-      // Use the fresh lastValidBlockHeight instead of Jupiter's
-      const lastValidBlockHeight = freshLastValidBlockHeight;
-
-      const transactionsToSign: (VersionedTransaction | Transaction)[] = [jupiterTx];
-      
-      // Step 3: Prepare fee transaction if applicable
-      if (config.platformFeeBps > 0 && toToken.address !== 'So11111111111111111111111111111111111111112') {
-        console.log('💰 Preparing platform fee transaction...');
-        
-        const feeTransaction = new Transaction();
-        
-        const outputAmount = BigInt(quoteData.outAmount);
-        const feeAmount = (outputAmount * BigInt(config.platformFeeBps)) / BigInt(10000);
-        
-        const treasuryPubkey = new PublicKey(config.treasuryWallet);
-        const outputMintPubkey = new PublicKey(toToken.address);
-        const userOutputAccount = await getAssociatedTokenAddress(outputMintPubkey, publicKey);
-        const treasuryOutputAccount = await getAssociatedTokenAddress(outputMintPubkey, treasuryPubkey);
-        
-        // Check if treasury account exists
-        const treasuryAccountInfo = await rpcConnection.getAccountInfo(treasuryOutputAccount);
-        
-        if (!treasuryAccountInfo) {
-          console.log('📝 Creating treasury token account...');
-          feeTransaction.add(
-            createAssociatedTokenAccountInstruction(
-              publicKey,
-              treasuryOutputAccount,
-              treasuryPubkey,
-              outputMintPubkey
-            )
-          );
-        }
-        
-        // Add fee transfer
-        feeTransaction.add(
-          createTransferInstruction(
-            userOutputAccount,
-            treasuryOutputAccount,
-            publicKey,
-            feeAmount,
-            [],
-            TOKEN_PROGRAM_ID
-          )
+      // If Jupiter fails, try Raydium
+      if (!txid) {
+        console.log('⚠️ Jupiter swap failed, trying Raydium...');
+        txid = await executeRaydiumSwap(
+          connection,
+          publicKey,
+          fromToken.address,
+          toToken.address,
+          amount,
+          Math.floor(slippage * 100),
+          signTransaction as any
         );
-        
-        const { blockhash } = await rpcConnection.getLatestBlockhash('finalized');
-        feeTransaction.recentBlockhash = blockhash;
-        feeTransaction.feePayer = publicKey;
-        
-        transactionsToSign.push(feeTransaction);
-        console.log('✅ Fee transaction prepared');
+        source = 'Raydium';
+      }
+      
+      if (!txid) {
+        throw new Error('Both Jupiter and Raydium swaps failed');
       }
 
-      // Sign all transactions at once
-      const txCount = transactionsToSign.length;
-      console.log(`📝 Please sign ${txCount} transaction(s)...`);
-      
-      // Log transaction details before signing
-      transactionsToSign.forEach((tx, i) => {
-        const txName = i === 0 ? 'Swap' : 'Fee';
-        console.log(`📋 ${txName} transaction:`, {
-          instructions: tx.instructions.length,
-          feePayer: tx.feePayer?.toString(),
-          hasBlockhash: !!tx.recentBlockhash,
-        });
-      });
-      
-      showInfo(`Please sign ${txCount} transaction${txCount > 1 ? 's' : ''} in your wallet`);
-      
-      let signedTransactions: Transaction[];
+      console.log(`✅ Swap transaction sent via ${source}:`, txid);
+      setLastTxSignature(txid);
+
+      // Show pending with link
+      showInfo(`📤 Transaction sent! Confirming... View: https://solscan.io/tx/${txid}`);
+
+      // Wait for confirmation with better error handling
       try {
-        signedTransactions = await signAllTransactions(transactionsToSign);
-        const signingTime = Date.now() - txReceivedTime;
-        console.log(`✅ All transactions signed (took ${signingTime}ms)`);
-      } catch (signError: any) {
-        console.error('❌ Signing failed:', signError);
-        throw new Error(`Failed to sign transaction: ${signError.message || 'User rejected or wallet error'}`);
-      }
+        const latestBlockhash = await connection.getLatestBlockhash('finalized');
+        
+        await connection.confirmTransaction({
+          signature: txid,
+          blockhash: latestBlockhash.blockhash,
+          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+        }, 'confirmed');
 
-      // Execute transactions in sequence
-      for (let i = 0; i < signedTransactions.length; i++) {
-        const tx = signedTransactions[i];
-        const txName = i === 0 ? 'Swap' : 'Fee';
+        console.log('✅ Transaction confirmed!');
+        showSuccess(`✅ Swap successful via ${source}! TX: ${txid.slice(0, 8)}...`);
         
-        console.log(`📤 Sending ${txName} transaction...`);
-        showInfo(`Sending ${txName} transaction...`);
+        setFromAmount("");
+        setToAmount("");
         
-        let signature: string;
-        let retryCount = 0;
-        const maxRetries = 2; // Reduce retries since we'll fail fast
+      } catch (confirmError: any) {
+        console.warn('⚠️ Confirmation issue:', confirmError.message);
         
-        // Send transaction with retry for network issues only
-        while (retryCount < maxRetries) {
-          try {
-            const rawTransaction = tx.serialize();
-            signature = await rpcConnection.sendRawTransaction(rawTransaction, {
-              skipPreflight: true, // CRITICAL - Skip simulation to send faster
-              maxRetries: 3,
-              preflightCommitment: 'confirmed',
-            });
-            
-            // Success - break retry loop
-            console.log(`✅ ${txName} transaction sent:`, signature);
-            
-            // Immediately verify the transaction exists
-            console.log(`🔍 Verifying transaction was accepted...`);
-            await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms for propagation
-            
-            const quickCheck = await rpcConnection.getSignatureStatus(signature);
-            console.log(`📊 Initial status:`, {
-              exists: quickCheck.value !== null,
-              status: quickCheck.value?.confirmationStatus,
-            });
-            
-            if (quickCheck.value === null) {
-              console.warn(`⚠️ Transaction signature not found immediately after sending`);
-            }
-            
-            break;
-            
-          } catch (sendError: any) {
-            retryCount++;
-            
-            if (sendError.message?.includes('block height exceeded') || 
-                sendError.message?.includes('Blockhash not found')) {
-              console.error(`❌ ${txName} blockhash expired - transaction took too long to sign`);
-              throw new Error('Transaction expired while signing. Please try the swap again and sign faster.');
-            }
-            
-            // Network errors - retry
-            if (sendError.message?.includes('429') || 
-                sendError.message?.includes('timeout')) {
-              console.warn(`⚠️ Network error on attempt ${retryCount}`);
-              
-              if (retryCount >= maxRetries) {
-                throw new Error('Network error sending transaction. Please try again.');
-              }
-              
-              await new Promise(resolve => setTimeout(resolve, 500));
-              continue;
-            }
-            
-            // Other error - don't retry
-            throw sendError;
-          }
-        }
+        // Check actual status
+        const status = await connection.getSignatureStatus(txid);
         
-        if (i === 0) {
-          setLastTxSignature(signature!);
-        }
-        
-        showInfo(`⏳ Confirming ${txName} transaction...`);
-        
-        try {
-          // Use lastValidBlockHeight from Jupiter for proper confirmation
-          const confirmation = await rpcConnection.confirmTransaction({
-            signature: signature!,
-            blockhash: tx.recentBlockhash!,
-            lastValidBlockHeight: i === 0 ? lastValidBlockHeight : undefined
-          }, 'confirmed');
-          
-          if (confirmation.value.err) {
-            throw new Error(`${txName} transaction failed: ${JSON.stringify(confirmation.value.err)}`);
-          }
-          
-          console.log(`✅ ${txName} confirmed!`);
-          showSuccess(`✅ ${txName} confirmed! ${signature!.slice(0, 8)}...`);
-          
-        } catch (confirmError: any) {
-          console.warn(`⚠️ ${txName} confirmation timeout:`, confirmError.message);
-          
-          // If confirmation times out, check actual status
-          const status = await rpcConnection.getSignatureStatus(signature!);
-          
-          console.log(`📊 Transaction status check:`, {
-            signature: signature,
-            confirmationStatus: status.value?.confirmationStatus,
-            err: status.value?.err,
-            slot: status.value?.slot,
-          });
-          
-          if (status.value?.confirmationStatus === 'confirmed' || 
-              status.value?.confirmationStatus === 'finalized') {
-            console.log(`✅ ${txName} actually confirmed`);
-            showSuccess(`✅ ${txName} confirmed! ${signature!.slice(0, 8)}...`);
-          } else if (status.value?.err) {
-            console.error(`❌ ${txName} failed:`, status.value.err);
-            throw new Error(`${txName} transaction failed: ${JSON.stringify(status.value.err)}`);
-          } else if (status.value === null) {
-            // Transaction doesn't exist on-chain
-            console.error(`❌ ${txName} not found on-chain - may have been dropped`);
-            throw new Error(`${txName} transaction was not found on-chain. It may have been dropped or the RPC is slow. Please try again.`);
-          } else {
-            // Transaction is still pending
-            console.log(`⏳ ${txName} still pending, likely will confirm`);
-            showInfo(`⏳ ${txName} sent but not yet confirmed. Check: https://solscan.io/tx/${signature}`);
-          }
+        if (status.value?.confirmationStatus === 'confirmed' || 
+            status.value?.confirmationStatus === 'finalized') {
+          console.log('✅ Transaction actually confirmed');
+          showSuccess(`✅ Swap successful via ${source}! TX: ${txid.slice(0, 8)}...`);
+          setFromAmount("");
+          setToAmount("");
+        } else if (status.value?.err) {
+          console.error('❌ Transaction failed:', status.value.err);
+          throw new Error(`Transaction failed: ${JSON.stringify(status.value.err)}`);
+        } else {
+          showInfo(`⏳ Transaction pending. Check: https://solscan.io/tx/${txid}`);
         }
       }
-
-      // All transactions confirmed
-      showSuccess('🎉 Swap completed successfully!');
-      
-      setFromAmount("");
-      setToAmount("");
       
       // Record stats
       try {
-        const { calculateSwapVolumeUSD } = await import('@/lib/price-utils');
-        
-        const { volumeUsd, priceUsd } = await calculateSwapVolumeUSD(
-          fromToken.address,
-          parseFloat(fromAmount) * Math.pow(10, fromToken.decimals),
-          fromToken.decimals
-        );
-        
         await fetch("/api/swap/stats", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -591,10 +370,8 @@ export default function SwapPage() {
             fromAmount: parseFloat(fromAmount),
             toAmount: parseFloat(toAmount),
             userAddress: publicKey.toString(),
-            volumeUsd: volumeUsd,
-            priceUsd: priceUsd,
-            txid: lastTxSignature,
-            source: 'jupiter',
+            txid: txid,
+            source: source,
           }),
         });
       } catch (statsError) {
@@ -604,21 +381,12 @@ export default function SwapPage() {
     } catch (error: any) {
       console.error("❌ Swap error:", error);
       
-      if (error.message?.includes('User rejected') || 
-          error.message?.includes('user rejected') ||
-          error.message?.includes('User cancelled') ||
-          error.message?.includes('Failed to sign transaction') ||
-          error.name === 'WalletSignTransactionError') {
-        showError("❌ Transaction cancelled or wallet signing failed");
-      } else if (error.message?.includes('expired while signing')) {
-        showError("❌ Transaction expired while signing. Please try again and sign faster.");
+      if (error.message?.includes('User rejected')) {
+        showError("❌ Transaction cancelled");
       } else if (error.message?.includes('insufficient funds')) {
         showError("❌ Insufficient balance");
-      } else if (error.message?.includes('block height exceeded') || 
-                 error.message?.includes('Blockhash not found')) {
-        showError("❌ Transaction expired. Please try again.");
-      } else if (error.message?.includes('Network error')) {
-        showError("❌ Network error. Please try again.");
+      } else if (error.message?.includes('Blockhash not found')) {
+        showError("❌ Transaction expired. Try again.");
       } else {
         showError(`❌ Swap failed: ${error.message}`);
       }
@@ -652,7 +420,7 @@ export default function SwapPage() {
             Token Swap
           </h1>
           <p className="text-gray-500">
-            Powered by Jupiter • Best prices across all Solana DEXs
+            Powered by Jupiter + Raydium • {config ? `${config.platformFeePercentage.toFixed(2)}% platform fee` : "Loading..."}
           </p>
           {config && config.platformFeePercentage > 3 && (
             <div className="mt-2 border rounded-lg p-2" style={{ background: 'rgba(251, 87, 255, 0.2)', borderColor: 'rgba(251, 87, 255, 0.5)' }}>
@@ -879,7 +647,7 @@ export default function SwapPage() {
               <span className="font-semibold text-white">Fast Swaps</span>
             </div>
             <p className="text-sm text-gray-500">
-              Powered by Jupiter aggregator
+              Jupiter aggregator + Raydium fallback
             </p>
           </div>
 
@@ -889,7 +657,7 @@ export default function SwapPage() {
               <span className="font-semibold text-white">Best Prices</span>
             </div>
             <p className="text-sm text-gray-500">
-              Routes through all DEXs including Raydium
+              Supports low-liquidity tokens
             </p>
           </div>
 
@@ -899,7 +667,7 @@ export default function SwapPage() {
               <span className="font-semibold text-white">Platform Fee</span>
             </div>
             <p className="text-sm text-gray-500">
-              1% fee supports platform development
+              {config ? config.platformFeePercentage.toFixed(2) : "1.00"}% goes to treasury
             </p>
           </div>
         </div>
@@ -907,8 +675,8 @@ export default function SwapPage() {
 
       {/* Token Select Modal */}
       <TokenSelectModal
-        featuredTokens={featuredTokens}
         isOpen={showTokenSelect !== null}
+        featuredTokens={featuredTokens}
         onSelectToken={(token) => {
           if (showTokenSelect === "from") {
             setFromToken(token);

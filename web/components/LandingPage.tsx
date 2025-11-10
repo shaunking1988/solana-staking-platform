@@ -331,31 +331,6 @@ export default function LandingPage() {
         </div>
 
         <div className="relative max-w-7xl mx-auto px-6 py-20 lg:py-32">
-          <div className="absolute top-8 right-8 flex items-center gap-3">
-            <a
-              href={socialLinks.telegram || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center w-10 h-10 bg-white/[0.02] border border-white/[0.05] rounded-full hover:bg-white/[0.05] transition-all group"
-              onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
-              onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
-              aria-label="Telegram"
-            >
-              <Send className="w-5 h-5 text-gray-400 transition-colors" style={{ ['--hover-color' as any]: '#fb57ff' }} onMouseEnter={(e) => e.currentTarget.style.color = '#fb57ff'} onMouseLeave={(e) => e.currentTarget.style.color = ''} />
-            </a>
-            <a
-              href={socialLinks.twitter || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center w-10 h-10 bg-white/[0.02] border border-white/[0.05] rounded-full hover:bg-white/[0.05] transition-all group"
-              onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
-              onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
-              aria-label="Twitter"
-            >
-              <Twitter className="w-5 h-5 text-gray-400 transition-colors" style={{ ['--hover-color' as any]: '#fb57ff' }} onMouseEnter={(e) => e.currentTarget.style.color = '#fb57ff'} onMouseLeave={(e) => e.currentTarget.style.color = ''} />
-            </a>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8 text-center lg:text-left">
               <h1 className="text-5xl lg:text-7xl font-bold leading-tight text-white">
@@ -369,7 +344,7 @@ export default function LandingPage() {
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <button
-                  onClick={() => router.push("/dashboard")}
+                  onClick={() => router.push("/pools")}
                   className="group flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg transition-all font-semibold text-sm"
                   style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
                 >

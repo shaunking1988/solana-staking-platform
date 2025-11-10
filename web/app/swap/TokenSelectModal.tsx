@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { X, Search, Sparkles } from "lucide-react";
 
 interface Token {
@@ -9,14 +9,6 @@ interface Token {
   name: string;
   decimals: number;
   logoURI?: string;
-}
-
-interface JupiterToken {
-  id: string;
-  symbol: string;
-  name: string;
-  icon?: string;
-  decimals: number;
 }
 
 interface TokenSelectModalProps {
@@ -35,128 +27,82 @@ export default function TokenSelectModal({
   title = "Select a token",
 }: TokenSelectModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Token[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const [allTokens, setAllTokens] = useState<Token[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Search using Jupiter V2 API
+  // Fetch token list on mount
   useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    const query = searchQuery.trim();
-
-    if (!query) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
-    }
-
-    setIsSearching(true);
-
-    searchTimeoutRef.current = setTimeout(async () => {
+    const fetchTokens = async () => {
+      setIsLoading(true);
       try {
-        console.log('🔍 Searching Jupiter for:', query);
-        
-        const response = await fetch(
-          `https://lite-api.jup.ag/tokens/v2/search?query=${encodeURIComponent(query)}`
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const data: JupiterToken[] = await response.json();
-        console.log('✅ Found', data.length, 'tokens');
-
-        // Convert to our Token format
-        const tokens: Token[] = data.map(t => ({
-          address: t.id,
-          symbol: t.symbol,
-          name: t.name,
-          decimals: t.decimals,
-          logoURI: t.icon
-        }));
-
-        // Exclude featured tokens
-        const featuredAddresses = new Set(featuredTokens.map(t => t.address.toLowerCase()));
-        const nonFeatured = tokens.filter(t => 
-          !featuredAddresses.has(t.address.toLowerCase())
-        );
-
-        setSearchResults(nonFeatured);
+        const response = await fetch("https://token.jup.ag/strict");
+        const data = await response.json();
+        setAllTokens(data);
       } catch (error) {
-        console.error('❌ Search failed:', error);
-        setSearchResults([]);
+        console.error("Failed to fetch tokens:", error);
       } finally {
-        setIsSearching(false);
-      }
-    }, 500); // Debounce 500ms
-
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
+        setIsLoading(false);
       }
     };
-  }, [searchQuery, featuredTokens]);
 
-  // Filter featured tokens
-  const filteredFeatured = searchQuery
-    ? featuredTokens.filter((token) => {
-        const query = searchQuery.toLowerCase();
-        return (
-          token.symbol?.toLowerCase().includes(query) ||
-          token.name?.toLowerCase().includes(query) ||
-          token.address?.toLowerCase().includes(query)
-        );
-      })
-    : featuredTokens;
-
-  useEffect(() => {
-    if (!isOpen) {
-      setSearchQuery("");
-      setSearchResults([]);
+    if (isOpen && allTokens.length === 0) {
+      fetchTokens();
     }
-  }, [isOpen]);
+  }, [isOpen, allTokens.length]);
+
+  // Filter tokens based on search
+  const filteredTokens = allTokens.filter(
+    (token) =>
+      token.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      token.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      token.address.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (!isOpen) return null;
 
-  const hasResults = filteredFeatured.length > 0 || searchResults.length > 0;
-
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-50 p-4">
-      <div className="bg-white/[0.02] border border-white/[0.05] p-6 rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white">{title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl min-w-[44px] min-h-[44px]">✕</button>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[#1A1F2E] rounded-2xl w-full max-w-[90vw] sm:max-w-md max-h-[80vh] flex flex-col shadow-2xl border border-white/[0.05]">
+        {/* Header - Mobile optimized */}
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/[0.05]">
+          <h2 className="text-lg sm:text-xl font-bold text-white">{title}</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white/[0.05] rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            aria-label="Close modal"
+          >
+            <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" />
+          </button>
         </div>
 
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search or paste address..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full p-3 pl-10 rounded-lg bg-white/[0.02] text-white border border-white/[0.05] focus:border-[#fb57ff] focus:outline-none"
-            autoFocus
-          />
-          {isSearching && (
-            <div 
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" 
-              style={{ borderColor: '#fb57ff', borderTopColor: 'transparent' }}
+        {/* Search Bar - Mobile optimized */}
+        <div className="p-4 sm:p-6 border-b border-white/[0.05]">
+          <div className="relative">
+            <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by name or address..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white/[0.05] border border-white/[0.05] text-white rounded-xl pl-10 sm:pl-12 pr-4 py-3 sm:py-4 
+                       focus:outline-none 
+                       placeholder-gray-500 text-sm sm:text-base min-h-[44px]"
+              style={{ borderColor: 'rgba(251, 87, 255, 0.3)' }}
+              autoFocus
             />
-          )}
+          </div>
         </div>
 
-        {!searchQuery && (
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-3">
+        {/* Featured Tokens - Mobile optimized grid */}
+        {featuredTokens.length > 0 && !searchQuery && (
+          <div className="p-4 sm:p-6 border-b border-white/[0.05]">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
               <Sparkles className="w-4 h-4" style={{ color: '#fb57ff' }} />
-              <span className="text-xs font-semibold text-gray-300 uppercase">Featured Tokens</span>
+              <span className="text-xs sm:text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                Featured
+              </span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
               {featuredTokens.map((token) => (
                 <button
                   key={token.address}
@@ -164,91 +110,83 @@ export default function TokenSelectModal({
                     onSelectToken(token);
                     onClose();
                   }}
-                  className="flex items-center gap-2 p-3 bg-white/[0.02] hover:bg-white/[0.04] border border-white/[0.05] rounded-lg transition-all"
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
+                  className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white/[0.05] hover:bg-white/[0.08] 
+                           rounded-xl transition-all hover:scale-105 min-h-[44px]"
                 >
-                  {token.logoURI && (
-                    <img src={token.logoURI} alt={token.symbol} className="w-7 h-7 rounded-full" />
+                  {token.logoURI ? (
+                    <img
+                      src={token.logoURI}
+                      alt={token.symbol}
+                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex-shrink-0"
+                    />
+                  ) : (
+                    <div 
+                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex-shrink-0" 
+                      style={{ background: 'rgba(251, 87, 255, 0.2)' }}
+                    />
                   )}
-                  <span className="font-semibold text-white text-sm truncate">{token.symbol}</span>
+                  <span className="font-semibold text-white text-xs sm:text-sm truncate">
+                    {token.symbol}
+                  </span>
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {searchQuery && (
-          <div className="flex-1 overflow-hidden">
-            <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg overflow-y-auto max-h-[400px]">
-              {filteredFeatured.length > 0 && (
-                <>
-                  <div className="px-3 py-2 bg-white/[0.02] border-b border-white/[0.05] sticky top-0">
-                    <Sparkles className="w-3 h-3 inline mr-2" style={{ color: '#fb57ff' }} />
-                    <span className="text-xs font-semibold text-gray-400 uppercase">Featured</span>
-                  </div>
-                  {filteredFeatured.map((token) => (
-                    <button
-                      key={token.address}
-                      onClick={() => {
-                        onSelectToken(token);
-                        onClose();
-                      }}
-                      className="w-full flex items-center gap-3 p-4 hover:bg-white/[0.04] border-b border-white/[0.05] transition-all"
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(251, 87, 255, 0.1)'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = ''}
-                    >
-                      {token.logoURI && (
-                        <img src={token.logoURI} alt={token.symbol} className="w-10 h-10 rounded-full" />
-                      )}
-                      <div className="text-left">
-                        <div className="font-semibold text-white">{token.symbol}</div>
-                        <div className="text-sm text-gray-400 truncate">{token.name}</div>
-                      </div>
-                    </button>
-                  ))}
-                </>
-              )}
-
-              {searchResults.length > 0 && (
-                <>
-                  {filteredFeatured.length > 0 && (
-                    <div className="px-3 py-2 bg-white/[0.02] border-b border-white/[0.05] sticky top-0">
-                      <span className="text-xs font-semibold text-gray-400 uppercase">Search Results</span>
-                    </div>
-                  )}
-                  {searchResults.map((token) => (
-                    <button
-                      key={token.address}
-                      onClick={() => {
-                        onSelectToken(token);
-                        onClose();
-                      }}
-                      className="w-full flex items-center gap-3 p-4 hover:bg-white/[0.04] border-b border-white/[0.05] last:border-0 transition-all"
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(251, 87, 255, 0.1)'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = ''}
-                    >
-                      {token.logoURI && (
-                        <img src={token.logoURI} alt={token.symbol} className="w-10 h-10 rounded-full" />
-                      )}
-                      <div className="text-left flex-1 min-w-0">
-                        <div className="font-semibold text-white">{token.symbol}</div>
-                        <div className="text-sm text-gray-400 truncate">{token.name}</div>
-                      </div>
-                    </button>
-                  ))}
-                </>
-              )}
-
-              {!hasResults && !isSearching && (
-                <div className="text-center py-12 px-4">
-                  <p className="text-gray-400 text-sm">No tokens found</p>
-                  <p className="text-gray-500 text-xs mt-2">Try a different search</p>
-                </div>
-              )}
+        {/* Token List - Mobile optimized scrolling */}
+        <div className="flex-1 overflow-y-auto">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12 sm:py-16">
+              <div 
+                className="w-8 h-8 sm:w-10 sm:h-10 border-4 border-t-transparent rounded-full animate-spin" 
+                style={{ borderColor: '#fb57ff', borderTopColor: 'transparent' }}
+              />
             </div>
-          </div>
-        )}
+          ) : filteredTokens.length === 0 ? (
+            <div className="text-center py-12 sm:py-16 px-4">
+              <p className="text-gray-400 text-sm sm:text-base">No tokens found</p>
+              <p className="text-gray-500 text-xs sm:text-sm mt-2">
+                Try a different search term
+              </p>
+            </div>
+          ) : (
+            <div className="p-2 sm:p-3 space-y-1">
+              {filteredTokens.map((token) => (
+                <button
+                  key={token.address}
+                  onClick={() => {
+                    onSelectToken(token);
+                    onClose();
+                  }}
+                  className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-white/[0.05] 
+                           rounded-xl transition-colors text-left min-h-[56px] sm:min-h-[64px]"
+                >
+                  {token.logoURI ? (
+                    <img
+                      src={token.logoURI}
+                      alt={token.symbol}
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0"
+                    />
+                  ) : (
+                    <div 
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0" 
+                      style={{ background: 'rgba(251, 87, 255, 0.2)' }}
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-white text-sm sm:text-base">
+                      {token.symbol}
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-400 truncate">
+                      {token.name}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

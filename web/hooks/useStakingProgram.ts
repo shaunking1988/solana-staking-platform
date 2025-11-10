@@ -76,6 +76,14 @@ export function useStakingProgram() {
       feeCollector
     );
 
+    // Check if fee collector token account exists, create if not
+    const feeCollectorAccountInfo = await connection.getAccountInfo(feeCollectorTokenAccount);
+    const needsInit = !feeCollectorAccountInfo;
+
+    if (needsInit) {
+      console.log("⚠️ Fee collector token account doesn't exist, will create it");
+    }
+
     // Convert amount to proper decimals
     const amountBN = new BN(amount);
 
@@ -118,14 +126,55 @@ export function useStakingProgram() {
       stakingVault: stakingVaultPDA.toString(),
       user: publicKey.toString(),
       amount: amountBN.toString(),
+      needsInit,
     });
 
     try {
-      // Execute stake transaction with custom confirmation
-      const tx = await program.methods
-        .deposit(tokenMintPubkey, new BN(poolId), amountBN)
-        .accountsPartial(accounts)
-        .rpc({ skipPreflight: false, commitment: 'confirmed' });
+      let tx: string;
+
+      if (needsInit) {
+        // Create transaction with ATA initialization and stake
+        console.log("🔧 Creating fee collector ATA and staking...");
+        
+        const transaction = new Transaction();
+        
+        // Add compute budget for complex transaction
+        const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
+          units: 400000,
+        });
+        transaction.add(computeBudgetIx);
+        
+        // Add create ATA instruction
+        const createATAIx = createAssociatedTokenAccountInstruction(
+          publicKey, // payer
+          feeCollectorTokenAccount, // ata address
+          feeCollector, // owner
+          tokenMintPubkey, // mint
+          TOKEN_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID
+        );
+        transaction.add(createATAIx);
+        
+        // Add stake instruction
+        const stakeIx = await program.methods
+          .deposit(tokenMintPubkey, new BN(poolId), amountBN)
+          .accountsPartial(accounts)
+          .instruction();
+        transaction.add(stakeIx);
+        
+        // Send and confirm transaction
+        tx = await sendTransaction(transaction, connection, {
+          skipPreflight: false,
+        });
+        
+        console.log("✅ ATA created and stake executed:", tx);
+      } else {
+        // Execute stake transaction normally
+        tx = await program.methods
+          .deposit(tokenMintPubkey, new BN(poolId), amountBN)
+          .accountsPartial(accounts)
+          .rpc({ skipPreflight: false, commitment: 'confirmed' });
+      }
 
       console.log("✅ Transaction signature:", tx);
       
@@ -806,18 +855,17 @@ try {
    * @param tokenMint - The token mint address
    */
   const getProjectInfo = async (tokenMint: string, poolId: number = 0) => {
-    // For reading public data, we need a wallet for the program instance
-    // but it can work even if not fully connected
-    if (!wallet) {
-      throw new Error("Wallet not available");
-    }
-
-    const program = getProgram(wallet, connection);
+    // Use read-only program - no wallet connection required for public data
+    const { getReadOnlyProgram } = await import("@/lib/anchor-program");
+    const program = getReadOnlyProgram(connection);
     const tokenMintPubkey = new PublicKey(tokenMint);
     const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
 
     const projectData = await program.account.project.fetch(projectPDA, "confirmed");
-    return projectData;
+    return {
+      ...projectData,
+      address: projectPDA, // Include the PDA address
+    };
   };
 
   /**

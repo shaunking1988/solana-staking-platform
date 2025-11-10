@@ -1,15 +1,16 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useWallet, useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
-import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, SYSVAR_RENT_PUBKEY } from "@solana/spl-token";
-import { Plus, X, Loader2, Check, AlertCircle } from "lucide-react";
+import { PublicKey, SystemProgram, Transaction, SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
+import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import { Plus, X, Loader2, Check, AlertCircle, Code } from "lucide-react";
 import { getProgram, getPDAs } from "@/lib/anchor-program";
 import { calculateEstimatedAPY, calculateRequiredRewards } from "@/lib/calculate-apy";
+import IntegrateModal from "@/components/IntegrateModal";
 import * as anchor from "@coral-xyz/anchor";
 
 const ADMIN_WALLET = new PublicKey("9zS3TWXEWQnYU2xFSMB7wvv7JuBJpcPtxw9kaf1STzvR");
-const POOL_CREATION_FEE = 0.001 * 1_000_000_000; // 0.001 SOL in lamports (temporary for testing)
+const POOL_CREATION_FEE = 1 * 1_000_000_000; // 1 SOL in lamports
 
 interface UserToken {
   mint: string;
@@ -39,28 +40,18 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
   const [statusMessage, setStatusMessage] = useState("");
   const [userTokens, setUserTokens] = useState<UserToken[]>([]);
   const [selectedToken, setSelectedToken] = useState<UserToken | null>(null);
+  const [createdPoolId, setCreatedPoolId] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showIntegrateModal, setShowIntegrateModal] = useState(false);
+  const [urlCopied, setUrlCopied] = useState(false);
   
   const [poolConfig, setPoolConfig] = useState({
     rewardAmount: "1000",
-    expectedStaked: "10000",
     duration: "90",
     enableReflections: false,
     reflectionType: "self" as "self" | "external",
     externalReflectionMint: "",
   });
-
-  const [estimatedAPY, setEstimatedAPY] = useState(0);
-  const [requiredRewards, setRequiredRewards] = useState(0);
-
-  // Calculate APY whenever config changes
-  useEffect(() => {
-    const apy = calculateEstimatedAPY(
-      parseFloat(poolConfig.rewardAmount) || 0,
-      parseFloat(poolConfig.expectedStaked) || 1,
-      parseFloat(poolConfig.duration) || 1
-    );
-    setEstimatedAPY(apy);
-  }, [poolConfig.rewardAmount, poolConfig.expectedStaked, poolConfig.duration]);
 
   // Fetch user's tokens
   useEffect(() => {
@@ -308,8 +299,8 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       setStatusMessage("Step 3/4: Initializing pool parameters...");
       console.log("⚙️ Transaction 3: Initialize Pool");
       const initParams = {
-        rateBpsPerYear: new anchor.BN(estimatedAPY * 100),
-        rateMode: 0, // Always locked (0 = APY for locked pools)
+        rateBpsPerYear: new anchor.BN(0), // Not used for dynamic pools
+        rateMode: 1, // Variable pool = dynamic APR (auto-calculated based on rewards/staked)
         lockupSeconds: new anchor.BN(parseInt(poolConfig.duration) * 86400), // Lock for full duration
         poolDurationSeconds: new anchor.BN(parseInt(poolConfig.duration) * 86400),
         referrer: null,
@@ -360,7 +351,19 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
         .rpc();
       console.log("✅ Rewards deposited:", depositRewardsTx);
 
-      // Step 5: Save to database
+      // TODO: Admin transfer temporarily disabled due to PDA mismatch
+      // The TransferAdmin struct expects PDA without poolId, but user pools use poolId
+      // This will be fixed in next program update
+      // 
+      // For now, pool creators retain admin rights and can:
+      // - Deposit more rewards
+      // - Claim unclaimed tokens
+      // - Still earn staking rewards as regular users
+
+      setStatusMessage("Finalizing pool...");
+      console.log("✅ Pool finalized");
+
+      // Save to database
       setStatusMessage("Saving pool information...");
       
       const poolData = {
@@ -368,8 +371,8 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
         symbol: selectedToken.symbol,
         tokenMint: selectedToken.mint,
         logo: selectedToken.logoURI,
-        apr: estimatedAPY.toFixed(2),
-        apy: estimatedAPY.toFixed(2),
+        apr: "0", // Dynamic - calculated on frontend based on actual stakes
+        apy: "0", // Dynamic - calculated on frontend based on actual stakes
         type: "locked",
         lockPeriod: poolConfig.duration, // Lock period equals duration
         rewards: selectedToken.symbol,
@@ -400,11 +403,12 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       const savedPool = await response.json();
       console.log("✅ Pool saved to database:", savedPool);
 
-      setStatusMessage("✅ Pool created successfully!");
-      setTimeout(() => {
-        onSuccess();
-        onClose();
-      }, 500);
+      // Show success modal with shareable URL - DON'T refresh yet
+      setCreatedPoolId(savedPool.pool.id);
+      setShowSuccessModal(true);
+      setStatusMessage("");
+      setLoading(false);
+      // Don't call onSuccess() here - let user see the share URL first!
 
     } catch (error: any) {
       console.error("Error creating pool:", error);
@@ -416,7 +420,8 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+    <>
+    <div className={`fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto ${showSuccessModal ? 'hidden' : ''}`}>
       <div className="bg-black/90 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/[0.05]">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/[0.05] sticky top-0 bg-black/90 z-10">
@@ -571,25 +576,6 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Expected total tokens to be staked (estimate)
-                </label>
-                <input
-                  type="number"
-                  value={poolConfig.expectedStaked}
-                  onChange={(e) => setPoolConfig({ ...poolConfig, expectedStaked: e.target.value })}
-                  className="w-full p-3 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white focus:outline-none transition-colors"
-                  onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.5)'}
-                  onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
-                  placeholder="10000"
-                  min="1"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  This helps calculate your estimated APY
-                </p>
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Pool Duration (days)</label>
                 <input
                   type="number"
@@ -697,16 +683,24 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
                 )}
               </div>
 
-              {/* Estimated APY Display */}
+              {/* Dynamic APY Info */}
               <div className="bg-white/[0.02] border border-[#fb57ff]/30 rounded-lg p-4">
                 <div className="text-center">
-                  <div className="text-sm text-gray-400 mb-1">Estimated APY</div>
-                  <div className="text-4xl font-bold" style={{ color: '#fb57ff' }}>{estimatedAPY.toFixed(2)}%</div>
-                  <div className="text-xs text-gray-500 mt-2">
-                    Based on {poolConfig.rewardAmount} rewards / {poolConfig.expectedStaked} staked / {poolConfig.duration} days
+                  <div className="text-sm text-gray-400 mb-2">APY Calculation</div>
+                  <div className="text-sm text-gray-300">
+                    APY will be calculated automatically based on:
                   </div>
                   <div className="text-xs text-gray-400 mt-2">
-                    ⚠️ Real APY will update as rewards are deposited and tokens are staked
+                    • Rewards you deposit: {poolConfig.rewardAmount} {selectedToken.symbol}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    • Actual tokens staked by users
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    • Pool duration: {poolConfig.duration} days
+                  </div>
+                  <div className="text-xs text-[#fb57ff] mt-3 font-medium">
+                    ✨ APY updates in real-time on the pools page
                   </div>
                 </div>
               </div>
@@ -740,13 +734,13 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
             <div className="space-y-6">
               <div className="bg-white/[0.02] border border-white/[0.1] rounded-lg p-4">
                 <p className="text-gray-300 text-sm font-semibold mb-2">
-                  ⚠️ Pool Creation Fee: 0.001 SOL
+                  ⚠️ Pool Creation Fee: 1 SOL
                 </p>
                 <p className="text-gray-400 text-xs">
                   You will sign 4 transactions:
                 </p>
                 <ul className="list-disc list-inside text-gray-400 text-xs mt-2 space-y-1">
-                  <li>Transaction 1: Pay 0.001 SOL to platform</li>
+                  <li>Transaction 1: Pay 1 SOL to platform</li>
                   <li>Transaction 2: Create pool on-chain</li>
                   <li>Transaction 3: Initialize parameters</li>
                   <li>Transaction 4: Deposit {poolConfig.rewardAmount} {selectedToken.symbol}</li>
@@ -765,8 +759,8 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
                   <div className="text-gray-400 text-sm">Token:</div>
                   <div className="text-white font-medium text-sm text-right">{selectedToken.name}</div>
 
-                  <div className="text-gray-400 text-sm">Estimated APY:</div>
-                  <div className="font-bold text-sm text-right" style={{ color: '#fb57ff' }}>{estimatedAPY.toFixed(2)}%</div>
+                  <div className="text-gray-400 text-sm">APY:</div>
+                  <div className="font-bold text-sm text-right" style={{ color: '#fb57ff' }}>Dynamic</div>
 
                   <div className="text-gray-400 text-sm">Reward Deposit:</div>
                   <div className="text-white font-medium text-sm text-right">{parseFloat(poolConfig.rewardAmount).toLocaleString()} {selectedToken.symbol}</div>
@@ -779,14 +773,14 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
                   <div className="text-gray-400 text-sm">Pool Duration:</div>
                   <div className="text-white font-medium text-sm text-right">{poolConfig.duration} days</div>
 
-                  <div className="text-gray-400 text-sm">Your Role:</div>
-                  <div className="font-medium text-sm text-right" style={{ color: '#fb57ff' }}>Pool Admin</div>
+                  <div className="text-gray-400 text-sm">Status:</div>
+                  <div className="font-medium text-sm text-right" style={{ color: '#fb57ff' }}>Ready to Launch</div>
                 </div>
 
                 <div className="border-t border-white/[0.05] pt-4 mt-4">
                   <p className="text-xs text-gray-500">
-                    As pool admin, you'll be able to deposit rewards, update settings, and manage the pool.
-                    You must deposit the rewards before users can earn from staking.
+                    Your pool will be fully initialized and ready for users to stake.
+                    APY will update automatically based on actual stakes.
                   </p>
                 </div>
               </div>
@@ -824,6 +818,97 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
         </div>
       </div>
     </div>
+
+    {/* Success Modal */}
+    {showSuccessModal && createdPoolId && (
+      <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+        <div className="bg-black border-2 border-[#fb57ff] rounded-2xl max-w-md w-full p-8 animate-in fade-in zoom-in duration-300">
+          <div className="text-center mb-6">
+            <div className="w-20 h-20 bg-[#fb57ff]/20 border-2 border-[#fb57ff] rounded-full flex items-center justify-center mx-auto mb-4">
+              <Check className="w-10 h-10" style={{ color: '#fb57ff' }} />
+            </div>
+            <h2 className="text-3xl font-bold mb-2" style={{ 
+              background: 'linear-gradient(45deg, white, #fb57ff)', 
+              WebkitBackgroundClip: 'text', 
+              WebkitTextFillColor: 'transparent' 
+            }}>
+              Pool Created! 🎉
+            </h2>
+            <p className="text-gray-400">Your staking pool is now live</p>
+          </div>
+
+          <div className="bg-white/[0.02] border border-[#fb57ff]/20 rounded-lg p-4 mb-6">
+            <p className="text-sm font-semibold mb-3" style={{ color: '#fb57ff' }}>
+              🔗 Share Your Pool
+            </p>
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/pool/${createdPoolId}`}
+                readOnly
+                className="flex-1 px-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded text-sm text-white font-mono"
+                onClick={(e) => e.currentTarget.select()}
+              />
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/pool/${createdPoolId}`);
+                  setUrlCopied(true);
+                  setTimeout(() => setUrlCopied(false), 2000);
+                }}
+                className="px-4 py-2 bg-[#fb57ff]/20 hover:bg-[#fb57ff]/30 border border-[#fb57ff]/50 rounded transition-all text-sm font-semibold min-w-[70px]"
+                style={urlCopied ? { background: 'linear-gradient(45deg, black, #fb57ff)' } : {}}
+              >
+                {urlCopied ? '✓ Copied' : 'Copy'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400">
+              💡 Share this link with your community to let them stake in your pool!
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => setShowIntegrateModal(true)}
+              className="w-full px-4 py-3 bg-white/[0.05] hover:bg-white/[0.08] border border-[#fb57ff]/30 rounded-lg font-semibold transition-all hover:border-[#fb57ff] text-white flex items-center justify-center gap-2"
+            >
+              <Code className="w-4 h-4" />
+              Integrate on Your Website
+            </button>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  window.open(`/pool/${createdPoolId}`, '_blank');
+                }}
+                className="flex-1 px-4 py-3 bg-white/[0.05] hover:bg-white/[0.08] border border-[#fb57ff]/30 rounded-lg font-semibold transition-all hover:border-[#fb57ff] text-white"
+              >
+                View Pool
+              </button>
+              <button
+                onClick={() => {
+                  onSuccess(); // Refresh the pools list
+                  onClose();   // Close the modal
+                }}
+                className="flex-1 px-4 py-3 rounded-lg font-semibold transition-all hover:opacity-90"
+                style={{ background: 'linear-gradient(45deg, #fb57ff, black)' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Integrate Modal */}
+    {createdPoolId && (
+      <IntegrateModal
+        isOpen={showIntegrateModal}
+        onClose={() => setShowIntegrateModal(false)}
+        poolId={createdPoolId}
+      />
+    )}
+    </>
   );
 }
 
