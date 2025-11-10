@@ -11,12 +11,15 @@ staking_program = "Cxj21a71eRjRSyWbSCEsmyKehqKqyrjMCqZi1sJoTHwj"
 [programs.localnet]
 staking_program = "Cxj21a71eRjRSyWbSCEsmyKehqKqyrjMCqZi1sJoTHwj"
 
+[programs.mainnet]
+staking_program = "CK5MvNapq49YA9NMS7dsPVWiCBpdnkBiJGwZDjxg7uio"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
-wallet = "~/.config/solana/id.json"
+cluster = "mainnet"
+wallet = "~/.config/solana/mainnet-wallet.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 \"tests/**/*.ts\""

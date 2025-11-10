@@ -4,7 +4,7 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer, Mint};
 use anchor_spl::associated_token::AssociatedToken;  // ✅ ADD: For reflection ATA support
 use anchor_spl::token_interface;
 
-declare_id!("Cxj21a71eRjRSyWbSCEsmyKehqKqyrjMCqZi1sJoTHwj");
+declare_id!("CK5MvNapq49YA9NMS7dsPVWiCBpdnkBiJGwZDjxg7uio");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
 
@@ -1345,24 +1345,6 @@ pub mod staking_program {
         Ok(())
     }
 
-    pub fn change_withdrawal_wallet(
-        ctx: Context<ChangeWithdrawalWallet>,
-        token_mint: Pubkey,
-        pool_id: u64,
-        new_wallet: Pubkey,
-    ) -> Result<()> {
-        let stake = &mut ctx.accounts.stake;
-        stake.withdrawal_wallet = new_wallet;
-        
-        emit!(WithdrawalWalletChanged {
-            user: stake.user,
-            project: stake.project,
-            new_wallet,
-        });
-        
-        Ok(())
-    }
-
     pub fn claim_unclaimed_tokens(
         ctx: Context<ClaimUnclaimedTokens>,
         token_mint: Pubkey,
@@ -2180,28 +2162,6 @@ pub struct EmergencyUnlockAccounts<'info> {
 
 #[derive(Accounts)]
 #[instruction(token_mint: Pubkey, pool_id: u64)]
-pub struct ChangeWithdrawalWallet<'info> {
-    #[account(
-        seeds = [b"project", token_mint.as_ref(), &pool_id.to_le_bytes()],
-        bump = project.bump
-    )]
-    pub project: Account<'info, Project>,
-    
-    #[account(
-        mut,
-        seeds = [b"stake", project.key().as_ref(), user.key().as_ref()],
-        bump = stake.bump,
-        constraint = stake.user == user.key() @ ErrorCode::Unauthorized,
-        constraint = stake.project == project.key() @ ErrorCode::InvalidProject
-    )]
-    pub stake: Account<'info, Stake>,
-    
-    #[account(mut)]
-    pub user: Signer<'info>,
-}
-
-#[derive(Accounts)]
-#[instruction(token_mint: Pubkey, pool_id: u64)]
 pub struct ClaimUnclaimedTokens<'info> {
     #[account(
         seeds = [b"project", token_mint.as_ref(), &pool_id.to_le_bytes()],
@@ -2495,13 +2455,6 @@ pub struct ProjectUnpaused {
 pub struct EmergencyUnlockEvent {
     pub project: Pubkey,
     pub admin: Pubkey,
-}
-
-#[event]
-pub struct WithdrawalWalletChanged {
-    pub user: Pubkey,
-    pub project: Pubkey,
-    pub new_wallet: Pubkey,
 }
 
 #[event]

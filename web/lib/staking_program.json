@@ -1,98 +1,11 @@
 {
-  "address": "Cxj21a71eRjRSyWbSCEsmyKehqKqyrjMCqZi1sJoTHwj",
+  "address": "CK5MvNapq49YA9NMS7dsPVWiCBpdnkBiJGwZDjxg7uio",
   "metadata": {
     "name": "staking_program",
     "version": "0.1.0",
     "spec": "0.1.0"
   },
   "instructions": [
-    {
-      "name": "change_withdrawal_wallet",
-      "discriminator": [
-        251,
-        149,
-        165,
-        196,
-        65,
-        184,
-        186,
-        129
-      ],
-      "accounts": [
-        {
-          "name": "project",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "token_mint"
-              },
-              {
-                "kind": "arg",
-                "path": "pool_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "stake",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  116,
-                  97,
-                  107,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "project"
-              },
-              {
-                "kind": "account",
-                "path": "user"
-              }
-            ]
-          }
-        },
-        {
-          "name": "user",
-          "writable": true,
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "token_mint",
-          "type": "pubkey"
-        },
-        {
-          "name": "pool_id",
-          "type": "u64"
-        },
-        {
-          "name": "new_wallet",
-          "type": "pubkey"
-        }
-      ]
-    },
     {
       "name": "claim",
       "discriminator": [
@@ -2886,19 +2799,6 @@
       ]
     },
     {
-      "name": "WithdrawalWalletChanged",
-      "discriminator": [
-        39,
-        211,
-        248,
-        129,
-        100,
-        198,
-        135,
-        99
-      ]
-    },
-    {
       "name": "WithdrawalsPaused",
       "discriminator": [
         6,
@@ -3893,26 +3793,6 @@
           {
             "name": "remaining",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "WithdrawalWalletChanged",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "user",
-            "type": "pubkey"
-          },
-          {
-            "name": "project",
-            "type": "pubkey"
-          },
-          {
-            "name": "new_wallet",
-            "type": "pubkey"
           }
         ]
       }
