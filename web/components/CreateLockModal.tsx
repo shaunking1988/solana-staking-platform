@@ -185,12 +185,6 @@ export default function CreateLockModal({
       return;
     }
 
-    // Check if token is Token-2022 (not supported yet)
-    if (selectedToken.programId && !selectedToken.programId.includes("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")) {
-      setError("❌ Token-2022 tokens are not supported for locks yet. Please select a standard SPL token.");
-      return;
-    }
-
     // Calculate final lock duration in seconds
     let finalDuration: number;
     if (selectedDuration === "custom") {
