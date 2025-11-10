@@ -27,13 +27,13 @@ export default function WalletConnect() {
     <div className="relative">
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-all text-sm font-medium whitespace-nowrap"
+        className="flex items-center gap-2 px-3 py-2 lg:px-4 lg:py-2 rounded-lg text-white transition-all text-sm font-medium whitespace-nowrap active:scale-95"
         style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
       >
-        <Wallet className="w-3.5 h-3.5 flex-shrink-0" />
-        <span className="text-sm font-mono">{shortAddress}</span>
+        <Wallet className="w-5 h-5 lg:w-3.5 lg:h-3.5 flex-shrink-0" />
+        <span className="hidden lg:inline text-sm font-mono">{shortAddress}</span>
         <svg 
-          className={`w-3 h-3 transition-transform flex-shrink-0 ${showMenu ? 'rotate-180' : ''}`} 
+          className={`hidden lg:block w-3 h-3 transition-transform flex-shrink-0 ${showMenu ? 'rotate-180' : ''}`} 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"

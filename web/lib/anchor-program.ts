@@ -51,6 +51,39 @@ export function getProgram(wallet: AnchorWallet, connection: Connection): Progra
 }
 
 /**
+ * Get a read-only program instance (no wallet required)
+ * Useful for fetching public on-chain data
+ */
+export function getReadOnlyProgram(connection: Connection): Program {
+  if (!connection) {
+    throw new Error("Connection is required");
+  }
+
+  // Create a dummy wallet for read-only operations
+  const dummyWallet = {
+    publicKey: PROGRAM_ID, // Use program ID as dummy public key
+    signTransaction: async () => { throw new Error("Read-only wallet cannot sign"); },
+    signAllTransactions: async () => { throw new Error("Read-only wallet cannot sign"); },
+  } as AnchorWallet;
+
+  const provider = new AnchorProvider(
+    connection,
+    dummyWallet,
+    {
+      commitment: "confirmed",
+      preflightCommitment: "confirmed",
+    }
+  );
+
+  const program = new Program(
+    idlJson as Idl,
+    provider
+  );
+
+  return program;
+}
+
+/**
  * Helper to convert pool_id number to LE bytes for PDA derivation
  */
 function poolIdToBytes(poolId: number): Buffer {
