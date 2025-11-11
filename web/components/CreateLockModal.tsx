@@ -288,7 +288,7 @@ export default function CreateLockModal({
       }
       
       if (!matchingPool) {
-        // Need to find next available poolId (same logic as CreatePoolModal)
+        // Need to find next available poolId (check both on-chain AND database)
         const { getProgram } = await import("@/lib/anchor-program");
         const { getPDAs } = await import("@/lib/anchor-program");
         const walletForCheck = (window as any).solana;
@@ -302,12 +302,28 @@ export default function CreateLockModal({
         
         while (poolExists && poolId < 100) { // Max 100 pools per token
           const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
+          
+          // Check on-chain
+          let onChainExists = false;
           try {
             await program.account.project.fetch(projectPDA);
-            console.log(`⚠️ Pool ${poolId} already exists, trying next...`);
-            poolId++;
+            onChainExists = true;
           } catch (error) {
-            // Pool doesn't exist, we can use this poolId
+            // Pool doesn't exist on-chain
+          }
+          
+          // Check database
+          let dbExists = false;
+          try {
+            dbExists = existingPools.some((p: any) => p.poolId === poolId);
+          } catch (error) {
+            console.log("⚠️ Could not check database, continuing...");
+          }
+          
+          if (onChainExists || dbExists) {
+            console.log(`⚠️ Pool ${poolId} already exists (onChain: ${onChainExists}, db: ${dbExists}), trying next...`);
+            poolId++;
+          } else {
             console.log(`✅ Found available poolId: ${poolId}`);
             poolExists = false;
           }

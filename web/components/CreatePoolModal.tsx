@@ -38,6 +38,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [userTokens, setUserTokens] = useState<UserToken[]>([]);
   const [selectedToken, setSelectedToken] = useState<UserToken | null>(null);
   const [createdPoolId, setCreatedPoolId] = useState<string | null>(null);
@@ -196,9 +197,11 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
 
   const handleCreatePool = async () => {
     if (!publicKey || !signTransaction || !selectedToken || !wallet) {
-      alert("Please connect your wallet");
+      setError("Please connect your wallet");
       return;
     }
+    
+    setError(null); // Clear any previous errors
 
     setLoading(true);
     
@@ -207,7 +210,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       const program = getProgram(wallet, connection);
       const tokenMintPubkey = new PublicKey(selectedToken.mint);
       
-      // Check if pool already exists and find next available poolId
+      // Check if pool already exists (both on-chain and in database) and find next available poolId
       let poolId = 0;
       let poolExists = true;
       
@@ -215,12 +218,32 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       
       while (poolExists && poolId < 10) { // Max 10 pools per token
         const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
+        
+        // Check on-chain
+        let onChainExists = false;
         try {
           await program.account.project.fetch(projectPDA);
-          console.log(`⚠️ Pool ${poolId} already exists, trying next...`);
-          poolId++;
+          onChainExists = true;
         } catch (error) {
-          // Pool doesn't exist, we can use this poolId
+          // Pool doesn't exist on-chain
+        }
+        
+        // Check database
+        let dbExists = false;
+        try {
+          const dbCheck = await fetch(`/api/pools/by-token/${selectedToken.mint}`);
+          if (dbCheck.ok) {
+            const pools = await dbCheck.json();
+            dbExists = pools.some((p: any) => p.poolId === poolId);
+          }
+        } catch (error) {
+          console.log("⚠️ Could not check database, continuing...");
+        }
+        
+        if (onChainExists || dbExists) {
+          console.log(`⚠️ Pool ${poolId} already exists (onChain: ${onChainExists}, db: ${dbExists}), trying next...`);
+          poolId++;
+        } else {
           console.log(`✅ Found available poolId: ${poolId}`);
           poolExists = false;
         }
@@ -233,6 +256,16 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
       const [stakingVaultPDA] = getPDAs.stakingVault(tokenMintPubkey, poolId);
       const [rewardVaultPDA] = getPDAs.rewardVault(tokenMintPubkey, poolId);
+      
+      // ✅ Detect token program type early
+      const mintInfo = await connection.getAccountInfo(tokenMintPubkey);
+      if (!mintInfo) {
+        throw new Error("Token mint not found");
+      }
+      const tokenProgramId = mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID) 
+        ? TOKEN_2022_PROGRAM_ID 
+        : TOKEN_PROGRAM_ID;
+      console.log(`✅ Token program detected: ${tokenProgramId.toString()}`);
       
       console.log(`🎯 Creating pool with poolId: ${poolId}`);
 
@@ -289,7 +322,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
           tokenMint: tokenMintPubkey, // Use "tokenMint" not "tokenMintAccount"
           admin: publicKey,
           systemProgram: SystemProgram.programId,
-          tokenProgram: TOKEN_PROGRAM_ID,
+          tokenProgram: tokenProgramId,  // ✅ Use detected token program
           rent: SYSVAR_RENT_PUBKEY,
         })
         .rpc();
@@ -327,7 +360,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
           admin: publicKey,
           associatedTokenProgram: null,
           systemProgram: SystemProgram.programId,
-          tokenProgram: TOKEN_PROGRAM_ID,
+          tokenProgram: tokenProgramId,  // ✅ Use detected token program
         })
         .rpc();
       console.log("✅ Pool initialized:", initPoolTx);
@@ -335,6 +368,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       // Transaction 4: Deposit Rewards
       setStatusMessage("Step 4/4: Depositing rewards...");
       console.log("💎 Transaction 4: Deposit Rewards");
+      
       const depositRewardsTx = await program.methods
         .depositRewards(
           tokenMintPubkey,           // token_mint
@@ -345,8 +379,9 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
           project: projectPDA,
           rewardVault: rewardVaultPDA,
           adminTokenAccount: userTokenAccountPubkey,
+          tokenMintAccount: tokenMintPubkey,  // ✅ Add token mint account
           admin: publicKey,
-          tokenProgram: TOKEN_PROGRAM_ID,
+          tokenProgram: tokenProgramId,  // ✅ Use detected token program
         })
         .rpc();
       console.log("✅ Rewards deposited:", depositRewardsTx);
@@ -413,7 +448,8 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
     } catch (error: any) {
       console.error("Error creating pool:", error);
       setStatusMessage("");
-      alert(`Failed to create pool: ${error.message}`);
+      setError(error.message || "Failed to create pool. Please try again.");
+      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -457,6 +493,25 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
             <span className="text-sm font-medium hidden md:block">Confirm</span>
           </div>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mx-6 mt-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-red-300 mb-1">Error</p>
+                <p className="text-sm text-red-200">{error}</p>
+              </div>
+              <button 
+                onClick={() => setError(null)}
+                className="text-red-400 hover:text-red-300 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Status Message */}
         {statusMessage && (
@@ -868,7 +923,10 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
 
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => setShowIntegrateModal(true)}
+              onClick={() => {
+                setShowSuccessModal(false);  // Hide success modal
+                setShowIntegrateModal(true);  // Show integrate modal
+              }}
               className="w-full px-4 py-3 bg-white/[0.05] hover:bg-white/[0.08] border border-[#fb57ff]/30 rounded-lg font-semibold transition-all hover:border-[#fb57ff] text-white flex items-center justify-center gap-2"
             >
               <Code className="w-4 h-4" />

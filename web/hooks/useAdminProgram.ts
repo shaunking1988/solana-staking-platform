@@ -467,26 +467,45 @@ const sendTransactionWithFreshBlockhash = async (
     const program = await getProgram(wallet, connection);
     const tokenMintPubkey = new PublicKey(tokenMint);
 
+    // ✅ DETECT THE TOKEN PROGRAM TYPE
+    const mintInfo = await connection.getAccountInfo(tokenMintPubkey);
+    if (!mintInfo) {
+      throw new Error("Token mint not found");
+    }
+    
+    // Check if it's Token-2022 or SPL Token
+    const TOKEN_2022_PROGRAM_ID = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+    const SPL_TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+    
+    const tokenProgramId = mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID) 
+      ? TOKEN_2022_PROGRAM_ID 
+      : SPL_TOKEN_PROGRAM_ID;
+
+    console.log(`✅ Token program detected for deposit rewards: ${tokenProgramId.toString()}`);
+
     const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
 
     const [rewardVaultPDA] = getPDAs.rewardVault(tokenMintPubkey, poolId);
 
     const adminTokenAccount = await getAssociatedTokenAddress(
       tokenMintPubkey,
-      publicKey
+      publicKey,
+      false,
+      tokenProgramId  // ✅ Use detected token program
     );
 
     const method = program.methods
       .depositRewards(
         tokenMintPubkey,
         new BN(poolId),
-        new BN(amount))  // ← Only pass amount!
+        new BN(amount))
       .accounts({
         project: projectPDA,
         rewardVault: rewardVaultPDA,
         adminTokenAccount,
+        tokenMintAccount: tokenMintPubkey,  // ✅ Add token mint account
         admin: publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenProgram: tokenProgramId,  // ✅ Use detected token program
       });
 
     return await sendTransactionWithFreshBlockhash(program, method);

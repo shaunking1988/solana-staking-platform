@@ -59,8 +59,13 @@ export async function POST(req: Request) {
     });
 
     if (existingPool) {
+      console.log("⚠️ Pool already exists in database:", {
+        tokenMint: body.tokenMint,
+        poolId: body.poolId || 0,
+        existingPoolId: existingPool.id,
+      });
       return NextResponse.json({ 
-        error: "A pool already exists for this token. Try a different token or contact support." 
+        error: `Pool #${body.poolId || 0} already exists for this token in the database. This is likely a database sync issue. Please refresh the page and try again.` 
       }, { status: 400 });
     }
     
