@@ -272,9 +272,9 @@ export default function SwapPage() {
       balance: tokenBalance,
     });
     
-    // For SOL, leave 0.01 for fees
+    // For SOL, leave 0.003 for fees (much lower than Phantom's buffer)
     if (fromToken?.address === "So11111111111111111111111111111111111111112") {
-      const maxAmount = Math.max(0, tokenBalance - 0.01);
+      const maxAmount = Math.max(0, tokenBalance - 0.003);
       setFromAmount(maxAmount.toFixed(6));
       console.log('💰 Set MAX amount (SOL):', maxAmount.toFixed(6));
     } else {
@@ -384,12 +384,12 @@ export default function SwapPage() {
       return;
     }
 
-    // Check SOL balance for gas fees
+    // Check SOL balance for gas fees (reduced buffer - Phantom works with less)
     try {
       const solBalance = await connection.getBalance(publicKey);
       const solBalanceDecimal = solBalance / 1e9;
       
-      if (solBalanceDecimal < 0.005) {
+      if (solBalanceDecimal < 0.002) {
         showError("Insufficient SOL for fees");
         return;
       }
