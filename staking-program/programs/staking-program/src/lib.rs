@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
-use anchor_spl::token::{self, Token, Transfer};  // Keep old token for CPI helpers
 use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token::{self as token, CloseAccount, Token};
 use anchor_spl::token_interface::{
     self as token_interface,
     Mint,
@@ -335,29 +335,33 @@ pub mod staking_program {
     stake.last_stake_timestamp = current_time;
 }
                        
-        token::transfer(
+        token_interface::transfer_checked(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
-                Transfer {
+                TransferChecked {
                     from: ctx.accounts.user_token_account.to_account_info(),
                     to: ctx.accounts.staking_vault.to_account_info(),
                     authority: ctx.accounts.user.to_account_info(),
+                    mint: ctx.accounts.token_mint_account.to_account_info(),
                 },
             ),
             amount_after_fee,
+            ctx.accounts.token_mint_account.decimals,
         )?;
         
         if token_fee > 0 {
-            token::transfer(
+            token_interface::transfer_checked(
                 CpiContext::new(
                     ctx.accounts.token_program.to_account_info(),
-                    Transfer {
+                    TransferChecked {
                         from: ctx.accounts.user_token_account.to_account_info(),
                         to: ctx.accounts.fee_collector_token_account.to_account_info(),
                         authority: ctx.accounts.user.to_account_info(),
+                        mint: ctx.accounts.token_mint_account.to_account_info(),
                     },
                 ),
                 token_fee,
+                ctx.accounts.token_mint_account.decimals,
             )?;
         }
         
@@ -540,32 +544,36 @@ pub mod staking_program {
     ];
     let signer = &[&seeds[..]];
     
-    token::transfer(
+    token_interface::transfer_checked(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
-            Transfer {
+            TransferChecked {
                 from: ctx.accounts.staking_vault.to_account_info(),
                 to: ctx.accounts.withdrawal_token_account.to_account_info(),
                 authority: ctx.accounts.project.to_account_info(),
+                mint: ctx.accounts.token_mint_account.to_account_info(),
             },
             signer,
         ),
         amount_after_fee,
+        ctx.accounts.token_mint_account.decimals,
     )?;
     
     // Transfer token fee to fee collector
     if token_fee > 0 {
-        token::transfer(
+        token_interface::transfer_checked(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
-                Transfer {
+                TransferChecked {
                     from: ctx.accounts.staking_vault.to_account_info(),
                     to: ctx.accounts.fee_collector_token_account.to_account_info(),
                     authority: ctx.accounts.project.to_account_info(),
+                    mint: ctx.accounts.token_mint_account.to_account_info(),
                 },
                 signer,
             ),
             token_fee,
+            ctx.accounts.token_mint_account.decimals,
         )?;
     }
     
@@ -706,17 +714,19 @@ pub mod staking_program {
     ];
     let signer = &[&seeds[..]];
     
-    token::transfer(
+    token_interface::transfer_checked(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
-            Transfer {
+            TransferChecked {
                 from: ctx.accounts.reward_vault.to_account_info(),
                 to: ctx.accounts.user_token_account.to_account_info(),
                 authority: ctx.accounts.project.to_account_info(),
+                mint: ctx.accounts.token_mint_account.to_account_info(),
             },
             signer,
         ),
         rewards,
+        ctx.accounts.token_mint_account.decimals,
     )?;
     
     // Collect SOL fee (with referral split if applicable)
@@ -849,17 +859,19 @@ pub mod staking_program {
         ];
         let signer = &[&seeds[..]];
         
-        token::transfer(
+        token_interface::transfer_checked(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
-                Transfer {
+                TransferChecked {
                     from: ctx.accounts.reflection_vault.to_account_info(),
                     to: ctx.accounts.user_reflection_account.to_account_info(),
                     authority: ctx.accounts.staking_vault.to_account_info(),
+                    mint: ctx.accounts.reflection_token_mint.to_account_info(),
                 },
                 signer,
             ),
             reflections,
+            ctx.accounts.reflection_token_mint.decimals,
         )?;
         
         emit!(ReflectionsClaimed {
@@ -905,16 +917,18 @@ pub mod staking_program {
     
     let project_key = ctx.accounts.project.key();
     
-    token::transfer(
+    token_interface::transfer_checked(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
-            Transfer {
+            TransferChecked {
                 from: ctx.accounts.admin_token_account.to_account_info(),
                 to: ctx.accounts.reward_vault.to_account_info(),
                 authority: ctx.accounts.admin.to_account_info(),
+                mint: ctx.accounts.token_mint_account.to_account_info(),
             },
         ),
         amount,
+        ctx.accounts.token_mint_account.decimals,
     )?;
     
     let project_mut = &mut ctx.accounts.project;
@@ -1007,17 +1021,19 @@ pub mod staking_program {
         ];
         let signer = &[&seeds[..]];
         
-        token::transfer(
+        token_interface::transfer_checked(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
-                Transfer {
+                TransferChecked {
                     from: ctx.accounts.staking_vault.to_account_info(),
                     to: ctx.accounts.user_withdrawal_account.to_account_info(),
                     authority: ctx.accounts.project.to_account_info(),
+                    mint: ctx.accounts.token_mint_account.to_account_info(),
                 },
                 signer,
             ),
             stake_amount,
+            ctx.accounts.token_mint_account.decimals,
         )?;
         
         emit!(EmergencyStakeReturned {
@@ -1371,17 +1387,19 @@ pub mod staking_program {
         ];
         let signer = &[&seeds[..]];
         
-        token::transfer(
+        token_interface::transfer_checked(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
-                Transfer {
+                TransferChecked {
                     from: ctx.accounts.vault.to_account_info(),
                     to: ctx.accounts.admin_token_account.to_account_info(),
                     authority: ctx.accounts.project.to_account_info(),
+                    mint: ctx.accounts.token_mint_account.to_account_info(),
                 },
                 signer,
             ),
             amount,
+            ctx.accounts.token_mint_account.decimals,
         )?;
         
         Ok(())
@@ -1870,6 +1888,8 @@ pub struct Claim<'info> {
     /// CHECK: Referrer account (optional)
     pub referrer: Option<AccountInfo<'info>>,
     
+    pub token_mint_account: InterfaceAccount<'info, Mint>,
+    
     #[account(mut)]
     pub user: Signer<'info>,
     
@@ -1907,6 +1927,8 @@ pub struct ClaimReflections<'info> {
     
     #[account(mut)]
     pub user_reflection_account: InterfaceAccount<'info, TokenAccount>,
+    
+    pub reflection_token_mint: InterfaceAccount<'info, Mint>,
     
     #[account(mut)]
     pub user: Signer<'info>,
@@ -1962,6 +1984,8 @@ pub struct DepositRewards<'info> {
     #[account(mut)]
     pub admin_token_account: InterfaceAccount<'info, TokenAccount>,
     
+    pub token_mint_account: InterfaceAccount<'info, Mint>,
+    
     #[account(mut)]
     pub admin: Signer<'info>,
     
@@ -2000,6 +2024,8 @@ pub struct EmergencyReturnStake<'info> {
         constraint = user_withdrawal_account.owner == stake.withdrawal_wallet @ ErrorCode::InvalidWithdrawalWallet
     )]
     pub user_withdrawal_account: InterfaceAccount<'info, TokenAccount>,
+    
+    pub token_mint_account: InterfaceAccount<'info, Mint>,
     
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -2061,7 +2087,7 @@ pub struct CloseProject<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
     
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
 
@@ -2190,6 +2216,8 @@ pub struct ClaimUnclaimedTokens<'info> {
     
     #[account(mut)]
     pub admin_token_account: InterfaceAccount<'info, TokenAccount>,
+    
+    pub token_mint_account: InterfaceAccount<'info, Mint>,
     
     #[account(mut)]
     pub admin: Signer<'info>,
