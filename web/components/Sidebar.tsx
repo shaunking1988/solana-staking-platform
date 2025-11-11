@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Coins, X, Sparkles, ArrowDownUp, BookOpen, LifeBuoy, Send, Lock } from "lucide-react";
+import { Coins, X, Sparkles, ArrowDownUp, BookOpen, LifeBuoy, Send, Lock, Download } from "lucide-react";
 
 const navItems = [
   { name: "Home", href: "/landing", icon: Sparkles },
@@ -23,6 +23,9 @@ export default function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const [isClient, setIsClient] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -35,10 +38,36 @@ export default function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
     
-    return () => window.removeEventListener('resize', checkScreenSize);
+    // ✅ Check if app is already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+    }
+    
+    // ✅ Listen for PWA install prompt
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+      console.log('PWA install prompt available');
+    };
+    
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    // ✅ Listen for successful install
+    window.addEventListener('appinstalled', () => {
+      setIsInstalled(true);
+      setIsInstallable(false);
+      setDeferredPrompt(null);
+      console.log('PWA installed successfully');
+    });
+    
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
 
-  // Close mobile menu when route changes (only when pathname actually changes)
+  // Close mobile menu when route changes
   useEffect(() => {
     if (isMobileMenuOpen) {
       onClose();
@@ -57,6 +86,29 @@ export default function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
       document.body.style.overflow = 'unset';
     };
   }, [isMobileMenuOpen]);
+
+  // ✅ Handle PWA installation
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) {
+      console.log('No install prompt available');
+      return;
+    }
+    
+    // Show the install prompt
+    deferredPrompt.prompt();
+    
+    // Wait for the user's response
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response: ${outcome}`);
+    
+    if (outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+      setIsInstallable(false);
+      setDeferredPrompt(null);
+    } else {
+      console.log('User dismissed the install prompt');
+    }
+  };
 
   // Don't render anything on server
   if (!isClient) {
@@ -146,6 +198,45 @@ export default function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
                 );
               })}
             </ul>
+
+            {/* ✅ NEW: Install App Button - Only show if installable and not installed */}
+            {isInstallable && !isInstalled && (
+              <div className="mt-6 px-1">
+                <button
+                  onClick={handleInstallApp}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gradient-to-r from-purple-600/10 to-pink-600/10 border border-purple-500/20 hover:border-purple-500/40 text-purple-300 hover:text-purple-200 transition-all active:scale-95"
+                >
+                  <Download className="flex-shrink-0 h-5 w-5" />
+                  <div className="flex flex-col items-start">
+                    <span className="text-sm font-semibold">
+                      Install App
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      Add to home screen
+                    </span>
+                  </div>
+                </button>
+              </div>
+            )}
+
+            {/* ✅ Show "Installed" badge if already installed */}
+            {isInstalled && (
+              <div className="mt-6 px-1">
+                <div className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-green-600/10 border border-green-500/20 text-green-300">
+                  <svg className="flex-shrink-0 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <div className="flex flex-col items-start">
+                    <span className="text-sm font-semibold">
+                      App Installed
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      Launch from home screen
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </nav>
         </div>
 
@@ -153,7 +244,7 @@ export default function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
         <div className="border-t border-white/[0.05] p-4 relative z-10">
           {/* Social Icons - Only on mobile */}
           <div className="lg:hidden flex items-center justify-center gap-4 mb-4">
-            <a
+            
               href="https://twitter.com"
               target="_blank"
               rel="noopener noreferrer"
@@ -164,7 +255,7 @@ export default function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
               </svg>
             </a>
-            <a
+            
               href="https://t.me"
               target="_blank"
               rel="noopener noreferrer"
