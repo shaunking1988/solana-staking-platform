@@ -616,7 +616,6 @@ export default function SwapPage() {
           </h1>
           <p className="text-gray-500">
             Powered by StakePoint
-            {JUPITER_REFERRAL_ACCOUNT && ` • ${jupiterFeePercentage}% integrator fee`}
           </p>
           
           {/* Referral status warning */}
@@ -876,7 +875,7 @@ export default function SwapPage() {
           <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Zap className="w-5 h-5" style={{ color: '#fb57ff' }} />
-              <span className="font-semibold text-white">Jupiter</span>
+              <span className="font-semibold text-white">Jupiter Routing</span>
             </div>
             <p className="text-sm text-gray-500">
               Premium routing with better prices
@@ -889,19 +888,18 @@ export default function SwapPage() {
               <span className="font-semibold text-white">Best Execution</span>
             </div>
             <p className="text-sm text-gray-500">
-              Raydium fallback for reliability
+              Fast and reliable swaps from multiple Dex's
             </p>
           </div>
 
           <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Info className="w-5 h-5" style={{ color: '#fb57ff' }} />
-              <span className="font-semibold text-white">Integrator Fees</span>
+              <span className="font-semibold text-white">User Swap Rewards</span>
             </div>
             <p className="text-sm text-gray-500">
               {JUPITER_REFERRAL_ACCOUNT 
-                ? `${jupiterFeePercentage}% collected automatically` 
-                : 'Configure in environment'}
+                Swap your wat to the top 10 spot of the rewards Leaderboard
             </p>
           </div>
         </div>
