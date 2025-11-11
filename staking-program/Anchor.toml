@@ -6,13 +6,13 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-staking_program = "4XA6snTxNGqBy8w5jnGpH6BbGfXTraRFewkmSeE4nk23"
+staking_program = "HS4LXq85DpjDDctwMQcioDyQWFo4oQu9SYxDpQKX29Pm"
 
 [programs.localnet]
-staking_program = "4XA6snTxNGqBy8w5jnGpH6BbGfXTraRFewkmSeE4nk23"
+staking_program = "HS4LXq85DpjDDctwMQcioDyQWFo4oQu9SYxDpQKX29Pm"
 
 [programs.mainnet]
-staking_program = "4XA6snTxNGqBy8w5jnGpH6BbGfXTraRFewkmSeE4nk23"
+staking_program = "HS4LXq85DpjDDctwMQcioDyQWFo4oQu9SYxDpQKX29Pm"
 
 [registry]
 url = "https://api.apr.dev"

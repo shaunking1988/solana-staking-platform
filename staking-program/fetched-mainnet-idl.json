@@ -236,6 +236,16 @@
       "code": 6038,
       "msg": "Missing Associated Token Program - required when reflections are enabled",
       "name": "MissingAssociatedTokenProgram"
+    },
+    {
+      "code": 6039,
+      "msg": "Please refresh reflections before claiming - new tokens have arrived in the vault",
+      "name": "RefreshRequired"
+    },
+    {
+      "code": 6040,
+      "msg": "Cannot close project with active stakes - all users must withdraw first",
+      "name": "CannotCloseWithActiveStakes"
     }
   ],
   "events": [
@@ -397,6 +407,19 @@
     },
     {
       "discriminator": [
+        99,
+        119,
+        201,
+        52,
+        106,
+        26,
+        76,
+        87
+      ],
+      "name": "ProjectClosed"
+    },
+    {
+      "discriminator": [
         192,
         10,
         163,
@@ -553,19 +576,6 @@
     },
     {
       "discriminator": [
-        39,
-        211,
-        248,
-        129,
-        100,
-        198,
-        135,
-        99
-      ],
-      "name": "WithdrawalWalletChanged"
-    },
-    {
-      "discriminator": [
         6,
         90,
         244,
@@ -592,82 +602,6 @@
     }
   ],
   "instructions": [
-    {
-      "accounts": [
-        {
-          "name": "project",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
-              }
-            ]
-          }
-        },
-        {
-          "name": "stake",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  116,
-                  97,
-                  107,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "project"
-              },
-              {
-                "account": "Stake",
-                "kind": "account",
-                "path": "stake.user"
-              }
-            ]
-          },
-          "writable": true
-        },
-        {
-          "name": "admin",
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "new_wallet",
-          "type": "pubkey"
-        }
-      ],
-      "discriminator": [
-        251,
-        149,
-        165,
-        196,
-        65,
-        184,
-        186,
-        129
-      ],
-      "name": "change_withdrawal_wallet"
-    },
     {
       "accounts": [
         {
@@ -710,9 +644,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -786,12 +723,14 @@
           "optional": true
         },
         {
+          "name": "token_mint_account"
+        },
+        {
           "name": "user",
           "signer": true,
           "writable": true
         },
         {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
           "name": "token_program"
         },
         {
@@ -799,7 +738,16 @@
           "name": "system_program"
         }
       ],
-      "args": [],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        }
+      ],
       "discriminator": [
         62,
         198,
@@ -831,9 +779,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -872,6 +823,14 @@
               {
                 "kind": "const",
                 "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  105,
+                  110,
+                  103,
+                  95,
                   118,
                   97,
                   117,
@@ -880,13 +839,11 @@
                 ]
               },
               {
-                "account": "Project",
                 "kind": "account",
-                "path": "project.token_mint"
+                "path": "project"
               }
             ]
-          },
-          "writable": true
+          }
         },
         {
           "name": "reflection_vault",
@@ -897,15 +854,27 @@
           "writable": true
         },
         {
-          "name": "user",
-          "signer": true
+          "name": "reflection_token_mint"
         },
         {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "name": "user",
+          "signer": true,
+          "writable": true
+        },
+        {
           "name": "token_program"
         }
       ],
-      "args": [],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        }
+      ],
       "discriminator": [
         89,
         178,
@@ -937,9 +906,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           }
@@ -953,15 +925,26 @@
           "writable": true
         },
         {
-          "name": "admin",
-          "signer": true
+          "name": "token_mint_account"
         },
         {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "name": "admin",
+          "signer": true,
+          "writable": true
+        },
+        {
           "name": "token_program"
         }
       ],
       "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        },
         {
           "name": "amount",
           "type": "u64"
@@ -1000,6 +983,168 @@
               {
                 "kind": "arg",
                 "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
+              }
+            ]
+          },
+          "writable": true
+        },
+        {
+          "name": "staking_vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  105,
+                  110,
+                  103,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "project"
+              }
+            ]
+          },
+          "writable": true
+        },
+        {
+          "name": "reward_vault",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  119,
+                  97,
+                  114,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "project"
+              }
+            ]
+          },
+          "writable": true
+        },
+        {
+          "name": "reflection_vault",
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  102,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "project"
+              }
+            ]
+          },
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "signer": true,
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "address": "11111111111111111111111111111111",
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "_token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "_pool_id",
+          "type": "u64"
+        }
+      ],
+      "discriminator": [
+        117,
+        209,
+        53,
+        106,
+        93,
+        55,
+        112,
+        49
+      ],
+      "name": "close_project"
+    },
+    {
+      "accounts": [
+        {
+          "name": "project",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  106,
+                  101,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -1073,22 +1218,21 @@
           "writable": true
         },
         {
-          "address": "11111111111111111111111111111111",
-          "name": "system_program"
-        },
-        {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
           "name": "token_program"
         },
         {
-          "address": "SysvarRent111111111111111111111111111111111",
-          "name": "rent"
+          "address": "11111111111111111111111111111111",
+          "name": "system_program"
         }
       ],
       "args": [
         {
           "name": "token_mint",
           "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
         }
       ],
       "discriminator": [
@@ -1145,9 +1289,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -1223,12 +1370,14 @@
         },
         {
           "name": "referrer",
-          "optional": true,
-          "writable": true
+          "optional": true
         },
         {
           "name": "reflection_vault",
           "optional": true
+        },
+        {
+          "name": "token_mint_account"
         },
         {
           "name": "user",
@@ -1236,19 +1385,22 @@
           "writable": true
         },
         {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
           "name": "token_program"
         },
         {
           "address": "11111111111111111111111111111111",
           "name": "system_program"
-        },
-        {
-          "address": "SysvarRent111111111111111111111111111111111",
-          "name": "rent"
         }
       ],
       "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        },
         {
           "name": "amount",
           "type": "u64"
@@ -1285,9 +1437,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -1327,16 +1482,26 @@
           "writable": true
         },
         {
+          "name": "token_mint_account"
+        },
+        {
           "name": "admin",
           "signer": true,
           "writable": true
         },
         {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
           "name": "token_program"
         }
       ],
       "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        },
         {
           "name": "amount",
           "type": "u64"
@@ -1373,9 +1538,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -1442,15 +1610,26 @@
           "writable": true
         },
         {
-          "name": "admin",
-          "signer": true
+          "name": "token_mint_account"
         },
         {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "name": "admin",
+          "signer": true,
+          "writable": true
+        },
+        {
           "name": "token_program"
         }
       ],
       "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        },
         {
           "name": "user_pubkey",
           "type": "pubkey"
@@ -1487,9 +1666,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -1497,10 +1679,20 @@
         },
         {
           "name": "admin",
-          "signer": true
+          "signer": true,
+          "writable": true
         }
       ],
-      "args": [],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        }
+      ],
       "discriminator": [
         17,
         106,
@@ -1540,12 +1732,12 @@
           "writable": true
         },
         {
-          "name": "fee_collector"
-        },
-        {
           "name": "admin",
           "signer": true,
           "writable": true
+        },
+        {
+          "name": "fee_collector"
         },
         {
           "address": "11111111111111111111111111111111",
@@ -1593,9 +1785,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -1631,22 +1826,13 @@
           }
         },
         {
-          "docs": [
-            "✅ OPTIONAL: Associated Token Account for reflection tokens",
-            "This is where the token contract will automatically send reflections",
-            "Only needed if enable_reflections = true"
-          ],
+          "name": "reflection_token_mint",
+          "optional": true
+        },
+        {
           "name": "reflection_token_account",
           "optional": true,
           "writable": true
-        },
-        {
-          "docs": [
-            "✅ OPTIONAL: The mint of the token to track for reflections",
-            "Only needed if enable_reflections = true"
-          ],
-          "name": "reflection_token_mint",
-          "optional": true
         },
         {
           "name": "admin",
@@ -1662,15 +1848,18 @@
           "name": "system_program"
         },
         {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
           "name": "token_program"
-        },
-        {
-          "address": "SysvarRent111111111111111111111111111111111",
-          "name": "rent"
         }
       ],
       "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        },
         {
           "name": "params",
           "type": {
@@ -1711,9 +1900,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -1721,10 +1913,20 @@
         },
         {
           "name": "admin",
-          "signer": true
+          "signer": true,
+          "writable": true
         }
       ],
-      "args": [],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        }
+      ],
       "discriminator": [
         126,
         36,
@@ -1756,9 +1958,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -1766,10 +1971,20 @@
         },
         {
           "name": "admin",
-          "signer": true
+          "signer": true,
+          "writable": true
         }
       ],
-      "args": [],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        }
+      ],
       "discriminator": [
         206,
         186,
@@ -1801,9 +2016,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -1811,10 +2029,20 @@
         },
         {
           "name": "admin",
-          "signer": true
+          "signer": true,
+          "writable": true
         }
       ],
-      "args": [],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        }
+      ],
       "discriminator": [
         8,
         68,
@@ -1846,9 +2074,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -1856,10 +2087,20 @@
         },
         {
           "name": "admin",
-          "signer": true
+          "signer": true,
+          "writable": true
         }
       ],
-      "args": [],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        }
+      ],
       "discriminator": [
         91,
         80,
@@ -1871,6 +2112,93 @@
         1
       ],
       "name": "pause_withdrawals"
+    },
+    {
+      "accounts": [
+        {
+          "name": "project",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  106,
+                  101,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
+              }
+            ]
+          },
+          "writable": true
+        },
+        {
+          "name": "stake",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  97,
+                  107,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "project"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          },
+          "writable": true
+        },
+        {
+          "name": "reflection_vault",
+          "writable": true
+        },
+        {
+          "name": "user",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        }
+      ],
+      "discriminator": [
+        123,
+        144,
+        125,
+        113,
+        190,
+        156,
+        42,
+        146
+      ],
+      "name": "refresh_reflections"
     },
     {
       "accounts": [
@@ -1900,7 +2228,8 @@
         },
         {
           "name": "admin",
-          "signer": true
+          "signer": true,
+          "writable": true
         }
       ],
       "args": [
@@ -1944,169 +2273,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
-              }
-            ]
-          },
-          "writable": true
-        },
-        {
-          "name": "admin",
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "duration_seconds",
-          "type": "u64"
-        }
-      ],
-      "discriminator": [
-        138,
-        215,
-        245,
-        47,
-        223,
-        31,
-        23,
-        158
-      ],
-      "name": "set_pool_duration"
-    },
-    {
-      "accounts": [
-        {
-          "name": "project",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
+                "kind": "arg",
+                "path": "token_mint"
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
-              }
-            ]
-          },
-          "writable": true
-        },
-        {
-          "name": "admin",
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "rate_bps_per_year",
-          "type": "u64"
-        },
-        {
-          "name": "lockup_seconds",
-          "type": "u64"
-        }
-      ],
-      "discriminator": [
-        165,
-        18,
-        154,
-        54,
-        208,
-        192,
-        229,
-        45
-      ],
-      "name": "set_project_params"
-    },
-    {
-      "accounts": [
-        {
-          "name": "project",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
-              }
-            ]
-          },
-          "writable": true
-        },
-        {
-          "name": "admin",
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "referrer",
-          "type": {
-            "option": "pubkey"
-          }
-        },
-        {
-          "name": "split_bps",
-          "type": "u64"
-        }
-      ],
-      "discriminator": [
-        47,
-        206,
-        162,
-        214,
-        216,
-        42,
-        110,
-        145
-      ],
-      "name": "set_project_referrer"
-    },
-    {
-      "accounts": [
-        {
-          "name": "project",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -2114,34 +2286,25 @@
         },
         {
           "name": "reflection_vault",
-          "optional": true,
-          "writable": true
-        },
-        {
-          "name": "reflection_token_mint",
           "optional": true
         },
         {
           "name": "admin",
           "signer": true,
           "writable": true
-        },
-        {
-          "address": "11111111111111111111111111111111",
-          "name": "system_program"
-        },
-        {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-          "name": "token_program"
-        },
-        {
-          "address": "SysvarRent111111111111111111111111111111111",
-          "name": "rent"
         }
       ],
       "args": [
         {
-          "name": "enabled",
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        },
+        {
+          "name": "enable",
           "type": "bool"
         },
         {
@@ -2152,16 +2315,16 @@
         }
       ],
       "discriminator": [
-        4,
-        82,
-        24,
-        77,
-        212,
-        61,
-        37,
-        48
+        20,
+        92,
+        217,
+        28,
+        186,
+        35,
+        48,
+        83
       ],
-      "name": "set_reflections"
+      "name": "toggle_reflections"
     },
     {
       "accounts": [
@@ -2182,9 +2345,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -2192,10 +2358,19 @@
         },
         {
           "name": "admin",
-          "signer": true
+          "signer": true,
+          "writable": true
         }
       ],
       "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        },
         {
           "name": "new_admin",
           "type": "pubkey"
@@ -2232,9 +2407,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -2242,10 +2420,20 @@
         },
         {
           "name": "admin",
-          "signer": true
+          "signer": true,
+          "writable": true
         }
       ],
-      "args": [],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        }
+      ],
       "discriminator": [
         115,
         254,
@@ -2277,9 +2465,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -2287,10 +2478,20 @@
         },
         {
           "name": "admin",
-          "signer": true
+          "signer": true,
+          "writable": true
         }
       ],
-      "args": [],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        }
+      ],
       "discriminator": [
         15,
         5,
@@ -2322,9 +2523,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -2332,10 +2536,20 @@
         },
         {
           "name": "admin",
-          "signer": true
+          "signer": true,
+          "writable": true
         }
       ],
-      "args": [],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        }
+      ],
       "discriminator": [
         65,
         73,
@@ -2367,9 +2581,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -2377,10 +2594,20 @@
         },
         {
           "name": "admin",
-          "signer": true
+          "signer": true,
+          "writable": true
         }
       ],
-      "args": [],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        }
+      ],
       "discriminator": [
         79,
         193,
@@ -2421,7 +2648,8 @@
         },
         {
           "name": "admin",
-          "signer": true
+          "signer": true,
+          "writable": true
         }
       ],
       "args": [
@@ -2441,6 +2669,202 @@
         212
       ],
       "name": "update_fee_collector"
+    },
+    {
+      "accounts": [
+        {
+          "name": "project",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  106,
+                  101,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
+              }
+            ]
+          },
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "signer": true,
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        },
+        {
+          "name": "duration_seconds",
+          "type": "u64"
+        }
+      ],
+      "discriminator": [
+        142,
+        15,
+        79,
+        228,
+        232,
+        185,
+        215,
+        103
+      ],
+      "name": "update_pool_duration"
+    },
+    {
+      "accounts": [
+        {
+          "name": "project",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  106,
+                  101,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
+              }
+            ]
+          },
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "signer": true,
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        },
+        {
+          "name": "rate_bps_per_year",
+          "type": "u64"
+        },
+        {
+          "name": "lockup_seconds",
+          "type": "u64"
+        }
+      ],
+      "discriminator": [
+        231,
+        113,
+        152,
+        162,
+        225,
+        80,
+        237,
+        116
+      ],
+      "name": "update_pool_params"
+    },
+    {
+      "accounts": [
+        {
+          "name": "project",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  106,
+                  101,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
+              }
+            ]
+          },
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "signer": true,
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        },
+        {
+          "name": "referrer",
+          "type": {
+            "option": "pubkey"
+          }
+        },
+        {
+          "name": "split_bps",
+          "type": "u64"
+        }
+      ],
+      "discriminator": [
+        208,
+        225,
+        56,
+        15,
+        244,
+        21,
+        195,
+        34
+      ],
+      "name": "update_referrer"
     },
     {
       "accounts": [
@@ -2484,9 +2908,12 @@
                 ]
               },
               {
-                "account": "Project",
-                "kind": "account",
-                "path": "project.token_mint"
+                "kind": "arg",
+                "path": "token_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "pool_id"
               }
             ]
           },
@@ -2569,12 +2996,14 @@
           "optional": true
         },
         {
+          "name": "token_mint_account"
+        },
+        {
           "name": "user",
           "signer": true,
           "writable": true
         },
         {
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
           "name": "token_program"
         },
         {
@@ -2583,6 +3012,14 @@
         }
       ],
       "args": [
+        {
+          "name": "token_mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "pool_id",
+          "type": "u64"
+        },
         {
           "name": "amount",
           "type": "u64"
@@ -2920,6 +3357,10 @@
             "type": "pubkey"
           },
           {
+            "name": "pool_id",
+            "type": "u64"
+          },
+          {
             "name": "staking_vault",
             "type": "pubkey"
           },
@@ -2996,6 +3437,10 @@
             "type": "i64"
           },
           {
+            "name": "last_reflection_balance",
+            "type": "u64"
+          },
+          {
             "name": "referrer",
             "type": {
               "option": "pubkey"
@@ -3032,6 +3477,22 @@
           {
             "name": "total_reflection_debt",
             "type": "u64"
+          }
+        ],
+        "kind": "struct"
+      }
+    },
+    {
+      "name": "ProjectClosed",
+      "type": {
+        "fields": [
+          {
+            "name": "project",
+            "type": "pubkey"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
           }
         ],
         "kind": "struct"
@@ -3276,12 +3737,16 @@
             "type": "u64"
           },
           {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
             "name": "reflection_debt",
             "type": "u64"
+          },
+          {
+            "name": "reward_rate_snapshot",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ],
         "kind": "struct"
@@ -3338,26 +3803,6 @@
           {
             "name": "remaining",
             "type": "u64"
-          }
-        ],
-        "kind": "struct"
-      }
-    },
-    {
-      "name": "WithdrawalWalletChanged",
-      "type": {
-        "fields": [
-          {
-            "name": "user",
-            "type": "pubkey"
-          },
-          {
-            "name": "project",
-            "type": "pubkey"
-          },
-          {
-            "name": "new_wallet",
-            "type": "pubkey"
           }
         ],
         "kind": "struct"
