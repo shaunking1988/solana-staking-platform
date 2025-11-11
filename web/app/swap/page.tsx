@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
-import { VersionedTransaction } from "@solana/web3.js";
+import { VersionedTransaction, PublicKey } from "@solana/web3.js";
+import { getAssociatedTokenAddress, getAccount } from "@solana/spl-token";
 import { ArrowDownUp, Settings, Info, TrendingUp, Zap, ExternalLink } from "lucide-react";
 import { useToast } from "@/components/ToastContainer";
 import TokenSelectModal from "./TokenSelectModal";
@@ -26,6 +27,10 @@ interface SwapConfig {
   treasuryWallet: string;
 }
 
+// Get Jupiter referral config
+const JUPITER_REFERRAL_ACCOUNT = process.env.NEXT_PUBLIC_JUPITER_REFERRAL_ACCOUNT || "";
+const JUPITER_REFERRAL_FEE_BPS = parseInt(process.env.NEXT_PUBLIC_JUPITER_REFERRAL_FEE || "50");
+
 export default function SwapPage() {
   const { publicKey, signTransaction } = useWallet();
   const { connection } = useConnection();
@@ -43,13 +48,15 @@ export default function SwapPage() {
   const [toToken, setToToken] = useState<Token | null>(null);
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
-  const [slippage, setSlippage] = useState(1.0); // 1% default (platform fee disabled due to Jupiter API issues)
+  const [slippage, setSlippage] = useState(1.0); // 1% default
   
   // UI state
   const [showTokenSelect, setShowTokenSelect] = useState<"from" | "to" | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [lastTxSignature, setLastTxSignature] = useState<string | null>(null);
+  const [currentQuote, setCurrentQuote] = useState<any>(null);
+  const [tokenBalance, setTokenBalance] = useState<number | null>(null);
 
   // Load config from API - MAINNET CONFIGURATION
   useEffect(() => {
@@ -69,7 +76,7 @@ export default function SwapPage() {
           setConfig({
             swapEnabled: data.swapEnabled ?? true,
             platformFeePercentage, // e.g., 100 bps = 1%
-            platformFeeBps: data.platformFeeBps || 100, // Store original bps value
+            platformFeeBps: data.platformFeeBps || 100,
             maxSlippage, // e.g., 5000 bps = 50%
             priorityFee: 0.0001,
             treasuryWallet: data.treasuryWallet || "",
@@ -81,13 +88,9 @@ export default function SwapPage() {
             platformFeePercentage: platformFeePercentage + '%',
             treasuryWallet: data.treasuryWallet,
             maxSlippage: maxSlippage + '%',
+            jupiterReferralAccount: JUPITER_REFERRAL_ACCOUNT ? 'Configured' : 'Not configured',
+            jupiterReferralFee: JUPITER_REFERRAL_FEE_BPS / 100 + '%',
           });
-          
-          // Verify platform fee is reasonable
-          if (platformFeePercentage > 5) {
-            console.warn('⚠️ Platform fee is high:', platformFeePercentage + '%');
-            showInfo(`⚠️ Platform fee is ${platformFeePercentage}% - this seems high!`);
-          }
           
           // Update slippage if it exceeds max
           if (slippage > maxSlippage) {
@@ -98,9 +101,9 @@ export default function SwapPage() {
           // Use defaults
           setConfig({
             swapEnabled: true,
-            platformFeePercentage: 1.0, // 1% default
-            platformFeeBps: 100, // 100 bps = 1%
-            maxSlippage: 50.0, // 50% default
+            platformFeePercentage: 1.0,
+            platformFeeBps: 100,
+            maxSlippage: 50.0,
             priorityFee: 0.0001,
             treasuryWallet: "",
           });
@@ -177,11 +180,108 @@ export default function SwapPage() {
         getQuote();
       } else {
         setToAmount("");
+        setCurrentQuote(null);
       }
     }, 500);
 
     return () => clearTimeout(timer);
   }, [fromToken, toToken, fromAmount, slippage]);
+
+  // Fetch token balance when wallet or fromToken changes
+  useEffect(() => {
+    if (publicKey && fromToken) {
+      fetchTokenBalance();
+    } else {
+      setTokenBalance(null);
+    }
+  }, [publicKey, fromToken]);
+
+  const fetchTokenBalance = async () => {
+    if (!publicKey || !fromToken) return;
+
+    try {
+      console.log('💰 Fetching balance for:', {
+        token: fromToken.symbol,
+        address: fromToken.address,
+        decimals: fromToken.decimals,
+      });
+
+      // For SOL (native token)
+      if (fromToken.address === "So11111111111111111111111111111111111111112") {
+        const balance = await connection.getBalance(publicKey);
+        setTokenBalance(balance / Math.pow(10, 9)); // Convert lamports to SOL
+        console.log('✅ SOL balance:', balance / Math.pow(10, 9));
+      } else {
+        // For SPL tokens - try both regular SPL and Token-2022
+        const tokenMint = new PublicKey(fromToken.address);
+        const tokenAccount = await getAssociatedTokenAddress(tokenMint, publicKey);
+        
+        console.log('🔍 Looking for token account:', tokenAccount.toBase58());
+        
+        try {
+          // First try regular SPL token
+          const accountInfo = await getAccount(connection, tokenAccount);
+          const balance = Number(accountInfo.amount) / Math.pow(10, fromToken.decimals);
+          setTokenBalance(balance);
+          console.log('✅ Token balance (SPL):', {
+            raw: accountInfo.amount.toString(),
+            decimal: balance,
+            decimals: fromToken.decimals,
+          });
+        } catch (splError: any) {
+          // Try Token-2022 (Token Extensions)
+          try {
+            const TOKEN_2022_PROGRAM_ID = new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
+            const token2022Account = await getAssociatedTokenAddress(
+              tokenMint,
+              publicKey,
+              false,
+              TOKEN_2022_PROGRAM_ID
+            );
+            
+            console.log('🔍 Trying Token-2022 account:', token2022Account.toBase58());
+            
+            const accountInfo = await getAccount(connection, token2022Account, undefined, TOKEN_2022_PROGRAM_ID);
+            const balance = Number(accountInfo.amount) / Math.pow(10, fromToken.decimals);
+            setTokenBalance(balance);
+            console.log('✅ Token balance (Token-2022):', {
+              raw: accountInfo.amount.toString(),
+              decimal: balance,
+              decimals: fromToken.decimals,
+            });
+          } catch (token2022Error: any) {
+            console.error('❌ Token account error (both SPL and Token-2022):', splError.message, token2022Error.message);
+            setTokenBalance(0); // Account doesn't exist
+          }
+        }
+      }
+    } catch (error) {
+      console.error("❌ Failed to fetch balance:", error);
+      setTokenBalance(null);
+    }
+  };
+
+  const handleMaxAmount = () => {
+    if (tokenBalance === null) {
+      console.log('⚠️ Cannot use MAX: balance not loaded');
+      return;
+    }
+    
+    console.log('🔝 MAX button clicked:', {
+      token: fromToken?.symbol,
+      balance: tokenBalance,
+    });
+    
+    // For SOL, leave 0.01 for fees
+    if (fromToken?.address === "So11111111111111111111111111111111111111112") {
+      const maxAmount = Math.max(0, tokenBalance - 0.01);
+      setFromAmount(maxAmount.toFixed(6));
+      console.log('💰 Set MAX amount (SOL):', maxAmount.toFixed(6));
+    } else {
+      setFromAmount(tokenBalance.toFixed(6));
+      console.log('💰 Set MAX amount (Token):', tokenBalance.toFixed(6));
+    }
+  };
 
   const getQuote = async () => {
     if (!fromToken || !toToken || !fromAmount) return;
@@ -242,15 +342,24 @@ export default function SwapPage() {
       if (!quote) {
         console.error('❌ Both Jupiter and Raydium failed to provide quote');
         setToAmount("");
+        setCurrentQuote(null);
         return;
       }
       
       console.log(`📊 Quote received from ${source}`);
+      setCurrentQuote({ ...quote, source });
       
+      // Convert output amount from lamports to decimal
       if (quote.outAmount) {
         const outAmountDecimal = parseFloat(quote.outAmount) / Math.pow(10, toToken.decimals);
-        const displayDecimals = outAmountDecimal < 0.01 ? 8 : 6;
+        const displayDecimals = outAmountDecimal < 0.01 ? 8 : outAmountDecimal < 1 ? 6 : 2;
         setToAmount(outAmountDecimal.toFixed(displayDecimals));
+        
+        console.log('💱 Converted output:', {
+          lamports: quote.outAmount,
+          decimal: outAmountDecimal.toFixed(displayDecimals),
+          decimals: toToken.decimals,
+        });
       } else {
         console.error('❌ No outAmount in quote');
         setToAmount("");
@@ -258,6 +367,7 @@ export default function SwapPage() {
     } catch (error) {
       console.error("❌ Failed to get quote:", error);
       setToAmount("");
+      setCurrentQuote(null);
     } finally {
       setQuoteLoading(false);
     }
@@ -272,6 +382,20 @@ export default function SwapPage() {
     if (!config?.swapEnabled) {
       showError("❌ Swap feature is currently disabled");
       return;
+    }
+
+    // Check SOL balance for gas fees
+    try {
+      const solBalance = await connection.getBalance(publicKey);
+      const solBalanceDecimal = solBalance / 1e9;
+      
+      if (solBalanceDecimal < 0.005) {
+        showError("❌ Insufficient SOL for transaction fees. Please add at least 0.01 SOL to your wallet.");
+        return;
+      }
+    } catch (balanceError) {
+      console.warn('Could not check SOL balance:', balanceError);
+      // Continue anyway
     }
 
     setSwapping(true);
@@ -348,10 +472,15 @@ export default function SwapPage() {
         }, 'confirmed');
 
         console.log('✅ Transaction confirmed!');
-        showSuccess(`✅ Swap successful via ${source}! TX: ${txid.slice(0, 8)}...`);
+        
+        showSuccess(`✅ Swap successful! ${fromToken.symbol} → ${toToken.symbol}`);
         
         setFromAmount("");
         setToAmount("");
+        setCurrentQuote(null);
+        
+        // Refresh balance
+        fetchTokenBalance();
         
       } catch (confirmError: any) {
         console.warn('⚠️ Confirmation issue:', confirmError.message);
@@ -362,9 +491,11 @@ export default function SwapPage() {
         if (status.value?.confirmationStatus === 'confirmed' || 
             status.value?.confirmationStatus === 'finalized') {
           console.log('✅ Transaction actually confirmed');
-          showSuccess(`✅ Swap successful via ${source}! TX: ${txid.slice(0, 8)}...`);
+          showSuccess(`✅ Swap successful! ${fromToken.symbol} → ${toToken.symbol}`);
           setFromAmount("");
           setToAmount("");
+          setCurrentQuote(null);
+          fetchTokenBalance();
         } else if (status.value?.err) {
           console.error('❌ Transaction failed:', status.value.err);
           throw new Error(`Transaction failed: ${JSON.stringify(status.value.err)}`);
@@ -373,29 +504,75 @@ export default function SwapPage() {
         }
       }
       
-      // Record stats
+      // Record stats with USD volume calculation
       try {
+        // Import the price calculation utility
+        const { calculateSwapVolumeUSD } = await import('@/lib/token-prices');
+        
+        const fromAmountDecimal = parseFloat(fromAmount);
+        const toAmountDecimal = parseFloat(toAmount);
+        
+        // Calculate USD volume for leaderboard
+        const { volumeUsd, priceUsd, pricedToken } = await calculateSwapVolumeUSD(
+          fromToken.address,
+          fromAmountDecimal,
+          toToken.address,
+          toAmountDecimal
+        );
+        
+        console.log('💰 Swap volume:', {
+          volumeUsd: volumeUsd.toFixed(2),
+          priceUsd: priceUsd.toFixed(4),
+          pricedToken: pricedToken === fromToken.address ? fromToken.symbol : toToken.symbol,
+        });
+
         await fetch("/api/swap/stats", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             fromToken: fromToken.symbol,
             toToken: toToken.symbol,
-            fromAmount: parseFloat(fromAmount),
-            toAmount: parseFloat(toAmount),
+            fromAmount: fromAmountDecimal,
+            toAmount: toAmountDecimal,
             userAddress: publicKey.toString(),
             txid: txid,
             source: source,
+            referralFeeCollected: source === 'Jupiter' && JUPITER_REFERRAL_ACCOUNT,
+            volumeUsd: volumeUsd,
+            priceUsd: priceUsd,
           }),
         });
       } catch (statsError) {
         console.error('Stats recording failed:', statsError);
+        // Still record stats even if USD calculation fails
+        try {
+          await fetch("/api/swap/stats", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fromToken: fromToken.symbol,
+              toToken: toToken.symbol,
+              fromAmount: parseFloat(fromAmount),
+              toAmount: parseFloat(toAmount),
+              userAddress: publicKey.toString(),
+              txid: txid,
+              source: source,
+              referralFeeCollected: source === 'Jupiter' && JUPITER_REFERRAL_ACCOUNT,
+              volumeUsd: 0,
+              priceUsd: 0,
+            }),
+          });
+        } catch (fallbackError) {
+          console.error('Fallback stats recording also failed:', fallbackError);
+        }
       }
 
     } catch (error: any) {
       console.error("❌ Swap error:", error);
       
-      if (error.message?.includes('User rejected')) {
+      if (error.message === 'INSUFFICIENT_SOL_FOR_GAS') {
+        showError("❌ Insufficient SOL for transaction fees. Please add at least 0.01 SOL to your wallet.");
+      } else if (error.message?.includes('User rejected')) {
         showError("❌ Transaction cancelled");
       } else if (error.message?.includes('insufficient funds')) {
         showError("❌ Insufficient balance");
@@ -415,12 +592,16 @@ export default function SwapPage() {
     setToToken(temp);
     setFromAmount(toAmount);
     setToAmount("");
+    setCurrentQuote(null);
   };
 
   // Helper to get explorer link
   const getExplorerLink = (signature: string) => {
     return `https://solscan.io/tx/${signature}`;
   };
+
+  // Calculate effective fee (Jupiter referral fee)
+  const jupiterFeePercentage = JUPITER_REFERRAL_FEE_BPS / 100;
 
   return (
     <div className="min-h-screen p-6">
@@ -434,15 +615,19 @@ export default function SwapPage() {
             Token Swap
           </h1>
           <p className="text-gray-500">
-            Powered by Jupiter + Raydium • {config ? `${config.platformFeePercentage.toFixed(2)}% platform fee` : "Loading..."}
+            Powered by Jupiter + Raydium
+            {JUPITER_REFERRAL_ACCOUNT && ` • ${jupiterFeePercentage}% integrator fee`}
           </p>
-          {config && config.platformFeePercentage > 3 && (
-            <div className="mt-2 border rounded-lg p-2" style={{ background: 'rgba(251, 87, 255, 0.2)', borderColor: 'rgba(251, 87, 255, 0.5)' }}>
-              <p className="text-sm" style={{ color: '#fb57ff' }}>
-                ⚠️ Platform fee is {config.platformFeePercentage}% - verify this is correct in admin settings
+          
+          {/* Referral status warning */}
+          {!JUPITER_REFERRAL_ACCOUNT && (
+            <div className="mt-2 border rounded-lg p-2" style={{ background: 'rgba(251, 191, 0, 0.2)', borderColor: 'rgba(251, 191, 0, 0.5)' }}>
+              <p className="text-sm text-yellow-200">
+                ⚠️ Jupiter referral account not configured - fees will not be collected
               </p>
             </div>
           )}
+          
           {config && !config.swapEnabled && (
             <div className="mt-4 bg-red-500/20 border border-red-500 rounded-lg p-3">
               <p className="text-red-200 font-semibold">⚠️ Swap Disabled</p>
@@ -513,11 +698,6 @@ export default function SwapPage() {
                       ⚠️ Very low slippage may cause failed swaps
                     </p>
                   )}
-                  {config?.platformFeeBps && config.platformFeeBps > 0 && (
-                    <p className="text-xs text-yellow-400">
-                      ⚠️ Platform fee ({config.platformFeeBps / 100}%) temporarily disabled due to Jupiter API limitations
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
@@ -525,18 +705,29 @@ export default function SwapPage() {
 
           {/* From Token */}
           <div className="space-y-2">
-            <label className="text-sm text-gray-500">You Pay</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-gray-500">You Pay</label>
+              {publicKey && fromToken && (
+                <button
+                  onClick={handleMaxAmount}
+                  className="text-xs px-2 py-1 rounded-lg hover:bg-white/[0.08] transition-all"
+                  style={{ color: '#fb57ff' }}
+                >
+                  MAX
+                </button>
+              )}
+            </div>
             <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-2 sm:gap-3 mb-2">
                 <button
                   onClick={() => setShowTokenSelect("from")}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/[0.05] rounded-lg hover:bg-white/[0.08] transition-all"
+                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-white/[0.05] rounded-lg hover:bg-white/[0.08] transition-all flex-shrink-0"
                 >
                   {fromToken?.logoURI && (
-                    <img src={fromToken.logoURI} alt={fromToken.symbol} className="w-6 h-6 rounded-full" />
+                    <img src={fromToken.logoURI} alt={fromToken.symbol} className="w-5 h-5 sm:w-6 sm:h-6 rounded-full" />
                   )}
-                  <span className="font-semibold">{fromToken?.symbol || "Select"}</span>
-                  <span className="text-gray-400">▼</span>
+                  <span className="font-semibold text-sm sm:text-base">{fromToken?.symbol || "Select"}</span>
+                  <span className="text-gray-400 text-xs sm:text-sm">▼</span>
                 </button>
                 <input
                   type="number"
@@ -544,9 +735,14 @@ export default function SwapPage() {
                   onChange={(e) => setFromAmount(e.target.value)}
                   placeholder="0.00"
                   disabled={config && !config.swapEnabled}
-                  className="flex-1 bg-transparent text-right text-2xl font-bold focus:outline-none disabled:opacity-50"
+                  className="flex-1 min-w-0 bg-transparent text-right text-lg sm:text-2xl font-bold focus:outline-none disabled:opacity-50"
                 />
               </div>
+              {publicKey && fromToken && tokenBalance !== null && (
+                <div className="text-right text-xs text-gray-500">
+                  Balance: {tokenBalance.toFixed(6)} {fromToken.symbol}
+                </div>
+              )}
             </div>
           </div>
 
@@ -565,22 +761,22 @@ export default function SwapPage() {
           <div className="space-y-2">
             <label className="text-sm text-gray-500">You Receive</label>
             <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-2 sm:gap-3 mb-2">
                 <button
                   onClick={() => setShowTokenSelect("to")}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/[0.05] rounded-lg hover:bg-white/[0.08] transition-all"
+                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-white/[0.05] rounded-lg hover:bg-white/[0.08] transition-all flex-shrink-0"
                 >
                   {toToken?.logoURI && (
-                    <img src={toToken.logoURI} alt={toToken.symbol} className="w-6 h-6 rounded-full" />
+                    <img src={toToken.logoURI} alt={toToken.symbol} className="w-5 h-5 sm:w-6 sm:h-6 rounded-full" />
                   )}
-                  <span className="font-semibold">{toToken?.symbol || "Select"}</span>
-                  <span className="text-gray-400">▼</span>
+                  <span className="font-semibold text-sm sm:text-base">{toToken?.symbol || "Select"}</span>
+                  <span className="text-gray-400 text-xs sm:text-sm">▼</span>
                 </button>
-                <div className="flex-1 text-right text-2xl font-bold">
+                <div className="flex-1 min-w-0 text-right text-lg sm:text-2xl font-bold overflow-hidden">
                   {quoteLoading ? (
                     <span className="text-gray-500">Loading...</span>
                   ) : (
-                    toAmount || "0.00"
+                    <span className="block truncate">{toAmount || "0.00"}</span>
                   )}
                 </div>
               </div>
@@ -588,20 +784,30 @@ export default function SwapPage() {
           </div>
 
           {/* Info */}
-          {fromAmount && toAmount && config && (
+          {fromAmount && toAmount && (
             <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-3 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Rate</span>
+                <span className="text-gray-500">Route</span>
                 <span className="text-white">
-                  1 {fromToken?.symbol} ≈ {(parseFloat(toAmount) / parseFloat(fromAmount)).toFixed(6)} {toToken?.symbol}
+                  {currentQuote?.source || 'Jupiter'}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Platform Fee ({config.platformFeePercentage.toFixed(2)}%)</span>
-                <span className="text-white">
-                  {((parseFloat(fromAmount) * config.platformFeePercentage) / 100).toFixed(6)} {fromToken?.symbol}
-                </span>
-              </div>
+              {fromToken && toToken && !toAmount.startsWith('~') && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Rate</span>
+                  <span className="text-white">
+                    1 {fromToken.symbol} ≈ {(parseFloat(toAmount.replace('~', '')) / parseFloat(fromAmount)).toFixed(6)} {toToken.symbol}
+                  </span>
+                </div>
+              )}
+              {JUPITER_REFERRAL_ACCOUNT && currentQuote?.source === 'Jupiter' && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Integrator Fee ({jupiterFeePercentage}%)</span>
+                  <span className="text-white">
+                    {((parseFloat(fromAmount) * jupiterFeePercentage) / 100).toFixed(6)} {fromToken?.symbol}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-gray-500">Slippage Tolerance</span>
                 <span className="text-white">{slippage}%</span>
@@ -649,7 +855,7 @@ export default function SwapPage() {
             ) : (
               <>
                 <Zap className="w-5 h-5" />
-                Swap
+                Swap via Ultra
               </>
             )}
           </button>
@@ -670,30 +876,32 @@ export default function SwapPage() {
           <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Zap className="w-5 h-5" style={{ color: '#fb57ff' }} />
-              <span className="font-semibold text-white">Fast Swaps</span>
+              <span className="font-semibold text-white">Jupiter</span>
             </div>
             <p className="text-sm text-gray-500">
-              Jupiter aggregator + Raydium fallback
+              Premium routing with better prices
             </p>
           </div>
 
           <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-5 h-5" style={{ color: '#fb57ff' }} />
-              <span className="font-semibold text-white">Best Prices</span>
+              <span className="font-semibold text-white">Best Execution</span>
             </div>
             <p className="text-sm text-gray-500">
-              Supports low-liquidity tokens
+              Raydium fallback for reliability
             </p>
           </div>
 
           <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Info className="w-5 h-5" style={{ color: '#fb57ff' }} />
-              <span className="font-semibold text-white">Platform Fee</span>
+              <span className="font-semibold text-white">Integrator Fees</span>
             </div>
             <p className="text-sm text-gray-500">
-              {config ? config.platformFeePercentage.toFixed(2) : "1.00"}% goes to treasury
+              {JUPITER_REFERRAL_ACCOUNT 
+                ? `${jupiterFeePercentage}% collected automatically` 
+                : 'Configure in environment'}
             </p>
           </div>
         </div>

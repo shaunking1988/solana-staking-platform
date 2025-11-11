@@ -125,20 +125,19 @@ model SwapConfig {
 }
 
 model SwapStats {
-  id           Int      @id @default(autoincrement())
-  fromToken    String   @map("from_token") @db.VarChar(255)
-  toToken      String   @map("to_token") @db.VarChar(255)
-  fromAmount   Float    @map("from_amount")
-  toAmount     Float    @map("to_amount")
-  userAddress  String   @map("user_address") @db.VarChar(255)
-  volumeUsd    Float?   @map("volume_usd")
-  priceUsd     Float?   @map("price_usd")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(6)
-
-  @@index([createdAt], map: "idx_swap_stats_created_at")
-  @@index([fromToken, toToken], map: "idx_swap_stats_tokens")
-  @@index([userAddress], map: "idx_swap_stats_user_address")
-  @@map("swap_stats")
+  id          String   @id @default(cuid())
+  fromToken   String
+  toToken     String
+  fromAmount  Float
+  toAmount    Float
+  userAddress String
+  volumeUsd   Float    @default(0)  // ✅ Required
+  priceUsd    Float    @default(0)  // ✅ Required
+  createdAt   DateTime @default(now())
+  
+  @@index([userAddress])
+  @@index([createdAt])
+  @@index([volumeUsd])  // For leaderboard queries
 }
 
 model LiquidityConfig {
