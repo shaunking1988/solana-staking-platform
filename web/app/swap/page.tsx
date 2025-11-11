@@ -615,7 +615,7 @@ export default function SwapPage() {
             Token Swap
           </h1>
           <p className="text-gray-500">
-            Powered by Jupiter + Raydium
+            Powered by StakePoint
             {JUPITER_REFERRAL_ACCOUNT && ` • ${jupiterFeePercentage}% integrator fee`}
           </p>
           
