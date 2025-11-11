@@ -10,7 +10,6 @@ import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
-  BackpackWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import { clusterApiUrl } from "@solana/web3.js";
 
@@ -34,7 +33,6 @@ export function SolanaWalletProvider({
     () => [
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
-      new BackpackWalletAdapter(),
     ],
     []
   );
