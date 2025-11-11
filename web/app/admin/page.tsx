@@ -13,10 +13,11 @@ import { useAdminProgram } from "@/hooks/useAdminProgram";
 import SEOManager from "@/components/SEOManager";
 import { authFetch } from "@/lib/authFetch";
 import PopUpAdManager from "@/components/admin/PopUpAdManager";
-import { 
-  ChevronDown, 
-  ChevronUp, 
-  Search, 
+import TelegramBotControl from "@/components/TelegramBotControl";
+import {
+  ChevronDown,
+  ChevronUp,
+  Search,
   Plus,
   BarChart3,
   Settings,
@@ -117,12 +118,12 @@ export default function AdminPage() {
   const [pools, setPools] = useState<any[]>([]);
   const [editingPool, setEditingPool] = useState<any | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  
+
   const [poolSearchQuery, setPoolSearchQuery] = useState("");
   const [expandedPools, setExpandedPools] = useState<Set<string>>(new Set());
-  
-  const [activeTab, setActiveTab] = useState<"dashboard" | "pools" | "create" | "seo" | "swap" | "popups">("dashboard");
-  
+
+  const [activeTab, setActiveTab] = useState<"dashboard" | "pools" | "create" | "seo" | "swap" | "popups" | "telegram">("dashboard");
+
   const [selectedPools, setSelectedPools] = useState<Set<string>>(new Set());
 
   // ✅ Load Swap Configuration
@@ -154,7 +155,7 @@ export default function AdminPage() {
       });
 
       if (!res.ok) throw new Error("Failed to save swap config");
-      
+
       showSuccess("✅ Swap configuration saved successfully!");
       loadSwapConfig();
     } catch (error: any) {
@@ -165,53 +166,53 @@ export default function AdminPage() {
   };
 
   const loadFeaturedTokens = async () => {
-  setLoadingTokens(true);
-  try {
-    const configRes = await authFetch("/api/admin/featured-tokens");
-    if (configRes.ok) {
-      const data = await configRes.json();
-      setFeaturedTokens(data.featuredTokens || []);
+    setLoadingTokens(true);
+    try {
+      const configRes = await authFetch("/api/admin/featured-tokens");
+      if (configRes.ok) {
+        const data = await configRes.json();
+        setFeaturedTokens(data.featuredTokens || []);
+      }
+
+      // Use your API route
+      console.log("Loading tokens from API...");
+      const tokensRes = await authFetch("/api/swap/tokens");
+
+      if (!tokensRes.ok) {
+        throw new Error("Failed to fetch tokens");
+      }
+
+      const tokens = await tokensRes.json();
+      console.log(`✅ Loaded ${tokens.length} tokens`);
+
+      setAllTokens(Array.isArray(tokens) ? tokens : []);
+
+    } catch (error) {
+      console.error("Failed to load tokens:", error);
+      setAllTokens([]);
+    } finally {
+      setLoadingTokens(false);
+    }
+  };
+
+  const searchTokens = async (query: string) => {
+    if (!query) {
+      setAllTokens([]);
+      return;
     }
 
-    // Use your API route
-    console.log("Loading tokens from API...");
-    const tokensRes = await authFetch("/api/swap/tokens");
-    
-    if (!tokensRes.ok) {
-      throw new Error("Failed to fetch tokens");
+    setLoadingTokens(true);
+    try {
+      const res = await authFetch(`/api/swap/tokens?q=${encodeURIComponent(query)}`);
+      const tokens = await res.json();
+      setAllTokens(Array.isArray(tokens) ? tokens : []);
+    } catch (error) {
+      console.error("Search error:", error);
+      setAllTokens([]);
+    } finally {
+      setLoadingTokens(false);
     }
-    
-    const tokens = await tokensRes.json();
-    console.log(`✅ Loaded ${tokens.length} tokens`);
-    
-    setAllTokens(Array.isArray(tokens) ? tokens : []);
-    
-  } catch (error) {
-    console.error("Failed to load tokens:", error);
-    setAllTokens([]);
-  } finally {
-    setLoadingTokens(false);
-  }
-};
-
-const searchTokens = async (query: string) => {
-  if (!query) {
-    setAllTokens([]);
-    return;
-  }
-  
-  setLoadingTokens(true);
-  try {
-    const res = await authFetch(`/api/swap/tokens?q=${encodeURIComponent(query)}`);
-    const tokens = await res.json();
-    setAllTokens(Array.isArray(tokens) ? tokens : []);
-  } catch (error) {
-    console.error("Search error:", error);
-    setAllTokens([]);
-  } finally {
-    setLoadingTokens(false);
-  }
-};
+  };
   // ✅ Save Featured Tokens
   const handleSaveFeaturedTokens = async () => {
     setSavingFeaturedTokens(true);
@@ -223,7 +224,7 @@ const searchTokens = async (query: string) => {
       });
 
       if (!response.ok) throw new Error("Failed to save");
-      
+
       showSuccess("✅ Featured tokens saved successfully!");
     } catch (error) {
       showError("❌ Failed to save featured tokens");
@@ -296,7 +297,7 @@ const searchTokens = async (query: string) => {
         token.id?.toLowerCase().includes(searchQuery.toLowerCase())) &&
       !featuredTokens.some((ft) => ft.address === token.id)
   );
-  
+
   // ✅ Load swap data on mount
   useEffect(() => {
     if (userIsAdmin && activeTab === "swap") {
@@ -308,24 +309,24 @@ const searchTokens = async (query: string) => {
   // ✅ FIXED: Check if platform is initialized - ONCE on mount only
   useEffect(() => {
     let isMounted = true;
-    
+
     const checkPlatformInit = async () => {
       if (!wallet || !connection) return;
-      
+
       // Prevent running if already checked
       if (platformInitialized !== null) return;
-      
+
       try {
         console.log("🔍 Checking platform initialization (ONCE)...");
         const program = getProgram(wallet, connection);
         const [platformPDA] = getPDAs.platformConfig();
         console.log("Checking platform at:", platformPDA.toString());
-        
+
         // Fetch the platform account
         const platformAccount = await program.account.platform.fetch(platformPDA);
         console.log("Platform account data:", platformAccount);
         console.log("Is initialized:", platformAccount.isInitialized);
-        
+
         // Platform exists and is initialized
         if (isMounted) {
           setPlatformInitialized(true);
@@ -342,7 +343,7 @@ const searchTokens = async (query: string) => {
     if (userIsAdmin && wallet && platformInitialized === null) {
       checkPlatformInit();
     }
-    
+
     return () => {
       isMounted = false;
     };
@@ -364,7 +365,7 @@ const searchTokens = async (query: string) => {
     try {
       const program = getProgram(wallet, connection);
       const [platformPDA] = getPDAs.platformConfig();
-      
+
       const feeCollectorPubkey = new PublicKey(initForm.feeCollector);
       const platformTokenFeeBps = parseInt(initForm.platformTokenFeeBps);
       const platformSolFee = parseInt(initForm.platformSolFee);
@@ -438,10 +439,10 @@ const searchTokens = async (query: string) => {
     try {
       const tokenMint = new PublicKey(tokenMintForFeeCollector);
       const feeCollector = new PublicKey("66oZ17EyWhmRXPYpuVpoojvmaz3AZWAaewekTWqJFhfB");
-      
+
       const ata = await getAssociatedTokenAddress(tokenMint, feeCollector);
       console.log("🔍 Token Account Address:", ata.toString());
-      
+
       const accountInfo = await connection.getAccountInfo(ata);
       if (accountInfo) {
         showSuccess("✅ Token account already exists!");
@@ -452,7 +453,7 @@ const searchTokens = async (query: string) => {
       console.log("⚙️ Creating token account...");
       const ix = createAssociatedTokenAccountInstruction(publicKey, ata, feeCollector, tokenMint);
       const tx = new Transaction().add(ix);
-      
+
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("finalized");
       tx.recentBlockhash = blockhash;
       tx.feePayer = publicKey;
@@ -462,7 +463,7 @@ const searchTokens = async (query: string) => {
         skipPreflight: false,
         maxRetries: 3
       });
-      
+
       console.log("📤 Transaction sent:", sig);
 
       await connection.confirmTransaction({
@@ -514,7 +515,7 @@ const searchTokens = async (query: string) => {
           <p className="text-gray-400 mb-6">
             Your wallet is not authorized to access the admin panel
           </p>
-          
+
           <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 mb-6">
             <p className="text-xs text-gray-500 mb-1">Connected Wallet:</p>
             <p className="text-gray-300 font-mono text-sm break-all">
@@ -550,16 +551,16 @@ const searchTokens = async (query: string) => {
     try {
       const res = await authFetch("/api/admin/pools");
       const data = await res.json();
-      
+
       // If there are expanded pools, collapse them first
       const currentExpanded = Array.from(expandedPools);
       if (currentExpanded.length > 0) {
         setExpandedPools(new Set());
       }
-      
+
       // Update pools data
       setPools(data);
-      
+
       // Re-expand after state has settled
       if (currentExpanded.length > 0) {
         setTimeout(() => {
@@ -579,15 +580,15 @@ const searchTokens = async (query: string) => {
     const featured = pools.filter(p => p.featured).length;
     const initialized = pools.filter(p => p.isInitialized).length;
     const totalViews = pools.reduce((sum, p) => sum + (p.views || 0), 0);
-    
+
     return { total, active, paused, hidden, featured, initialized, totalViews };
   }, [pools]);
 
   const filteredPools = useMemo(() => {
     if (!poolSearchQuery) return pools;
-    
+
     const query = poolSearchQuery.toLowerCase();
-    return pools.filter(pool => 
+    return pools.filter(pool =>
       pool.name.toLowerCase().includes(query) ||
       pool.symbol.toLowerCase().includes(query) ||
       pool.id.toLowerCase().includes(query)
@@ -642,7 +643,7 @@ const searchTokens = async (query: string) => {
         body: JSON.stringify({ hidden: true }),
       })
     );
-    
+
     try {
       await Promise.all(promises);
       showSuccess(`✅ Hidden ${selectedPools.size} pools`);
@@ -655,9 +656,9 @@ const searchTokens = async (query: string) => {
 
   const handleChange = (e: any) => {
     const { name, value, type, checked } = e.target;
-    setForm({ 
-      ...form, 
-      [name]: type === "checkbox" ? checked : value 
+    setForm({
+      ...form,
+      [name]: type === "checkbox" ? checked : value
     });
   };
 
@@ -691,113 +692,113 @@ const searchTokens = async (query: string) => {
   };
 
   const handleSubmit = async (e: any) => {
-  e.preventDefault();
-  try {
-    const url = editingPool
-      ? `/api/admin/pools/${editingPool.id}`
-      : "/api/admin/pools";
-    const method = editingPool ? "PATCH" : "POST";
+    e.preventDefault();
+    try {
+      const url = editingPool
+        ? `/api/admin/pools/${editingPool.id}`
+        : "/api/admin/pools";
+      const method = editingPool ? "PATCH" : "POST";
 
-    // ✅ FIX: Separate UI-only updates from full pool creation
-    const payload = editingPool ? {
-      // ============================================
-      // EDITING EXISTING POOL - UI FIELDS ONLY
-      // ============================================
-      // These are safe to update without affecting blockchain:
-      name: form.name,
-      symbol: form.symbol,
-      logo: form.logo,
-      pairAddress: form.pairAddress,
-      rewards: form.rewards, // Display text only
-      
-      // Reflection settings (UI display only - actual blockchain reflections handled in AdvancedPoolControls)
-      hasSelfReflections: form.hasSelfReflections,
-      hasExternalReflections: form.hasExternalReflections,
-      externalReflectionMint: form.externalReflectionMint,
-      
-      // ⚠️ DO NOT SEND THESE WHEN EDITING:
-      // - tokenMint (can't change token for existing pool)
-      // - poolId (can't change pool ID)
-      // - apy/apr (must be updated via blockchain transaction)
-      // - lockPeriod (must be updated via blockchain transaction)
-      // - type (locked/unlocked - tied to blockchain config)
-      // - isInitialized (blockchain state, not UI state)
-      
-    } : {
-      // ============================================
-      // CREATING NEW POOL - SEND EVERYTHING
-      // ============================================
-      name: form.name,
-      symbol: form.symbol,
-      apr: form.apr,
-      apy: form.apy,
-      type: form.type,
-      lockPeriod: form.lockPeriod,
-      rewards: form.rewards,
-      logo: form.logo,
-      tokenMint: form.mintAddress, // ✅ Use tokenMint for new pools
-      pairAddress: form.pairAddress,
-      poolId: form.poolId,
-      hasSelfReflections: form.hasSelfReflections,
-      hasExternalReflections: form.hasExternalReflections,
-      externalReflectionMint: form.externalReflectionMint,
-      // New pools start as NOT initialized (must be initialized via AdvancedPoolControls)
-      isInitialized: false,
-      isPaused: false,
-      hidden: false,
-      featured: false,
-    };
+      // ✅ FIX: Separate UI-only updates from full pool creation
+      const payload = editingPool ? {
+        // ============================================
+        // EDITING EXISTING POOL - UI FIELDS ONLY
+        // ============================================
+        // These are safe to update without affecting blockchain:
+        name: form.name,
+        symbol: form.symbol,
+        logo: form.logo,
+        pairAddress: form.pairAddress,
+        rewards: form.rewards, // Display text only
 
-    const res = await authFetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+        // Reflection settings (UI display only - actual blockchain reflections handled in AdvancedPoolControls)
+        hasSelfReflections: form.hasSelfReflections,
+        hasExternalReflections: form.hasExternalReflections,
+        externalReflectionMint: form.externalReflectionMint,
 
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.error || "Failed to save pool");
+        // ⚠️ DO NOT SEND THESE WHEN EDITING:
+        // - tokenMint (can't change token for existing pool)
+        // - poolId (can't change pool ID)
+        // - apy/apr (must be updated via blockchain transaction)
+        // - lockPeriod (must be updated via blockchain transaction)
+        // - type (locked/unlocked - tied to blockchain config)
+        // - isInitialized (blockchain state, not UI state)
+
+      } : {
+        // ============================================
+        // CREATING NEW POOL - SEND EVERYTHING
+        // ============================================
+        name: form.name,
+        symbol: form.symbol,
+        apr: form.apr,
+        apy: form.apy,
+        type: form.type,
+        lockPeriod: form.lockPeriod,
+        rewards: form.rewards,
+        logo: form.logo,
+        tokenMint: form.mintAddress, // ✅ Use tokenMint for new pools
+        pairAddress: form.pairAddress,
+        poolId: form.poolId,
+        hasSelfReflections: form.hasSelfReflections,
+        hasExternalReflections: form.hasExternalReflections,
+        externalReflectionMint: form.externalReflectionMint,
+        // New pools start as NOT initialized (must be initialized via AdvancedPoolControls)
+        isInitialized: false,
+        isPaused: false,
+        hidden: false,
+        featured: false,
+      };
+
+      const res = await authFetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to save pool");
+      }
+
+      const updatedPool = await res.json();
+
+      if (editingPool) {
+        // Update the pool in state
+        setPools((prev) =>
+          prev.map((p) => (p.id === updatedPool.id ? updatedPool : p))
+        );
+        setEditingPool(null);
+        showSuccess("✅ Pool UI information updated successfully!");
+        setActiveTab("pools");
+      } else {
+        // Add new pool to state
+        setPools((prev) => [...prev, updatedPool]);
+        showSuccess("✅ Pool created! Now initialize it using Advanced Pool Controls.");
+        setActiveTab("pools");
+      }
+
+      // Reset form
+      setForm({
+        name: "",
+        symbol: "",
+        apr: "",
+        apy: "",
+        type: "locked",
+        lockPeriod: "",
+        rewards: "",
+        logo: "",
+        mintAddress: "",
+        pairAddress: "",
+        poolId: 0,
+        hasSelfReflections: false,
+        hasExternalReflections: false,
+        externalReflectionMint: "",
+      });
+    } catch (err: any) {
+      console.error("Submit error:", err);
+      showError(`❌ ${err.message || "Error creating/updating pool"}`);
     }
-
-    const updatedPool = await res.json();
-
-    if (editingPool) {
-      // Update the pool in state
-      setPools((prev) =>
-        prev.map((p) => (p.id === updatedPool.id ? updatedPool : p))
-      );
-      setEditingPool(null);
-      showSuccess("✅ Pool UI information updated successfully!");
-      setActiveTab("pools");
-    } else {
-      // Add new pool to state
-      setPools((prev) => [...prev, updatedPool]);
-      showSuccess("✅ Pool created! Now initialize it using Advanced Pool Controls.");
-      setActiveTab("pools");
-    }
-
-    // Reset form
-    setForm({
-      name: "",
-      symbol: "",
-      apr: "",
-      apy: "",
-      type: "locked",
-      lockPeriod: "",
-      rewards: "",
-      logo: "",
-      mintAddress: "",
-      pairAddress: "",
-      poolId: 0,
-      hasSelfReflections: false,
-      hasExternalReflections: false,
-      externalReflectionMint: "",
-    });
-  } catch (err: any) {
-    console.error("Submit error:", err);
-    showError(`❌ ${err.message || "Error creating/updating pool"}`);
-  }
-};
+  };
 
   const handleEdit = (pool: any) => {
     setEditingPool(pool);
@@ -870,70 +871,74 @@ const searchTokens = async (query: string) => {
         <div className="flex gap-2 border-b border-slate-700 overflow-x-auto">
           <button
             onClick={() => setActiveTab("dashboard")}
-            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${
-              activeTab === "dashboard"
+            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${activeTab === "dashboard"
                 ? "text-blue-400 border-b-2 border-blue-400"
                 : "text-gray-400 hover:text-gray-300"
-            }`}
+              }`}
           >
             <BarChart3 className="w-5 h-5" />
             Dashboard
           </button>
           <button
             onClick={() => setActiveTab("pools")}
-            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${
-              activeTab === "pools"
+            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${activeTab === "pools"
                 ? "text-blue-400 border-b-2 border-blue-400"
                 : "text-gray-400 hover:text-gray-300"
-            }`}
+              }`}
           >
             <Settings className="w-5 h-5" />
             Manage Pools
           </button>
           <button
             onClick={() => setActiveTab("create")}
-            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${
-              activeTab === "create"
+            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${activeTab === "create"
                 ? "text-blue-400 border-b-2 border-blue-400"
                 : "text-gray-400 hover:text-gray-300"
-            }`}
+              }`}
           >
             <Plus className="w-5 h-5" />
             {editingPool ? "Edit Pool" : "Create Pool"}
           </button>
           <button
             onClick={() => setActiveTab("swap")}
-            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${
-              activeTab === "swap"
+            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${activeTab === "swap"
                 ? "text-blue-400 border-b-2 border-blue-400"
                 : "text-gray-400 hover:text-gray-300"
-            }`}
+              }`}
           >
             <ArrowDownUp className="w-5 h-5" />
             Swap & Tokens
           </button>
           <button
             onClick={() => setActiveTab("seo")}
-            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${
-              activeTab === "seo"
+            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${activeTab === "seo"
                 ? "text-blue-400 border-b-2 border-blue-400"
                 : "text-gray-400 hover:text-gray-300"
-            }`}
+              }`}
           >
             <Globe className="w-5 h-5" />
             SEO
           </button>
           <button
             onClick={() => setActiveTab("popups")}
-            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${
-              activeTab === "popups"
+            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${activeTab === "popups"
                 ? "text-blue-400 border-b-2 border-blue-400"
                 : "text-gray-400 hover:text-gray-300"
-            }`}
+              }`}
           >
-             <Sparkles className="w-5 h-5" />
-             Pop-Ups
-        </button>
+            <Sparkles className="w-5 h-5" />
+            Pop-Ups
+          </button>
+          <button
+            onClick={() => setActiveTab("telegram")}
+            className={`flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${activeTab === "telegram"
+                ? "text-blue-400 border-b-2 border-blue-400"
+                : "text-gray-400 hover:text-gray-300"
+              }`}
+          >
+            <Activity className="w-5 h-5" />
+            Telegram Bot
+          </button>
         </div>
 
         {activeTab === "dashboard" && (
@@ -1019,45 +1024,45 @@ const searchTokens = async (query: string) => {
               </div>
             </div>
 
-              {/* Create Token Account for Fee Collector */}
-              <div className="bg-gradient-to-br from-blue-900/30 to-blue-800/30 p-6 rounded-2xl border border-blue-500/30">
-                <h3 className="text-xl font-bold mb-4">Create Token Account</h3>
-                <p className="text-gray-400 text-sm mb-4">
-                  Create token account for fee collector before staking
-                </p>
-                <div className="mb-4">
-                  <label className="block text-sm text-gray-400 mb-2">Token Mint Address *</label>
-                  <input
-                    type="text"
-                    value={tokenMintForFeeCollector}
-                    onChange={(e) => setTokenMintForFeeCollector(e.target.value)}
-                    placeholder="Enter token mint"
-                    className="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:border-blue-500 focus:outline-none font-mono text-sm"
-                  />
-                </div>
-                <button
-                  onClick={handleCreateTokenAccount}
-                  disabled={creatingTokenAccount || !tokenMintForFeeCollector}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg hover:from-blue-500 hover:to-cyan-500 transition-all disabled:opacity-50 font-semibold"
-                >
-                  {creatingTokenAccount ? "Creating..." : "Create Token Account"}
-                </button>
+            {/* Create Token Account for Fee Collector */}
+            <div className="bg-gradient-to-br from-blue-900/30 to-blue-800/30 p-6 rounded-2xl border border-blue-500/30">
+              <h3 className="text-xl font-bold mb-4">Create Token Account</h3>
+              <p className="text-gray-400 text-sm mb-4">
+                Create token account for fee collector before staking
+              </p>
+              <div className="mb-4">
+                <label className="block text-sm text-gray-400 mb-2">Token Mint Address *</label>
+                <input
+                  type="text"
+                  value={tokenMintForFeeCollector}
+                  onChange={(e) => setTokenMintForFeeCollector(e.target.value)}
+                  placeholder="Enter token mint"
+                  className="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:border-blue-500 focus:outline-none font-mono text-sm"
+                />
               </div>
+              <button
+                onClick={handleCreateTokenAccount}
+                disabled={creatingTokenAccount || !tokenMintForFeeCollector}
+                className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg hover:from-blue-500 hover:to-cyan-500 transition-all disabled:opacity-50 font-semibold"
+              >
+                {creatingTokenAccount ? "Creating..." : "Create Token Account"}
+              </button>
+            </div>
 
-              {/* Platform Settings Card */}
-              <div className="bg-gradient-to-br from-purple-900/30 to-purple-800/30 p-6 rounded-2xl border border-purple-500/30">
-                <div className="flex items-center gap-3 mb-4">
-                  <Settings className="w-8 h-8 text-purple-400" />
-                  <h3 className="text-xl font-bold">Platform Settings</h3>
-                </div>
-                <p className="text-gray-400 mb-4">Manage platform configuration</p>
-                <button
-                  onClick={() => setShowFeeCollectorModal(true)}
-                  className="w-full px-4 py-2 bg-purple-600 rounded-lg hover:bg-purple-500 transition-all"
-                >
-                  Update Fee Collector
-                </button>
+            {/* Platform Settings Card */}
+            <div className="bg-gradient-to-br from-purple-900/30 to-purple-800/30 p-6 rounded-2xl border border-purple-500/30">
+              <div className="flex items-center gap-3 mb-4">
+                <Settings className="w-8 h-8 text-purple-400" />
+                <h3 className="text-xl font-bold">Platform Settings</h3>
               </div>
+              <p className="text-gray-400 mb-4">Manage platform configuration</p>
+              <button
+                onClick={() => setShowFeeCollectorModal(true)}
+                className="w-full px-4 py-2 bg-purple-600 rounded-lg hover:bg-purple-500 transition-all"
+              >
+                Update Fee Collector
+              </button>
+            </div>
 
             <div className="bg-slate-900/50 backdrop-blur border border-slate-700 rounded-xl p-6">
               <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -1119,15 +1124,13 @@ const searchTokens = async (query: string) => {
                       <p className="text-sm text-gray-400">Enable or disable swap functionality</p>
                     </div>
                     <button
-                      onClick={() => setSwapConfig({...swapConfig, swapEnabled: !swapConfig.swapEnabled})}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        swapConfig.swapEnabled ? "bg-blue-600" : "bg-gray-600"
-                      }`}
+                      onClick={() => setSwapConfig({ ...swapConfig, swapEnabled: !swapConfig.swapEnabled })}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${swapConfig.swapEnabled ? "bg-blue-600" : "bg-gray-600"
+                        }`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          swapConfig.swapEnabled ? "translate-x-6" : "translate-x-1"
-                        }`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${swapConfig.swapEnabled ? "translate-x-6" : "translate-x-1"
+                          }`}
                       />
                     </button>
                   </div>
@@ -1140,7 +1143,7 @@ const searchTokens = async (query: string) => {
                     <input
                       type="number"
                       value={swapConfig.platformFeePercentage}
-                      onChange={(e) => setSwapConfig({...swapConfig, platformFeePercentage: parseFloat(e.target.value)})}
+                      onChange={(e) => setSwapConfig({ ...swapConfig, platformFeePercentage: parseFloat(e.target.value) })}
                       step="0.1"
                       min="0"
                       max="100"
@@ -1159,7 +1162,7 @@ const searchTokens = async (query: string) => {
                     <input
                       type="number"
                       value={swapConfig.maxSlippage}
-                      onChange={(e) => setSwapConfig({...swapConfig, maxSlippage: parseFloat(e.target.value)})}
+                      onChange={(e) => setSwapConfig({ ...swapConfig, maxSlippage: parseFloat(e.target.value) })}
                       step="0.1"
                       min="0"
                       max="100"
@@ -1178,7 +1181,7 @@ const searchTokens = async (query: string) => {
                     <input
                       type="number"
                       value={swapConfig.priorityFee}
-                      onChange={(e) => setSwapConfig({...swapConfig, priorityFee: parseFloat(e.target.value)})}
+                      onChange={(e) => setSwapConfig({ ...swapConfig, priorityFee: parseFloat(e.target.value) })}
                       step="0.0001"
                       min="0"
                       className="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:border-blue-500 focus:outline-none"
@@ -1240,9 +1243,8 @@ const searchTokens = async (query: string) => {
                     featuredTokens.map((token, index) => (
                       <div
                         key={token.address}
-                        className={`bg-slate-800/50 rounded-lg p-3 flex items-center gap-3 ${
-                          !token.enabled ? "opacity-50" : ""
-                        }`}
+                        className={`bg-slate-800/50 rounded-lg p-3 flex items-center gap-3 ${!token.enabled ? "opacity-50" : ""
+                          }`}
                       >
                         {token.logoURI && (
                           <img
@@ -1275,11 +1277,10 @@ const searchTokens = async (query: string) => {
                         </div>
                         <button
                           onClick={() => toggleToken(token.address)}
-                          className={`text-xs px-2 py-1 rounded ${
-                            token.enabled
+                          className={`text-xs px-2 py-1 rounded ${token.enabled
                               ? "bg-green-600/30 text-green-400"
                               : "bg-gray-700 text-gray-400"
-                          }`}
+                            }`}
                         >
                           {token.enabled ? "ON" : "OFF"}
                         </button>
@@ -1320,7 +1321,7 @@ const searchTokens = async (query: string) => {
           </div>
         )}
 
-{activeTab === "pools" && (
+        {activeTab === "pools" && (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 relative">
@@ -1396,13 +1397,12 @@ const searchTokens = async (query: string) => {
               {filteredPools.map((pool) => {
                 const isExpanded = expandedPools.has(pool.id);
                 const isSelected = selectedPools.has(pool.id);
-                
+
                 return (
                   <li
                     key={pool.id}
-                    className={`bg-slate-900/50 backdrop-blur rounded-lg border transition-all ${
-                      isSelected ? "border-blue-500 bg-blue-900/10" : "border-slate-700"
-                    }`}
+                    className={`bg-slate-900/50 backdrop-blur rounded-lg border transition-all ${isSelected ? "border-blue-500 bg-blue-900/10" : "border-slate-700"
+                      }`}
                   >
                     <div className="p-4 flex items-center gap-4">
                       <button
@@ -1419,7 +1419,7 @@ const searchTokens = async (query: string) => {
                         )}
                       </button>
 
-                      <div 
+                      <div
                         className="flex items-center gap-3 flex-1 cursor-pointer"
                         onClick={() => toggleExpand(pool.id)}
                       >
@@ -1477,7 +1477,7 @@ const searchTokens = async (query: string) => {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="text-right hidden sm:block">
                         <p className="text-sm text-gray-400">{pool.views || 0} views</p>
                         <p className="text-xs text-gray-500">
@@ -1526,10 +1526,10 @@ const searchTokens = async (query: string) => {
                           </button>
                         </div>
 
-                        <AdvancedPoolControls 
+                        <AdvancedPoolControls
                           key={`pool-${pool.id}-${pool.isInitialized}-${pool.apy}-${pool.lockPeriod}-${pool.isPaused}`}
-                          pool={pool} 
-                          onUpdate={refreshPools} 
+                          pool={pool}
+                          onUpdate={refreshPools}
                         />
                       </div>
                     )}
@@ -1566,10 +1566,10 @@ const searchTokens = async (query: string) => {
                       Editing UI Information Only
                     </p>
                     <p className="text-yellow-200 text-sm mb-2">
-                      You can only update visual information here (name, logo, etc.). 
+                      You can only update visual information here (name, logo, etc.).
                     </p>
                     <p className="text-yellow-200 text-sm">
-                      To change blockchain parameters (APY, lock period, pause state, etc.), 
+                      To change blockchain parameters (APY, lock period, pause state, etc.),
                       use the <strong>Advanced Pool Controls</strong> section in the "Manage Pools" tab.
                     </p>
                   </div>
@@ -1807,7 +1807,7 @@ const searchTokens = async (query: string) => {
 
         {/* ✅ SEO Tab Content */}
         {activeTab === "seo" && (
-          <SEOManager 
+          <SEOManager
             onSuccess={showSuccess}
             onError={showError}
           />
@@ -1815,6 +1815,97 @@ const searchTokens = async (query: string) => {
         {/* ✅ Pop-Up Ads Tab Content */}
         {activeTab === "popups" && (
           <PopUpAdManager />
+        )}
+        {/* ✅ Telegram Bot Tab Content */}
+        {activeTab === "telegram" && (
+          <div className="space-y-6">
+            {/* Main Bot Control */}
+            <div className="bg-slate-900/50 backdrop-blur border border-slate-700 rounded-xl p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Activity className="w-8 h-8 text-blue-400" />
+                <div>
+                  <h2 className="text-2xl font-bold">Telegram Leaderboard Bot</h2>
+                  <p className="text-gray-400 text-sm">Manage your weekly trading leaderboard bot</p>
+                </div>
+              </div>
+
+              <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <Activity className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-blue-300 font-semibold mb-2">About the Leaderboard Bot</p>
+                    <p className="text-blue-200 text-sm mb-2">
+                      This bot displays the weekly top traders on your StakePoint platform. It shows:
+                    </p>
+                    <ul className="text-blue-200 text-sm list-disc list-inside space-y-1">
+                      <li>Top 10/20 traders for the current week (Monday-Sunday)</li>
+                      <li>Trading volumes and swap counts</li>
+                      <li>40% reward pool distributed to top traders</li>
+                      <li>Individual reward amounts per trader</li>
+                      <li>Monthly and all-time leaderboards</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <TelegramBotControl />
+            </div>
+
+            {/* Bot Commands Reference */}
+            <div className="bg-slate-900/50 backdrop-blur border border-slate-700 rounded-xl p-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <span>📱</span>
+                Bot Commands
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="bg-slate-800/50 p-4 rounded-lg">
+                  <code className="text-purple-400">/start</code>
+                  <p className="text-sm text-gray-400 mt-1">Welcome message and bot info</p>
+                </div>
+                <div className="bg-slate-800/50 p-4 rounded-lg">
+                  <code className="text-purple-400">/help</code>
+                  <p className="text-sm text-gray-400 mt-1">Show all available commands</p>
+                </div>
+                <div className="bg-slate-800/50 p-4 rounded-lg">
+                  <code className="text-purple-400">/toptraders</code>
+                  <p className="text-sm text-gray-400 mt-1">Weekly top 10 (Monday-Sunday)</p>
+                </div>
+                <div className="bg-slate-800/50 p-4 rounded-lg">
+                  <code className="text-purple-400">/top20</code>
+                  <p className="text-sm text-gray-400 mt-1">Weekly top 20 traders</p>
+                </div>
+                <div className="bg-slate-800/50 p-4 rounded-lg">
+                  <code className="text-purple-400">/monthly</code>
+                  <p className="text-sm text-gray-400 mt-1">Last 30 days top 10</p>
+                </div>
+                <div className="bg-slate-800/50 p-4 rounded-lg">
+                  <code className="text-purple-400">/alltime</code>
+                  <p className="text-sm text-gray-400 mt-1">All-time top 10 traders</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Reward Pool Info */}
+            <div className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 backdrop-blur border border-green-500/30 rounded-xl p-6">
+              <div className="flex items-start gap-4">
+                <div className="text-4xl">🎁</div>
+                <div>
+                  <h3 className="text-xl font-bold text-green-300 mb-2">Weekly Reward Pool</h3>
+                  <p className="text-green-200 text-sm mb-3">
+                    40% of all swap fees collected during the week are automatically distributed to the top 10 traders based on their trading volume.
+                  </p>
+                  <div className="bg-green-950/50 border border-green-500/30 rounded-lg p-3">
+                    <p className="text-green-300 text-sm font-mono">
+                      <strong>Formula:</strong> Individual Reward = (Your Volume / Top 10 Total Volume) × Reward Pool
+                    </p>
+                  </div>
+                  <p className="text-green-200 text-xs mt-2">
+                    📅 Reward pool resets every Monday at 00:00 UTC
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
@@ -1900,7 +1991,7 @@ const searchTokens = async (query: string) => {
             <p className="text-gray-400 mb-6 text-sm">
               Set up the platform with initial fee configuration. This is a one-time operation.
             </p>
-            
+
             <div className="space-y-4 mb-6">
               <div>
                 <label className="block text-sm text-gray-400 mb-2">
@@ -1909,7 +2000,7 @@ const searchTokens = async (query: string) => {
                 <input
                   type="number"
                   value={initForm.platformTokenFeeBps}
-                  onChange={(e) => setInitForm({...initForm, platformTokenFeeBps: e.target.value})}
+                  onChange={(e) => setInitForm({ ...initForm, platformTokenFeeBps: e.target.value })}
                   placeholder="250"
                   className="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:border-yellow-500 focus:outline-none"
                 />
@@ -1925,7 +2016,7 @@ const searchTokens = async (query: string) => {
                 <input
                   type="number"
                   value={initForm.platformSolFee}
-                  onChange={(e) => setInitForm({...initForm, platformSolFee: e.target.value})}
+                  onChange={(e) => setInitForm({ ...initForm, platformSolFee: e.target.value })}
                   placeholder="1000000"
                   className="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:border-yellow-500 focus:outline-none"
                 />
@@ -1941,7 +2032,7 @@ const searchTokens = async (query: string) => {
                 <input
                   type="text"
                   value={initForm.feeCollector}
-                  onChange={(e) => setInitForm({...initForm, feeCollector: e.target.value})}
+                  onChange={(e) => setInitForm({ ...initForm, feeCollector: e.target.value })}
                   placeholder="Enter wallet address to receive fees"
                   className="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white focus:border-yellow-500 focus:outline-none font-mono text-sm"
                 />
@@ -2018,7 +2109,7 @@ const searchTokens = async (query: string) => {
             <p className="text-gray-400 mb-6 text-sm">
               Change the wallet address that receives platform fees
             </p>
-            
+
             <div className="space-y-4 mb-6">
               <div>
                 <label className="block text-sm text-gray-400 mb-2">

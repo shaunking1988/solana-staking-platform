@@ -9,6 +9,7 @@ const nextConfig = {
   },
   // Skip database connections during build
   experimental: {
+    instrumentationHook: true, // ⬅️ ADD THIS LINE
     serverActions: {
       bodySizeLimit: '2mb',
     },
