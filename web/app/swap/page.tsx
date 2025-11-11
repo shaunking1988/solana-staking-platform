@@ -415,8 +415,7 @@ export default function SwapPage() {
       return;
     }
 
-    // Minimal pre-check - just ensure wallet has SOME SOL
-    // Let Jupiter/Raydium and the blockchain tell us if there's not enough
+    // Check SOL balance and enforce minimum for successful swaps
     try {
       const solBalance = await connection.getBalance(publicKey);
       const solBalanceDecimal = solBalance / 1e9;
@@ -427,19 +426,40 @@ export default function SwapPage() {
         return;
       }
       
-      // Warning only (don't block) - if swapping SOL and will have very little left
+      // CRITICAL: When swapping SOL, enforce minimum remaining for successful swap + round trip
       if (fromToken?.address === "So11111111111111111111111111111111111111112") {
         const amountToSwap = parseFloat(fromAmount);
         const willRemain = solBalanceDecimal - amountToSwap;
         
-        if (willRemain < 0.003) {
+        // Jupiter Ultra needs at least ~0.003 SOL for:
+        // - Token account rent: 0.00204 SOL
+        // - Transaction fees: 0.00001 SOL
+        // - Buffer: 0.001 SOL
+        // We add extra for round-trip capability
+        const minimumRemaining = 0.005;
+        
+        if (willRemain < minimumRemaining) {
+          const maxYouCanSwap = (solBalanceDecimal - minimumRemaining).toFixed(6);
+          showError(`Need ${minimumRemaining.toFixed(3)} SOL for fees. Max you can swap: ${maxYouCanSwap} SOL`);
+          console.error('❌ Insufficient SOL for swap + round trip:', {
+            balance: solBalanceDecimal,
+            swapping: amountToSwap,
+            willRemain: willRemain,
+            minimumNeeded: minimumRemaining,
+            maxCanSwap: maxYouCanSwap,
+          });
+          return;
+        }
+        
+        // Warn if close to minimum (less than $1.50 worth)
+        if (willRemain < 0.006) {
           console.warn('⚠️ Low SOL remaining after swap:', willRemain);
-          showInfo(`Warning: You'll have only ${willRemain.toFixed(6)} SOL left`);
+          showInfo(`You'll have ${willRemain.toFixed(4)} SOL left for future swaps`);
         }
       }
     } catch (balanceError) {
       console.warn('Could not check SOL balance:', balanceError);
-      // Continue anyway - let the swap attempt
+      // Don't block - let Jupiter handle it
     }
 
     setSwapping(true);
@@ -448,7 +468,13 @@ export default function SwapPage() {
     try {
       const amount = Math.floor(parseFloat(fromAmount) * Math.pow(10, fromToken.decimals));
 
-      console.log('🔄 Executing swap...');
+      console.log('🔄 Executing swap...', {
+        fromToken: fromToken.symbol,
+        toToken: toToken.symbol,
+        fromAmount: fromAmount,
+        amountLamports: amount,
+        walletBalance: await connection.getBalance(publicKey) / 1e9,
+      });
 
       // Try Jupiter first
       console.log('🪐 Attempting swap with Jupiter...');
@@ -470,6 +496,10 @@ export default function SwapPage() {
         );
       } catch (error: any) {
         jupiterError = error;
+        console.error('❌ Jupiter swap error:', error);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        
         // If it's a slippage error, throw immediately (don't try Raydium)
         if (error.message?.includes("Slippage tolerance exceeded")) {
           throw error;

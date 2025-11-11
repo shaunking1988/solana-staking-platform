@@ -200,14 +200,27 @@ export async function executeJupiterSwap(
       throw new Error(`Failed to get Ultra order: ${errorText}`);
     }
 
-    const orderData: UltraOrderResponse = await orderResponse.json();
+    const orderData: any = await orderResponse.json();
     
-    console.log('📦 Full Ultra order response (stringified):');
+    console.log('📦 Full Ultra order response:');
     console.log(JSON.stringify(orderData, null, 2));
     
-    // Check for gas error
-    if (orderData.error && orderData.error.includes('Top up') && orderData.error.includes('SOL for gas')) {
-      throw new Error('INSUFFICIENT_SOL_FOR_GAS');
+    // Check for any error in the response (Jupiter returns errors in the response body)
+    if (orderData.error) {
+      const errorMsg = orderData.error;
+      console.error('❌ Jupiter Ultra returned error:', errorMsg);
+      
+      // Check for gas/balance errors
+      if (errorMsg.includes('Top up') || 
+          errorMsg.includes('SOL for gas') || 
+          errorMsg.includes('insufficient') ||
+          errorMsg.includes('Insufficient')) {
+        // Pass through the actual error message from Jupiter
+        throw new Error(`Insufficient SOL: ${errorMsg}`);
+      }
+      
+      // Throw the actual error from Jupiter
+      throw new Error(`Jupiter: ${errorMsg}`);
     }
     
     console.log('✅ Order received:', {
