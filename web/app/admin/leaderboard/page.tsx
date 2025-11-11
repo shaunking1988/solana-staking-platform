@@ -325,7 +325,7 @@ export default function SwapLeaderboardPage() {
                           >
                             <Copy className="w-4 h-4 text-gray-400" />
                           </button>
-                          
+                          <a
                             href={`https://solscan.io/account/${wallet.address}`}
                             target="_blank"
                             rel="noopener noreferrer"
