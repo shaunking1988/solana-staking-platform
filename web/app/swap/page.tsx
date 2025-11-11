@@ -261,7 +261,7 @@ export default function SwapPage() {
     }
   };
 
-  const handleMaxAmount = () => {
+  const handleMaxAmount = async () => {
     if (tokenBalance === null) {
       console.log('⚠️ Cannot use MAX: balance not loaded');
       return;
@@ -272,11 +272,37 @@ export default function SwapPage() {
       balance: tokenBalance,
     });
     
-    // For SOL, leave 0.003 for fees (much lower than Phantom's buffer)
+    // For SOL, leave enough for round-trip swaps based on USD value
     if (fromToken?.address === "So11111111111111111111111111111111111111112") {
-      const maxAmount = Math.max(0, tokenBalance - 0.003);
-      setFromAmount(maxAmount.toFixed(6));
-      console.log('💰 Set MAX amount (SOL):', maxAmount.toFixed(6));
+      try {
+        // Get current SOL price
+        const priceResponse = await fetch('https://api.dexscreener.com/latest/dex/tokens/So11111111111111111111111111111111111111112');
+        const priceData = await priceResponse.json();
+        const solPriceUSD = priceData.pairs?.[0]?.priceUsd ? parseFloat(priceData.pairs[0].priceUsd) : 250; // Default to $250 if API fails
+        
+        // Calculate SOL amount needed for ~$1 buffer (for round-trip fees)
+        const targetBufferUSD = 1.0;
+        const txFeeBuffer = targetBufferUSD / solPriceUSD;
+        
+        // Minimum buffer of 0.001 SOL, maximum of 0.01 SOL
+        const finalBuffer = Math.max(0.001, Math.min(0.01, txFeeBuffer));
+        
+        const maxAmount = Math.max(0, tokenBalance - finalBuffer);
+        setFromAmount(maxAmount.toFixed(6));
+        
+        console.log('💰 MAX calculation:', {
+          solPrice: '$' + solPriceUSD.toFixed(2),
+          targetBufferUSD: '$' + targetBufferUSD,
+          calculatedBuffer: finalBuffer.toFixed(6) + ' SOL',
+          bufferValueUSD: '$' + (finalBuffer * solPriceUSD).toFixed(2),
+          maxAmount: maxAmount.toFixed(6) + ' SOL',
+        });
+      } catch (error) {
+        console.error('Failed to fetch SOL price, using default buffer:', error);
+        // Fallback to 0.005 SOL (~$1.25 at $250/SOL)
+        const maxAmount = Math.max(0, tokenBalance - 0.005);
+        setFromAmount(maxAmount.toFixed(6));
+      }
     } else {
       setFromAmount(tokenBalance.toFixed(6));
       console.log('💰 Set MAX amount (Token):', tokenBalance.toFixed(6));
@@ -384,14 +410,40 @@ export default function SwapPage() {
       return;
     }
 
-    // Check SOL balance for gas fees (reduced buffer - Phantom works with less)
+    // Check SOL balance for gas fees with dynamic price awareness
     try {
       const solBalance = await connection.getBalance(publicKey);
       const solBalanceDecimal = solBalance / 1e9;
       
-      if (solBalanceDecimal < 0.002) {
+      // Absolute minimum for transaction to work
+      if (solBalanceDecimal < 0.00005) {
         showError("Insufficient SOL for fees");
         return;
+      }
+      
+      // Warn if user won't have enough to swap back (based on USD value)
+      if (fromToken?.address === "So11111111111111111111111111111111111111112") {
+        const amountToSwap = parseFloat(fromAmount);
+        const willRemain = solBalanceDecimal - amountToSwap;
+        
+        // Try to get SOL price for better warning
+        try {
+          const priceResponse = await fetch('https://api.dexscreener.com/latest/dex/tokens/So11111111111111111111111111111111111111112');
+          const priceData = await priceResponse.json();
+          const solPriceUSD = priceData.pairs?.[0]?.priceUsd ? parseFloat(priceData.pairs[0].priceUsd) : 250;
+          const remainingUSD = willRemain * solPriceUSD;
+          
+          if (remainingUSD < 0.50) {
+            console.warn('⚠️ User will have very little SOL remaining:', willRemain, `($${remainingUSD.toFixed(2)})`);
+            showInfo(`You'll have $${remainingUSD.toFixed(2)} SOL left for future swaps`);
+          }
+        } catch (priceError) {
+          // Fallback to SOL amount warning
+          if (willRemain < 0.002) {
+            console.warn('⚠️ User will have very little SOL remaining:', willRemain);
+            showInfo("You'll have minimal SOL left for future transactions");
+          }
+        }
       }
     } catch (balanceError) {
       console.warn('Could not check SOL balance:', balanceError);
