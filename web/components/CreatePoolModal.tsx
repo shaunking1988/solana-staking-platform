@@ -546,6 +546,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
                       key={token.mint}
                       onClick={() => {
                         setSelectedToken(token);
+                        setError(null);
                         setStep(2);
                       }}
                       className="flex items-center gap-4 p-4 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.05] rounded-lg transition-colors text-left"
@@ -762,7 +763,10 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
 
               <div className="flex gap-4">
                 <button
-                  onClick={() => setStep(1)}
+                  onClick={() => {
+                    setError(null);
+                    setStep(1);
+                  }}
                   disabled={loading}
                   className="flex-1 px-6 py-3 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.05] rounded-lg font-semibold transition-colors disabled:opacity-50"
                   onMouseEnter={(e) => !loading && (e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)')}
@@ -771,7 +775,10 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
                   Back
                 </button>
                 <button
-                  onClick={() => setStep(3)}
+                  onClick={() => {
+                    setError(null);
+                    setStep(3);
+                  }}
                   disabled={loading}
                   className="flex-1 px-6 py-3 rounded-lg font-semibold transition-all disabled:opacity-50"
                   style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
@@ -842,7 +849,10 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
 
               <div className="flex gap-4">
                 <button
-                  onClick={() => setStep(2)}
+                  onClick={() => {
+                    setError(null);
+                    setStep(2);
+                  }}
                   disabled={loading}
                   className="flex-1 px-6 py-3 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.05] rounded-lg font-semibold transition-colors disabled:opacity-50"
                   onMouseEnter={(e) => !loading && (e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)')}
