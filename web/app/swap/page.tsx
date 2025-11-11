@@ -261,6 +261,55 @@ export default function SwapPage() {
     }
   };
 
+  const handleHalfAmount = async () => {
+    if (tokenBalance === null) {
+      console.log('⚠️ Cannot use 50%: balance not loaded');
+      return;
+    }
+    
+    console.log('📊 50% button clicked:', {
+      token: fromToken?.symbol,
+      balance: tokenBalance,
+    });
+    
+    // For SOL, calculate 50% but still leave buffer for fees
+    if (fromToken?.address === "So11111111111111111111111111111111111111112") {
+      try {
+        // Get current SOL price
+        const priceResponse = await fetch('https://api.dexscreener.com/latest/dex/tokens/So11111111111111111111111111111111111111112');
+        const priceData = await priceResponse.json();
+        const solPriceUSD = priceData.pairs?.[0]?.priceUsd ? parseFloat(priceData.pairs[0].priceUsd) : 250;
+        
+        const targetBufferUSD = 2.50;
+        const txFeeBuffer = targetBufferUSD / solPriceUSD;
+        const finalBuffer = Math.max(0.015, Math.min(0.02, txFeeBuffer));
+        
+        // Calculate 50% of (balance - buffer)
+        const maxUsable = Math.max(0, tokenBalance - finalBuffer);
+        const halfAmount = maxUsable * 0.5;
+        
+        setFromAmount(halfAmount.toFixed(6));
+        
+        console.log('💰 50% calculation (with buffer):', {
+          solPrice: '$' + solPriceUSD.toFixed(2),
+          buffer: finalBuffer.toFixed(6) + ' SOL',
+          maxUsable: maxUsable.toFixed(6) + ' SOL',
+          halfAmount: halfAmount.toFixed(6) + ' SOL',
+        });
+      } catch (error) {
+        console.error('Failed to fetch SOL price, using default buffer:', error);
+        const maxUsable = Math.max(0, tokenBalance - 0.015);
+        const halfAmount = maxUsable * 0.5;
+        setFromAmount(halfAmount.toFixed(6));
+      }
+    } else {
+      // For other tokens, simply use 50% of balance
+      const halfAmount = tokenBalance * 0.5;
+      setFromAmount(halfAmount.toFixed(6));
+      console.log('💰 Set 50% amount (Token):', halfAmount.toFixed(6));
+    }
+  };
+
   const handleMaxAmount = async () => {
     if (tokenBalance === null) {
       console.log('⚠️ Cannot use MAX: balance not loaded');
@@ -787,13 +836,22 @@ export default function SwapPage() {
             <div className="flex items-center justify-between">
               <label className="text-sm text-gray-500">You Pay</label>
               {publicKey && fromToken && (
-                <button
-                  onClick={handleMaxAmount}
-                  className="text-xs px-2 py-1 rounded-lg hover:bg-white/[0.08] transition-all"
-                  style={{ color: '#fb57ff' }}
-                >
-                  MAX
-                </button>
+                <div className="flex gap-1">
+                  <button
+                    onClick={handleHalfAmount}
+                    className="text-xs px-2 py-1 rounded-lg hover:bg-white/[0.08] transition-all"
+                    style={{ color: '#fb57ff' }}
+                  >
+                    50%
+                  </button>
+                  <button
+                    onClick={handleMaxAmount}
+                    className="text-xs px-2 py-1 rounded-lg hover:bg-white/[0.08] transition-all"
+                    style={{ color: '#fb57ff' }}
+                  >
+                    MAX
+                  </button>
+                </div>
               )}
             </div>
             <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">

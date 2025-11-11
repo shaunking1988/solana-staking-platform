@@ -28,11 +28,6 @@ interface SwapStats {
   };
 }
 
-interface WalletWithReward extends WalletStat {
-  share: number;
-  reward: number;
-}
-
 export default function SwapLeaderboardPage() {
   const [stats, setStats] = useState<SwapStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,6 +88,7 @@ export default function SwapLeaderboardPage() {
 
   useEffect(() => {
     applyDateFilter();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateFilter]);
 
   const copyAddress = (address: string) => {
@@ -105,10 +101,11 @@ export default function SwapLeaderboardPage() {
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
   };
 
-  const calculateRewards = (): WalletWithReward[] => {
+  // Calculate proportional rewards
+  const calculateRewards = () => {
     if (!stats || !stats.topWallets.length) return [];
     
-    const rewardPool = stats.totalFeesUsd * 0.4;
+    const rewardPool = stats.totalFeesUsd * 0.4; // 40% of fees
     const top10 = stats.topWallets.slice(0, 10);
     const top10TotalVolume = top10.reduce((sum, w) => sum + w.volumeUsd, 0);
     
@@ -122,6 +119,9 @@ export default function SwapLeaderboardPage() {
     });
   };
 
+  const walletsWithRewards = calculateRewards();
+  const rewardPool = (stats?.totalFeesUsd || 0) * 0.4;
+
   if (loading && !stats) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -129,9 +129,6 @@ export default function SwapLeaderboardPage() {
       </div>
     );
   }
-
-  const walletsWithRewards = calculateRewards();
-  const rewardPool = (stats?.totalFeesUsd || 0) * 0.4;
 
   return (
     <div className="min-h-screen p-6">
@@ -325,7 +322,7 @@ export default function SwapLeaderboardPage() {
                           >
                             <Copy className="w-4 h-4 text-gray-400" />
                           </button>
-                          <a
+                          
                             href={`https://solscan.io/account/${wallet.address}`}
                             target="_blank"
                             rel="noopener noreferrer"
