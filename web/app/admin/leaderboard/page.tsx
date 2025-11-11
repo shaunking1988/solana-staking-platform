@@ -101,6 +101,27 @@ export default function SwapLeaderboardPage() {
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
   };
 
+  // Calculate proportional rewards
+  const calculateRewards = () => {
+    if (!stats || !stats.topWallets.length) return [];
+    
+    const rewardPool = stats.totalFeesUsd * 0.4; // 40% of fees
+    const top10 = stats.topWallets.slice(0, 10);
+    const top10TotalVolume = top10.reduce((sum, w) => sum + w.volumeUsd, 0);
+    
+    return stats.topWallets.map(wallet => {
+      if (wallet.rank <= 10 && top10TotalVolume > 0) {
+        const share = (wallet.volumeUsd / top10TotalVolume) * 100;
+        const reward = (wallet.volumeUsd / top10TotalVolume) * rewardPool;
+        return { ...wallet, share, reward };
+      }
+      return { ...wallet, share: 0, reward: 0 };
+    });
+  };
+
+  const walletsWithRewards = calculateRewards();
+  const rewardPool = (stats?.totalFeesUsd || 0) * 0.4;
+
   if (loading && !stats) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -205,22 +226,23 @@ export default function SwapLeaderboardPage() {
 
           <div className="bg-white/[0.02] backdrop-blur border border-white/[0.05] rounded-xl p-6">
             <div className="flex items-center gap-3 mb-2">
-              <Trophy className="w-5 h-5" style={{ color: '#fb57ff' }} />
-              <span className="text-gray-400 text-sm">Active Traders</span>
-            </div>
-            <p className="text-3xl font-bold text-white">
-              {stats?.topWallets.length || 0}
-            </p>
-          </div>
-
-          <div className="bg-white/[0.02] backdrop-blur border border-white/[0.05] rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-2">
               <DollarSign className="w-5 h-5" style={{ color: '#fb57ff' }} />
               <span className="text-gray-400 text-sm">Fees Collected (USD)</span>
             </div>
             <p className="text-3xl font-bold text-white">
               ${stats?.totalFeesUsd?.toLocaleString(undefined, { maximumFractionDigits: 2 }) || 0}
             </p>
+          </div>
+
+          <div className="bg-white/[0.02] backdrop-blur border border-white/[0.05] rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <Trophy className="w-5 h-5" style={{ color: '#fb57ff' }} />
+              <span className="text-gray-400 text-sm">Reward Pool (40%)</span>
+            </div>
+            <p className="text-3xl font-bold text-white">
+              ${rewardPool.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">Split among top 10 by volume</p>
           </div>
         </div>
 
@@ -246,11 +268,12 @@ export default function SwapLeaderboardPage() {
                     <th className="text-left py-3 px-4 text-gray-400 font-semibold">Wallet</th>
                     <th className="text-right py-3 px-4 text-gray-400 font-semibold">Volume (USD)</th>
                     <th className="text-right py-3 px-4 text-gray-400 font-semibold">Swaps</th>
+                    <th className="text-right py-3 px-4 text-gray-400 font-semibold">Reward (USD)</th>
                     <th className="text-right py-3 px-4 text-gray-400 font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {stats.topWallets.map((wallet) => (
+                  {walletsWithRewards.map((wallet) => (
                     <tr 
                       key={wallet.address}
                       className="border-b border-white/[0.05] hover:bg-white/[0.02] transition-all"
@@ -277,6 +300,20 @@ export default function SwapLeaderboardPage() {
                         {wallet.swaps}
                       </td>
                       <td className="py-4 px-4 text-right">
+                        {wallet.rank <= 10 ? (
+                          <div>
+                            <div className="font-semibold text-green-400">
+                              ${wallet.reward.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {wallet.share.toFixed(1)}% share
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-600">-</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => copyAddress(wallet.address)}
@@ -285,7 +322,7 @@ export default function SwapLeaderboardPage() {
                           >
                             <Copy className="w-4 h-4 text-gray-400" />
                           </button>
-                          <a
+                          
                             href={`https://solscan.io/account/${wallet.address}`}
                             target="_blank"
                             rel="noopener noreferrer"

@@ -258,10 +258,18 @@ export class TelegramBotService {
       message += `   💵 Volume: $${volume}\n`;
       message += `   🔄 Swaps: ${wallet.swaps}\n`;
       
-      // Show individual reward for weekly leaderboard (top 10 only - EQUAL SPLIT)
+      // Show proportional reward for weekly leaderboard (top 10 only)
       if (mode === 'week' && wallet.rank <= 10 && stats.rewardPoolUsd > 0) {
-        const equalReward = stats.rewardPoolUsd / 10;
-        message += `   🎁 Reward: $${this.formatNumber(equalReward)}\n`;
+        // Calculate total volume of top 10
+        const top10Wallets = stats.topWallets.slice(0, 10);
+        const top10TotalVolume = top10Wallets.reduce((sum, w) => sum + w.volumeUsd, 0);
+        
+        if (top10TotalVolume > 0) {
+          const volumeShare = (wallet.volumeUsd / top10TotalVolume) * 100;
+          const proportionalReward = (wallet.volumeUsd / top10TotalVolume) * stats.rewardPoolUsd;
+          message += `   📊 Share: ${this.formatNumber(volumeShare, 1)}%\n`;
+          message += `   🎁 Reward: $${this.formatNumber(proportionalReward)}\n`;
+        }
       }
       
       message += `\n`;
@@ -299,7 +307,7 @@ I track the top traders on the StakePoint platform and show weekly rewards!
 /help - Show this help message
 
 *Weekly Rewards:*
-🎁 Reward pool split equally among top 10 traders!
+🎁 Reward pool split proportionally among top 10 traders!
 📅 Resets every Monday at 00:00
 
 Let's see who's leading the pack! 🚀
@@ -322,7 +330,7 @@ Let's see who's leading the pack! 🚀
 /alltime - All-time top 10 traders
 
 *Rewards:*
-• Weekly reward pool split equally among top 10 traders
+• Weekly reward pool split proportionally by volume among top 10 traders
 • Resets every Monday 00:00
 
 *Time Ranges:*
