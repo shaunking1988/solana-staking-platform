@@ -352,7 +352,7 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
     
     try {
       const tokenMintPubkey = new PublicKey(tokenMint);
-      const programId = new PublicKey("4XA6snTxNGqBy8w5jnGpH6BbGfXTraRFewkmSeE4nk23");
+      const programId = new PublicKey("HS4LXq85DpjDDctwMQcioDyQWFo4oQu9SYxDpQKX29Pm");
       const TOKEN_PROGRAM = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
       
       // Derive PDAs
@@ -466,19 +466,19 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
       
       const [projectPDA] = PublicKey.findProgramAddressSync(
         [Buffer.from("project"), tokenMintPubkey.toBuffer()],
-        new PublicKey("4XA6snTxNGqBy8w5jnGpH6BbGfXTraRFewkmSeE4nk23")
+        new PublicKey("HS4LXq85DpjDDctwMQcioDyQWFo4oQu9SYxDpQKX29Pm")
       );
       
       console.log("📦 PROJECT PDA:", projectPDA.toString());
       
       const [stakingVaultPDA] = PublicKey.findProgramAddressSync(
         [Buffer.from("staking_vault"), projectPDA.toBuffer()],
-        new PublicKey("4XA6snTxNGqBy8w5jnGpH6BbGfXTraRFewkmSeE4nk23")
+        new PublicKey("HS4LXq85DpjDDctwMQcioDyQWFo4oQu9SYxDpQKX29Pm")
       );
       
       const [rewardVaultPDA] = PublicKey.findProgramAddressSync(
         [Buffer.from("reward_vault"), projectPDA.toBuffer()],
-        new PublicKey("4XA6snTxNGqBy8w5jnGpH6BbGfXTraRFewkmSeE4nk23")
+        new PublicKey("HS4LXq85DpjDDctwMQcioDyQWFo4oQu9SYxDpQKX29Pm")
       );
       
       console.log("💰 STAKING VAULT PDA:", stakingVaultPDA.toString());
@@ -616,13 +616,13 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
         tokenMintPubkey.toBuffer(),
         Buffer.from(new Uint8Array(new BigUint64Array([BigInt(poolId)]).buffer))  // ✅ ADD pool_id
       ],
-      new PublicKey("4XA6snTxNGqBy8w5jnGpH6BbGfXTraRFewkmSeE4nk23")
+      new PublicKey("HS4LXq85DpjDDctwMQcioDyQWFo4oQu9SYxDpQKX29Pm")
     );
     
     // Step 2: Derive reward vault PDA using project
     const [rewardVaultPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("reward_vault"), projectPDA.toBuffer()],
-      new PublicKey("4XA6snTxNGqBy8w5jnGpH6BbGfXTraRFewkmSeE4nk23")
+      new PublicKey("HS4LXq85DpjDDctwMQcioDyQWFo4oQu9SYxDpQKX29Pm")
     );
     
     console.log("🔍 Checking vault:", rewardVaultPDA.toString());

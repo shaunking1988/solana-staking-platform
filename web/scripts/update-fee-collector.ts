@@ -2,7 +2,7 @@ import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
 import * as fs from "fs";
 
-const PROGRAM_ID = new PublicKey("4XA6snTxNGqBy8w5jnGpH6BbGfXTraRFewkmSeE4nk23");
+const PROGRAM_ID = new PublicKey("HS4LXq85DpjDDctwMQcioDyQWFo4oQu9SYxDpQKX29Pm");
 const NEW_FEE_COLLECTOR = new PublicKey("66oZ17EyWhmRXPYpuVpoojvmaz3AZWAaewekTWqJFhfB");
 const RPC = "https://api.devnet.solana.com";
 

@@ -1,5 +1,5 @@
 {
-  "address": "4XA6snTxNGqBy8w5jnGpH6BbGfXTraRFewkmSeE4nk23",
+  "address": "HS4LXq85DpjDDctwMQcioDyQWFo4oQu9SYxDpQKX29Pm",
   "metadata": {
     "name": "staking_program",
     "version": "0.1.0",
@@ -138,6 +138,9 @@
           "optional": true
         },
         {
+          "name": "token_mint_account"
+        },
+        {
           "name": "user",
           "writable": true,
           "signer": true
@@ -266,6 +269,9 @@
           "writable": true
         },
         {
+          "name": "reflection_token_mint"
+        },
+        {
           "name": "user",
           "writable": true,
           "signer": true
@@ -332,6 +338,9 @@
         {
           "name": "admin_token_account",
           "writable": true
+        },
+        {
+          "name": "token_mint_account"
         },
         {
           "name": "admin",
@@ -497,8 +506,7 @@
           "signer": true
         },
         {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "name": "token_program"
         },
         {
           "name": "system_program",
@@ -889,6 +897,9 @@
           "writable": true
         },
         {
+          "name": "token_mint_account"
+        },
+        {
           "name": "admin",
           "writable": true,
           "signer": true
@@ -1012,6 +1023,9 @@
         {
           "name": "user_withdrawal_account",
           "writable": true
+        },
+        {
+          "name": "token_mint_account"
         },
         {
           "name": "admin",
