@@ -50,6 +50,22 @@ export function useStakingProgram() {
     const program = getProgram(wallet, connection);
     const tokenMintPubkey = new PublicKey(tokenMint);
     
+    // ✅ DETECT THE TOKEN PROGRAM TYPE
+    const mintInfo = await connection.getAccountInfo(tokenMintPubkey);
+    if (!mintInfo) {
+      throw new Error("Token mint not found");
+    }
+    
+    // Check if it's Token-2022 or SPL Token
+    const TOKEN_2022_PROGRAM_ID = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+    const SPL_TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+    
+    const tokenProgramId = mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID) 
+      ? TOKEN_2022_PROGRAM_ID 
+      : SPL_TOKEN_PROGRAM_ID;
+
+    console.log(`✅ Token program detected for staking: ${tokenProgramId.toString()}`);
+    
     // Get platform config to fetch fee collector
     const platformConfig = await getPlatformConfig(program);
     if (!platformConfig) {
@@ -64,16 +80,20 @@ export function useStakingProgram() {
     const [stakingVaultPDA] = getPDAs.stakingVault(tokenMintPubkey, poolId);
     const [userStakePDA] = getPDAs.userStake(projectPDA, publicKey);
 
-    // Get user's token account
+    // Get user's token account (with correct token program for Token-2022)
     const userTokenAccount = await getAssociatedTokenAddress(
       tokenMintPubkey,
-      publicKey
+      publicKey,
+      false, // allowOwnerOffCurve
+      tokenProgramId  // ✅ Use detected token program
     );
 
-    // Get fee collector's token account
+    // Get fee collector's token account (with correct token program for Token-2022)
     const feeCollectorTokenAccount = await getAssociatedTokenAddress(
       tokenMintPubkey,
-      feeCollector
+      feeCollector,
+      false, // allowOwnerOffCurve
+      tokenProgramId  // ✅ Use detected token program
     );
 
     // Check if fee collector token account exists, create if not
@@ -92,18 +112,19 @@ export function useStakingProgram() {
     const reflectionVault = project.reflectionVault;
     const projectReferrer = project.referrer;
 
-    // Determine which referrer to use
+    // Determine referrer: use provided code, project referrer, or fallback to user
     let finalReferrer: PublicKey;
     if (referrerCode) {
       finalReferrer = new PublicKey(referrerCode);
     } else if (projectReferrer) {
       finalReferrer = projectReferrer;
     } else {
+      // Default to user's public key if no referrer (Anchor client requires this field)
       finalReferrer = publicKey;
     }
 
-    // Build accounts object
-    const accounts = {
+    // Build accounts object - include all accounts (Anchor client requires them even if Option<> in Rust)
+    const accounts: any = {
       platform: platformConfigPDA,
       project: projectPDA,
       stake: userStakePDA,
@@ -111,13 +132,24 @@ export function useStakingProgram() {
       userTokenAccount: userTokenAccount,
       feeCollectorTokenAccount: feeCollectorTokenAccount,
       feeCollector: feeCollector,
-      referrer: finalReferrer,
-      reflectionVault: reflectionVault || stakingVaultPDA,
+      referrer: finalReferrer,  // Always include (even if Option<> in Rust)
+      reflectionVault: reflectionVault || stakingVaultPDA,  // Use stakingVault as fallback if no reflection vault
+      tokenMintAccount: tokenMintPubkey,
       user: publicKey,
-      tokenProgram: TOKEN_PROGRAM_ID,
+      tokenProgram: tokenProgramId,
       systemProgram: SystemProgram.programId,
-      rent: SYSVAR_RENT_PUBKEY,
     };
+    
+    console.log("🔍 All accounts being passed:");
+    Object.entries(accounts).forEach(([key, value]) => {
+      console.log(`  ${key}: ${value instanceof PublicKey ? value.toString() : value}`);
+    });
+    
+    console.log("🔍 Final accounts for deposit:", {
+      accountKeys: Object.keys(accounts),
+      hasReflectionVault: !!reflectionVault,
+      tokenProgram: tokenProgramId.toString(),
+    });
 
     console.log("🔍 Deposit Accounts:", {
       platform: platformConfigPDA.toString(),
@@ -150,12 +182,13 @@ export function useStakingProgram() {
           feeCollectorTokenAccount, // ata address
           feeCollector, // owner
           tokenMintPubkey, // mint
-          TOKEN_PROGRAM_ID,
+          tokenProgramId,  // ✅ Use detected token program
           ASSOCIATED_TOKEN_PROGRAM_ID
         );
         transaction.add(createATAIx);
         
         // Add stake instruction
+        console.log("🔧 Building deposit instruction with accounts:", Object.keys(accounts));
         const stakeIx = await program.methods
           .deposit(tokenMintPubkey, new BN(poolId), amountBN)
           .accountsPartial(accounts)
@@ -170,6 +203,7 @@ export function useStakingProgram() {
         console.log("✅ ATA created and stake executed:", tx);
       } else {
         // Execute stake transaction normally
+        console.log("🔧 Building deposit instruction (direct RPC) with accounts:", Object.keys(accounts));
         tx = await program.methods
           .deposit(tokenMintPubkey, new BN(poolId), amountBN)
           .accountsPartial(accounts)
@@ -261,6 +295,22 @@ const unstake = async (tokenMint: string, poolId: number = 0, amount?: number) =
   const tokenMintPubkey = new PublicKey(tokenMint);
   console.log("✅ Program initialized, tokenMint:", tokenMint);
 
+  // ✅ DETECT THE TOKEN PROGRAM TYPE
+  const mintInfo = await connection.getAccountInfo(tokenMintPubkey);
+  if (!mintInfo) {
+    throw new Error("Token mint not found");
+  }
+  
+  // Check if it's Token-2022 or SPL Token
+  const TOKEN_2022_PROGRAM_ID_UNSTAKE = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+  const SPL_TOKEN_PROGRAM_ID_UNSTAKE = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+  
+  const tokenProgramId = mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID_UNSTAKE) 
+    ? TOKEN_2022_PROGRAM_ID_UNSTAKE 
+    : SPL_TOKEN_PROGRAM_ID_UNSTAKE;
+
+  console.log(`✅ Token program detected for unstaking: ${tokenProgramId.toString()}`);
+
   // Get platform config
   const platformConfig = await getPlatformConfig(program);
   if (!platformConfig) {
@@ -284,17 +334,21 @@ const unstake = async (tokenMint: string, poolId: number = 0, amount?: number) =
   const withdrawalWallet = userStake.withdrawalWallet || publicKey;
   console.log("✅ Withdrawal wallet:", withdrawalWallet.toBase58());
 
-  // Get withdrawal wallet's token account
+  // Get withdrawal wallet's token account (with correct token program for Token-2022)
   const withdrawalTokenAccount = await getAssociatedTokenAddress(
     tokenMintPubkey,
-    withdrawalWallet
+    withdrawalWallet,
+    false, // allowOwnerOffCurve
+    tokenProgramId  // ✅ Use detected token program
   );
   console.log("✅ Withdrawal token account:", withdrawalTokenAccount.toBase58());
 
-  // Get fee collector's token account
+  // Get fee collector's token account (with correct token program for Token-2022)
   const feeCollectorTokenAccount = await getAssociatedTokenAddress(
     tokenMintPubkey,
-    feeCollector
+    feeCollector,
+    false, // allowOwnerOffCurve
+    tokenProgramId  // ✅ Use detected token program
   );
   console.log("✅ Fee collector token account:", feeCollectorTokenAccount.toBase58());
 
@@ -353,8 +407,9 @@ try {
     feeCollector: feeCollector,
     referrer: projectReferrer || publicKey,
     reflectionVault: reflectionVault || stakingVaultPDA,
+    tokenMintAccount: tokenMintPubkey,  // ✅ Add mint account for transfer_checked
     user: publicKey,
-    tokenProgram: TOKEN_PROGRAM_ID,
+    tokenProgram: tokenProgramId,  // ✅ Use detected token program
     associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
     systemProgram: SystemProgram.programId,
   };
@@ -512,6 +567,21 @@ try {
     const program = getProgram(wallet, connection);
     const tokenMintPubkey = new PublicKey(tokenMint);
 
+    // ✅ DETECT THE TOKEN PROGRAM TYPE
+    const mintInfo = await connection.getAccountInfo(tokenMintPubkey);
+    if (!mintInfo) {
+      throw new Error("Token mint not found");
+    }
+    
+    const TOKEN_2022_PROGRAM_ID_CLAIM = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+    const SPL_TOKEN_PROGRAM_ID_CLAIM = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+    
+    const tokenProgramId = mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID_CLAIM) 
+      ? TOKEN_2022_PROGRAM_ID_CLAIM 
+      : SPL_TOKEN_PROGRAM_ID_CLAIM;
+
+    console.log(`✅ Token program detected for claiming: ${tokenProgramId.toString()}`);
+
     // Get platform config
     const platformConfig = await getPlatformConfig(program);
     if (!platformConfig) {
@@ -531,16 +601,20 @@ try {
     const userStake = await program.account.stake.fetch(userStakePDA, "confirmed");
     const withdrawalWallet = userStake.withdrawalWallet || publicKey;
 
-    // Get withdrawal wallet's token account
+    // Get withdrawal wallet's token account (with correct token program for Token-2022)
     const withdrawalTokenAccount = await getAssociatedTokenAddress(
       tokenMintPubkey,
-      withdrawalWallet
+      withdrawalWallet,
+      false, // allowOwnerOffCurve
+      tokenProgramId  // ✅ Use detected token program
     );
 
-    // Get fee collector's token account
+    // Get fee collector's token account (with correct token program for Token-2022)
     const feeCollectorTokenAccount = await getAssociatedTokenAddress(
       tokenMintPubkey,
-      feeCollector
+      feeCollector,
+      false, // allowOwnerOffCurve
+      tokenProgramId  // ✅ Use detected token program
     );
 
     // Get project info to check for referrer and reflection vault
@@ -556,8 +630,9 @@ try {
       userTokenAccount: withdrawalTokenAccount,
       feeCollector: feeCollector,
       referrer: projectReferrer || publicKey,
+      tokenMintAccount: tokenMintPubkey,  // ✅ Add mint account for transfer_checked
       user: publicKey,
-      tokenProgram: TOKEN_PROGRAM_ID,
+      tokenProgram: tokenProgramId,  // ✅ Use detected token program
       systemProgram: SystemProgram.programId,
     };
 
@@ -638,6 +713,21 @@ try {
     const program = getProgram(wallet, connection);
     const tokenMintPubkey = new PublicKey(tokenMint);
 
+    // ✅ DETECT THE TOKEN PROGRAM TYPE
+    const mintInfo = await connection.getAccountInfo(tokenMintPubkey);
+    if (!mintInfo) {
+      throw new Error("Token mint not found");
+    }
+    
+    const TOKEN_2022_PROGRAM_ID_REFL = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+    const SPL_TOKEN_PROGRAM_ID_REFL = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+    
+    const tokenProgramId = mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID_REFL) 
+      ? TOKEN_2022_PROGRAM_ID_REFL 
+      : SPL_TOKEN_PROGRAM_ID_REFL;
+
+    console.log(`✅ Token program detected for reflections: ${tokenProgramId.toString()}`);
+
     // Get PDAs
     const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
     const [userStakePDA] = getPDAs.userStake(projectPDA, publicKey);
@@ -657,6 +747,19 @@ try {
     const reflectionVaultPubkey = project.reflectionVault;
     const reflectionTokenMint = project.reflectionToken;
 
+    // ✅ Detect the token program for the REFLECTION token (might be different from staking token)
+    const reflectionMintInfo = await connection.getAccountInfo(reflectionTokenMint);
+    if (!reflectionMintInfo) {
+      throw new Error("Reflection token mint not found");
+    }
+    
+    const TOKEN_2022_PROGRAM_ID_REFL_MINT = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+    const reflectionTokenProgramId = reflectionMintInfo.owner.equals(TOKEN_2022_PROGRAM_ID_REFL_MINT)
+      ? TOKEN_2022_PROGRAM_ID_REFL_MINT
+      : new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+    
+    console.log(`✅ Reflection token program detected: ${reflectionTokenProgramId.toString()}`);
+
     // Get user stake to find withdrawal wallet
     const userStake = await program.account.stake.fetch(userStakePDA, "confirmed");
     const withdrawalWallet = userStake.withdrawalWallet || publicKey;
@@ -664,7 +767,9 @@ try {
     // ✅ FIX 2: Get withdrawal wallet's token account for the REFLECTION TOKEN (not staking token!)
     const userReflectionAccount = await getAssociatedTokenAddress(
       reflectionTokenMint,  // ✅ Use reflection token mint
-      withdrawalWallet
+      withdrawalWallet,
+      false, // allowOwnerOffCurve
+      reflectionTokenProgramId  // ✅ Use reflection token's program
     );
 
     console.log("🔍 Claim Reflections Accounts:", {
@@ -690,7 +795,9 @@ try {
           publicKey,              // payer
           userReflectionAccount,  // ata
           withdrawalWallet,       // owner
-          reflectionTokenMint     // mint (reflection token!)
+          reflectionTokenMint,    // mint (reflection token!)
+          reflectionTokenProgramId,  // ✅ Use reflection token's program
+          ASSOCIATED_TOKEN_PROGRAM_ID
         );
         
         const transaction = new Transaction();
@@ -701,11 +808,12 @@ try {
           .accounts({
             project: projectPDA,
             stake: userStakePDA,
-            stakingVault: stakingVaultPDA,           // ✅ ADDED
-            reflectionVault: reflectionVaultPubkey,  // ✅ Fixed
-            userReflectionAccount: userReflectionAccount,  // ✅ FIXED NAME
+            stakingVault: stakingVaultPDA,
+            reflectionVault: reflectionVaultPubkey,
+            userReflectionAccount: userReflectionAccount,
+            tokenMintAccount: reflectionTokenMint,  // ✅ Add reflection mint account
             user: publicKey,
-            tokenProgram: TOKEN_PROGRAM_ID,
+            tokenProgram: reflectionTokenProgramId,  // ✅ Use reflection token's program
           })
           .instruction();
         
@@ -724,11 +832,12 @@ try {
           .accounts({
             project: projectPDA,
             stake: userStakePDA,
-            stakingVault: stakingVaultPDA,           // ✅ ADDED
-            reflectionVault: reflectionVaultPubkey,  // ✅ Fixed
-            userReflectionAccount: userReflectionAccount,  // ✅ FIXED NAME
+            stakingVault: stakingVaultPDA,
+            reflectionVault: reflectionVaultPubkey,
+            userReflectionAccount: userReflectionAccount,
+            tokenMintAccount: reflectionTokenMint,  // ✅ Add reflection mint account
             user: publicKey,
-            tokenProgram: TOKEN_PROGRAM_ID,
+            tokenProgram: reflectionTokenProgramId,  // ✅ Use reflection token's program
           })
           .rpc({ skipPreflight: false, commitment: 'confirmed' });
 

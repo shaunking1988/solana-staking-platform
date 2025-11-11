@@ -45,7 +45,7 @@ const sendTransactionWithFreshBlockhash = async (
   const rawTransaction = signedTx.serialize();
   const signature = await connection.sendRawTransaction(rawTransaction, {
     skipPreflight: false,
-    preflightCommitment: 'finalized',
+    preflightCommitment: 'confirmed',  // ✅ Use 'confirmed' to see recently created accounts
   });
 
   await connection.confirmTransaction({
@@ -198,6 +198,22 @@ const sendTransactionWithFreshBlockhash = async (
     const program = await getProgram(wallet, connection);
     const tokenMintPubkey = new PublicKey(tokenMint);
     
+    // ✅ DETECT THE TOKEN PROGRAM TYPE
+    const mintInfo = await connection.getAccountInfo(tokenMintPubkey);
+    if (!mintInfo) {
+      throw new Error("Token mint not found");
+    }
+    
+    // Check if it's Token-2022 or SPL Token
+    const TOKEN_2022_PROGRAM_ID = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+    const SPL_TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+    
+    const tokenProgramId = mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID) 
+      ? TOKEN_2022_PROGRAM_ID 
+      : SPL_TOKEN_PROGRAM_ID;
+
+    console.log(`✅ Token program detected: ${tokenProgramId.toString()}`);
+    
     const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
 
     const [stakingVaultPDA] = getPDAs.stakingVault(tokenMintPubkey, poolId);
@@ -213,7 +229,7 @@ const sendTransactionWithFreshBlockhash = async (
         tokenMint: tokenMintPubkey,
         admin: publicKey,
         systemProgram: SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenProgram: tokenProgramId,  // ✅ Pass the correct one
         rent: SYSVAR_RENT_PUBKEY,
       });
 
@@ -260,6 +276,22 @@ const sendTransactionWithFreshBlockhash = async (
     const program = await getProgram(wallet, connection);
     const tokenMintPubkey = new PublicKey(params.tokenMint);
     
+    // ✅ DETECT THE TOKEN PROGRAM TYPE
+    const mintInfo = await connection.getAccountInfo(tokenMintPubkey);
+    if (!mintInfo) {
+      throw new Error("Token mint not found");
+    }
+    
+    // Check if it's Token-2022 or SPL Token
+    const TOKEN_2022_PROGRAM_ID = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+    const SPL_TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+    
+    const tokenProgramId = mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID) 
+      ? TOKEN_2022_PROGRAM_ID 
+      : SPL_TOKEN_PROGRAM_ID;
+
+    console.log(`✅ Token program detected: ${tokenProgramId.toString()}`);
+    
     // Derive project PDA
     const [projectPDA] = getPDAs.project(tokenMintPubkey, params.poolId);
 
@@ -271,6 +303,7 @@ const sendTransactionWithFreshBlockhash = async (
       poolId: params.poolId,
       projectPDA: projectPDA.toString(),
       stakingVaultPDA: stakingVaultPDA.toString(),
+      tokenProgram: tokenProgramId.toString(),
     });
 
     // ✅ Build InitializePoolParams struct exactly as Rust expects
@@ -303,7 +336,7 @@ const sendTransactionWithFreshBlockhash = async (
       admin: publicKey,
       associatedTokenProgram: null,
       systemProgram: SystemProgram.programId,
-      tokenProgram: TOKEN_PROGRAM_ID,
+      tokenProgram: tokenProgramId,  // ✅ Use detected token program
     };
 
     // Add reflection-related accounts if reflections enabled

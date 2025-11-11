@@ -55,6 +55,47 @@ export default function CreateLockModal({
     }
   }, [isOpen, publicKey]);
 
+  // Helper: Wait for project account to exist and be fully initialized on-chain
+  const waitForProjectAccount = async (tokenMint: string, poolId: number, maxRetries = 30) => {
+    const { getProgram } = await import("@/lib/anchor-program");
+    const { getPDAs } = await import("@/lib/anchor-program");
+    
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const wallet = (window as any).solana;
+        if (!wallet) throw new Error("Wallet not found");
+        
+        const program = getProgram(wallet, connection);
+        const tokenMintPubkey = new PublicKey(tokenMint);
+        const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
+        
+        // ✅ Try to actually FETCH and DESERIALIZE the project account
+        // This ensures it's not just created, but fully initialized and readable
+        // Use "confirmed" commitment for faster confirmation
+        const projectData = await program.account.project.fetch(projectPDA, "confirmed");
+        
+        // Verify it has the expected data
+        if (projectData && 
+            projectData.tokenMint.toString() === tokenMint &&
+            projectData.poolId.toNumber() === poolId &&
+            projectData.admin) {
+          console.log(`✅ Project account fully initialized and verified after ${i + 1} attempts`);
+          console.log(`   - Token Mint: ${projectData.tokenMint.toString()}`);
+          console.log(`   - Pool ID: ${projectData.poolId.toString()}`);
+          console.log(`   - Admin: ${projectData.admin.toString()}`);
+          return true;
+        }
+      } catch (err: any) {
+        console.log(`⏳ Attempt ${i + 1}/${maxRetries}: Project not fully initialized yet... (${err.message || 'checking'})`);
+      }
+      
+      // Wait 1 second before next attempt (increased from 500ms)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    throw new Error("Project account not fully initialized after multiple attempts. Please try again.");
+  };
+
   const fetchUserTokens = async () => {
     if (!publicKey) return;
     
@@ -204,38 +245,102 @@ export default function CreateLockModal({
     setStatusMessage("Preparing lock transaction...");
 
     try {
-      // Convert duration to days for poolId
-      const durationDays = Math.floor(finalDuration / 86400);
-      const poolId = durationDays; // Use duration in days as poolId
+      setStatusMessage("Finding available pool slot...");
       
-      setStatusMessage("Checking if pool exists...");
-      
-      // Check if pool exists in database
+      // Check if pool exists in database with matching lockup
       const poolsResponse = await fetch(`/api/pools/by-token/${selectedToken.mint}`);
       const existingPools = poolsResponse.ok ? await poolsResponse.json() : [];
       
-      // Find pool with matching lockup
+      // Find pool with matching lockup duration AND matching token mint
       let matchingPool = existingPools.find((p: any) => 
-        p.poolId === poolId || p.lockPeriod === finalDuration
+        p.lockPeriod === finalDuration && 
+        p.tokenMint === selectedToken.mint
       );
+      
+      // Track the actual poolId we'll use
+      let usedPoolId: number;
+      
+      if (matchingPool) {
+        // Pool with this lockup already exists for this token, verify it on-chain
+        setStatusMessage("Verifying existing pool...");
+        const { getProgram, getPDAs } = await import("@/lib/anchor-program");
+        const walletForVerify = (window as any).solana;
+        const program = getProgram(walletForVerify, connection);
+        const tokenMintPubkey = new PublicKey(selectedToken.mint);
+        
+        try {
+          // Verify the project exists on-chain with correct token mint
+          const [projectPDA] = getPDAs.project(tokenMintPubkey, matchingPool.poolId);
+          const projectData = await program.account.project.fetch(projectPDA);
+          
+          if (projectData.tokenMint.toString() === selectedToken.mint && 
+              projectData.lockupSeconds.toNumber() === finalDuration) {
+            usedPoolId = matchingPool.poolId;
+            console.log(`✅ Verified existing pool on-chain - poolId: ${usedPoolId}, lockup: ${finalDuration}s`);
+          } else {
+            console.warn(`⚠️ Pool mismatch on-chain, finding new poolId...`);
+            matchingPool = null; // Force creation of new pool
+          }
+        } catch (error) {
+          console.warn(`⚠️ Pool ${matchingPool.poolId} not found on-chain, finding new poolId...`);
+          matchingPool = null; // Force creation of new pool
+        }
+      }
+      
+      if (!matchingPool) {
+        // Need to find next available poolId (same logic as CreatePoolModal)
+        const { getProgram } = await import("@/lib/anchor-program");
+        const { getPDAs } = await import("@/lib/anchor-program");
+        const walletForCheck = (window as any).solana;
+        const program = getProgram(walletForCheck, connection);
+        const tokenMintPubkey = new PublicKey(selectedToken.mint);
+        
+        let poolId = 0;
+        let poolExists = true;
+        
+        console.log("🔍 Finding next available poolId...");
+        
+        while (poolExists && poolId < 100) { // Max 100 pools per token
+          const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
+          try {
+            await program.account.project.fetch(projectPDA);
+            console.log(`⚠️ Pool ${poolId} already exists, trying next...`);
+            poolId++;
+          } catch (error) {
+            // Pool doesn't exist, we can use this poolId
+            console.log(`✅ Found available poolId: ${poolId}`);
+            poolExists = false;
+          }
+        }
+        
+        if (poolExists) {
+          throw new Error("Maximum number of pools (100) reached for this token.");
+        }
+        
+        usedPoolId = poolId;
+      }
       
       // If no matching pool exists, we need to create one
       if (!matchingPool) {
-        setStatusMessage("Creating lock pool on-chain...");
-        
         try {
           // Step 1: Create project
-          await createProject(selectedToken.mint, poolId);
-          console.log("✅ Project created");
+          setStatusMessage("Creating lock pool on-chain...");
+          await createProject(selectedToken.mint, usedPoolId);
+          console.log("✅ Project created with poolId:", usedPoolId);
           
-          // Step 2: Initialize pool with lockup
+           // Step 1.5: Wait for project account to be queryable
+           setStatusMessage("Confirming project account...");
+           await waitForProjectAccount(selectedToken.mint, usedPoolId);
+           
+           // Step 2: Initialize pool with lockup
+          setStatusMessage("Initializing pool with lockup...");
           await initializePool({
             tokenMint: selectedToken.mint,
-            poolId: poolId,
+            poolId: usedPoolId,
             rateBpsPerYear: 0, // No rewards for locks
             rateMode: 0, // Fixed rate
             lockupSeconds: finalDuration,
-            poolDurationSeconds: 0, // No end date
+            poolDurationSeconds: finalDuration, // ✅ Set to lockup duration (not 0)
             referrer: null,
             referrerSplitBps: null,
             enableReflections: false,
@@ -251,7 +356,7 @@ export default function CreateLockModal({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               tokenMint: selectedToken.mint,
-              poolId: poolId,
+              poolId: usedPoolId,
               name: selectedToken.name || selectedToken.symbol,
               symbol: selectedToken.symbol || "UNKNOWN",
               logo: selectedToken.logoURI,
@@ -270,11 +375,12 @@ export default function CreateLockModal({
         }
       }
       
+      console.log(`🎯 Using poolId ${usedPoolId} for staking transaction`);
       setStatusMessage("Locking tokens on-chain...");
       
       // Execute stake transaction (this locks the tokens)
       const amountInTokens = parseFloat(amount) * Math.pow(10, selectedToken.decimals);
-      const tx = await stake(selectedToken.mint, amountInTokens, poolId, undefined);
+      const tx = await stake(selectedToken.mint, amountInTokens, usedPoolId, undefined);
       
       if (!tx) {
         throw new Error("Transaction failed");
@@ -287,15 +393,11 @@ export default function CreateLockModal({
       // Calculate lock ID based on timestamp
       const lockId = Date.now();
       
-      // Get the stake PDA
-      const [stakePDA] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("stake"),
-          new PublicKey(matchingPool?.poolAddress || selectedToken.mint).toBuffer(),
-          publicKey.toBuffer(),
-        ],
-        new PublicKey("4XA6snTxNGqBy8w5jnGpH6BbGfXTraRFewkmSeE4nk23") // Your program ID
-      );
+      // Get the stake PDA using the correct poolId
+      const { getPDAs: getPDAsForStake } = await import("@/lib/anchor-program");
+      const tokenMintPubkeyForStake = new PublicKey(selectedToken.mint);
+      const [projectPDAForStake] = getPDAsForStake.project(tokenMintPubkeyForStake, usedPoolId);
+      const [stakePDA] = getPDAsForStake.userStake(projectPDAForStake, publicKey);
       
       // Save to database
       const response = await fetch("/api/locks", {
@@ -322,7 +424,7 @@ export default function CreateLockModal({
       }
 
       setStatusMessage("Lock created successfully! ✅");
-      
+
       // Reset form
       setSelectedToken(null);
       setAmount("");
@@ -330,8 +432,8 @@ export default function CreateLockModal({
       setSelectedDuration("");
 
       setTimeout(() => {
-        onSuccess();
-        onClose();
+      onSuccess();
+      onClose();
       }, 1000);
     } catch (err: any) {
       console.error("Error creating lock:", err);
@@ -431,8 +533,8 @@ export default function CreateLockModal({
                       <div className="text-left">
                         <p className="font-semibold">{selectedToken.symbol}</p>
                         <p className="text-xs text-gray-400">Balance: {selectedToken.balance.toLocaleString()}</p>
-                      </div>
-                    </div>
+            </div>
+              </div>
                   ) : (
                     <span className="text-gray-400">
                       {isLoadingTokens ? "Loading tokens..." : "Choose a token"}
@@ -448,15 +550,15 @@ export default function CreateLockModal({
                     <div className="p-3 border-b border-white/[0.1]">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                          type="text"
+                <input
+                  type="text"
                           value={tokenSearchQuery}
                           onChange={(e) => setTokenSearchQuery(e.target.value)}
                           placeholder="Search tokens..."
                           className="w-full pl-10 pr-3 py-2 bg-white/[0.05] border border-white/[0.1] rounded-lg text-white text-sm focus:outline-none focus:border-[#fb57ff]/50"
-                        />
-                      </div>
-                    </div>
+                />
+              </div>
+            </div>
 
                     {/* Token List */}
                     <div className="max-h-60 overflow-y-auto">
@@ -517,15 +619,15 @@ export default function CreateLockModal({
                 Amount to Lock *
               </label>
               <div className="relative">
-                <input
-                  type="number"
-                  step="any"
+              <input
+                type="number"
+                step="any"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
+                placeholder="0.00"
                   className="w-full p-3 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white focus:outline-none focus:border-[#fb57ff]/50 transition-colors"
-                  required
-                />
+                required
+              />
                 {selectedToken && selectedToken.balance > 0 && (
                   <button
                     type="button"
@@ -563,8 +665,8 @@ export default function CreateLockModal({
                     <div className="font-semibold text-sm">{option.label}</div>
                   </button>
                 ))}
-              </div>
-              
+            </div>
+
               {/* Custom Duration */}
               <div className="flex items-center gap-3">
                 <button
@@ -580,7 +682,7 @@ export default function CreateLockModal({
                 </button>
                 {selectedDuration === "custom" && (
                   <div className="flex-1 flex items-center gap-2">
-                    <input
+              <input
                       type="number"
                       min="1"
                       value={customDays}

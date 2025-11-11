@@ -20,7 +20,13 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(lock);
+    // Convert BigInt to string for JSON serialization
+    const lockResponse = {
+      ...lock,
+      lockId: lock.lockId.toString(),
+    };
+
+    return NextResponse.json(lockResponse);
   } catch (error) {
     console.error('Error fetching lock:', error);
     return NextResponse.json(
@@ -56,7 +62,13 @@ export async function PATCH(
       data: updateData,
     });
 
-    return NextResponse.json(lock);
+    // Convert BigInt to string for JSON serialization
+    const lockResponse = {
+      ...lock,
+      lockId: lock.lockId.toString(),
+    };
+
+    return NextResponse.json(lockResponse);
   } catch (error) {
     console.error('Error updating lock:', error);
     return NextResponse.json(

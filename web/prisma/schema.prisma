@@ -166,7 +166,7 @@ model LiquidityPool {
 
 model Lock {
   id                String   @id @default(cuid())
-  lockId            Int      @map("lock_id")
+  lockId            BigInt   @map("lock_id")
   tokenMint         String   @map("token_mint")
   name              String
   symbol            String
@@ -175,7 +175,7 @@ model Lock {
   unlockTime        DateTime @map("unlock_time")
   creatorWallet     String   @map("creator_wallet")
   poolAddress       String?  @map("pool_address")
-  stakePda          String?  @unique @map("stake_pda")
+  stakePda          String?  @map("stake_pda")
   logo              String?
   isActive          Boolean  @default(true) @map("is_active")
   isUnlocked        Boolean  @default(false) @map("is_unlocked")

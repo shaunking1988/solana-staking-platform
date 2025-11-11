@@ -26,7 +26,13 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(locks);
+    // Convert BigInt to string for JSON serialization
+    const locksResponse = locks.map(lock => ({
+      ...lock,
+      lockId: lock.lockId.toString(),
+    }));
+
+    return NextResponse.json(locksResponse);
   } catch (error) {
     console.error('Error fetching locks:', error);
     return NextResponse.json(
@@ -64,9 +70,26 @@ export async function POST(request: NextRequest) {
     // Calculate unlock time
     const unlockTime = new Date(Date.now() + lockDuration * 1000);
 
-    const lock = await prisma.lock.create({
-      data: {
-        lockId: lockId || 0,
+    // Convert lockId to BigInt for database
+    const lockIdBigInt = BigInt(lockId || Date.now());
+
+    // Use upsert to handle case where stakePda already exists
+    // This can happen if user locks more tokens in the same pool
+    const lock = await prisma.lock.upsert({
+      where: {
+        lock_token_lock_id_unique: {
+          tokenMint,
+          lockId: lockIdBigInt,
+        },
+      },
+      update: {
+        // Update the amount if lock already exists (user added more)
+        amount: parseFloat(amount),
+        unlockTime,
+        updatedAt: new Date(),
+      },
+      create: {
+        lockId: lockIdBigInt,
         tokenMint,
         name,
         symbol,
@@ -82,11 +105,26 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(lock, { status: 201 });
-  } catch (error) {
+    // Convert BigInt to string for JSON serialization
+    const lockResponse = {
+      ...lock,
+      lockId: lock.lockId.toString(),
+    };
+
+    return NextResponse.json(lockResponse, { status: 201 });
+  } catch (error: any) {
     console.error('Error creating lock:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+    });
     return NextResponse.json(
-      { error: 'Failed to create lock' },
+      { 
+        error: 'Failed to create lock',
+        details: error.message,
+        code: error.code,
+      },
       { status: 500 }
     );
   }
