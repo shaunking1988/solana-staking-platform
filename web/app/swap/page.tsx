@@ -375,12 +375,12 @@ export default function SwapPage() {
 
   const handleSwap = async () => {
     if (!publicKey || !signTransaction || !fromToken || !toToken || !fromAmount) {
-      showError("❌ Please connect wallet and fill in all fields");
+      showError("Please connect wallet");
       return;
     }
 
     if (!config?.swapEnabled) {
-      showError("❌ Swap feature is currently disabled");
+      showError("Swap disabled");
       return;
     }
 
@@ -390,7 +390,7 @@ export default function SwapPage() {
       const solBalanceDecimal = solBalance / 1e9;
       
       if (solBalanceDecimal < 0.005) {
-        showError("❌ Insufficient SOL for transaction fees. Please add at least 0.01 SOL to your wallet.");
+        showError("Insufficient SOL for fees");
         return;
       }
     } catch (balanceError) {
@@ -458,8 +458,8 @@ export default function SwapPage() {
       console.log(`✅ Swap transaction sent via ${source}:`, txid);
       setLastTxSignature(txid);
 
-      // Show pending with link
-      showInfo(`📤 Transaction sent! Confirming... View: https://solscan.io/tx/${txid}`);
+      // Show pending - short message for mobile
+      showInfo(`📤 Swap sent via ${source}...`);
 
       // Wait for confirmation with better error handling
       try {
@@ -473,7 +473,7 @@ export default function SwapPage() {
 
         console.log('✅ Transaction confirmed!');
         
-        showSuccess(`✅ Swap successful! ${fromToken.symbol} → ${toToken.symbol}`);
+        showSuccess(`✅ ${fromToken.symbol} → ${toToken.symbol}`);
         
         setFromAmount("");
         setToAmount("");
@@ -491,7 +491,7 @@ export default function SwapPage() {
         if (status.value?.confirmationStatus === 'confirmed' || 
             status.value?.confirmationStatus === 'finalized') {
           console.log('✅ Transaction actually confirmed');
-          showSuccess(`✅ Swap successful! ${fromToken.symbol} → ${toToken.symbol}`);
+          showSuccess(`✅ ${fromToken.symbol} → ${toToken.symbol}`);
           setFromAmount("");
           setToAmount("");
           setCurrentQuote(null);
@@ -500,7 +500,7 @@ export default function SwapPage() {
           console.error('❌ Transaction failed:', status.value.err);
           throw new Error(`Transaction failed: ${JSON.stringify(status.value.err)}`);
         } else {
-          showInfo(`⏳ Transaction pending. Check: https://solscan.io/tx/${txid}`);
+          showInfo(`⏳ Swap pending...`);
         }
       }
       
@@ -571,15 +571,18 @@ export default function SwapPage() {
       console.error("❌ Swap error:", error);
       
       if (error.message === 'INSUFFICIENT_SOL_FOR_GAS') {
-        showError("❌ Insufficient SOL for transaction fees. Please add at least 0.01 SOL to your wallet.");
+        showError("Insufficient SOL for fees");
       } else if (error.message?.includes('User rejected')) {
-        showError("❌ Transaction cancelled");
+        showError("Transaction cancelled");
       } else if (error.message?.includes('insufficient funds')) {
-        showError("❌ Insufficient balance");
+        showError("Insufficient balance");
       } else if (error.message?.includes('Blockhash not found')) {
-        showError("❌ Transaction expired. Try again.");
+        showError("Transaction expired");
+      } else if (error.message?.includes('Slippage')) {
+        showError("Slippage exceeded");
       } else {
-        showError(`❌ Swap failed: ${error.message}`);
+        // Generic error - keep it short for mobile
+        showError("Swap failed");
       }
     } finally {
       setSwapping(false);
@@ -814,7 +817,7 @@ export default function SwapPage() {
             </div>
           )}
 
-          {/* Last Transaction Link */}
+          {/* Last Transaction Link - Mobile Optimized */}
           {lastTxSignature && (
             <a
               href={getExplorerLink(lastTxSignature)}
@@ -822,8 +825,8 @@ export default function SwapPage() {
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 p-3 bg-green-500/20 border border-green-500/30 rounded-lg hover:bg-green-500/30 transition-all"
             >
-              <span className="text-sm text-green-200">View last transaction on Solscan</span>
-              <ExternalLink className="w-4 h-4 text-green-400" />
+              <span className="text-sm text-green-200 truncate">View on Solscan</span>
+              <ExternalLink className="w-4 h-4 text-green-400 flex-shrink-0" />
             </a>
           )}
 
@@ -899,7 +902,8 @@ export default function SwapPage() {
             </div>
             <p className="text-sm text-gray-500">
               {JUPITER_REFERRAL_ACCOUNT 
-                Swap your wat to the top 10 spot of the rewards Leaderboard
+                ? "Swap your way to the top 10 spot of the rewards Leaderboard"
+                : "Rewards coming soon"}
             </p>
           </div>
         </div>
