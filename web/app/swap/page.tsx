@@ -284,22 +284,27 @@ export default function SwapPage() {
         const targetBufferUSD = 1.0;
         const txFeeBuffer = targetBufferUSD / solPriceUSD;
         
-        // Minimum buffer of 0.001 SOL, maximum of 0.01 SOL
-        const finalBuffer = Math.max(0.001, Math.min(0.01, txFeeBuffer));
+        // IMPORTANT: Minimum buffer must be 0.005 SOL for ROUND TRIP:
+        // - First swap (SOL→Token): ~0.00205 SOL (includes token account creation)
+        // - Second swap (Token→SOL): ~0.00001 SOL
+        // - Network buffer/priority: ~0.003 SOL
+        // Maximum of 0.01 SOL to not be too conservative at low prices
+        const finalBuffer = Math.max(0.005, Math.min(0.01, txFeeBuffer));
         
         const maxAmount = Math.max(0, tokenBalance - finalBuffer);
         setFromAmount(maxAmount.toFixed(6));
         
-        console.log('💰 MAX calculation:', {
+        console.log('💰 MAX calculation (round-trip safe):', {
           solPrice: '$' + solPriceUSD.toFixed(2),
           targetBufferUSD: '$' + targetBufferUSD,
-          calculatedBuffer: finalBuffer.toFixed(6) + ' SOL',
+          calculatedBuffer: txFeeBuffer.toFixed(6) + ' SOL',
+          finalBuffer: finalBuffer.toFixed(6) + ' SOL',
           bufferValueUSD: '$' + (finalBuffer * solPriceUSD).toFixed(2),
           maxAmount: maxAmount.toFixed(6) + ' SOL',
         });
       } catch (error) {
         console.error('Failed to fetch SOL price, using default buffer:', error);
-        // Fallback to 0.005 SOL (~$1.25 at $250/SOL)
+        // Fallback to 0.005 SOL (safe for round trip)
         const maxAmount = Math.max(0, tokenBalance - 0.005);
         setFromAmount(maxAmount.toFixed(6));
       }
@@ -410,56 +415,31 @@ export default function SwapPage() {
       return;
     }
 
-    // Check SOL balance for gas fees with dynamic price awareness
+    // Minimal pre-check - just ensure wallet has SOME SOL
+    // Let Jupiter/Raydium and the blockchain tell us if there's not enough
     try {
       const solBalance = await connection.getBalance(publicKey);
       const solBalanceDecimal = solBalance / 1e9;
       
-      // Absolute minimum for transaction to work
-      if (solBalanceDecimal < 0.00005) {
-        showError("Insufficient SOL for fees");
+      // Only block if literally no SOL at all
+      if (solBalanceDecimal < 0.000001) {
+        showError("No SOL in wallet");
         return;
       }
       
-      // CRITICAL: When swapping SOL, check remaining balance AFTER swap
+      // Warning only (don't block) - if swapping SOL and will have very little left
       if (fromToken?.address === "So11111111111111111111111111111111111111112") {
         const amountToSwap = parseFloat(fromAmount);
         const willRemain = solBalanceDecimal - amountToSwap;
         
-        // Must have at least 0.0001 SOL remaining for the transaction to complete
-        if (willRemain < 0.0001) {
-          showError("Insufficient SOL for fees - reduce swap amount");
-          console.error('❌ Not enough SOL remaining:', {
-            balance: solBalanceDecimal,
-            swapping: amountToSwap,
-            willRemain: willRemain,
-            needed: 0.0001
-          });
-          return;
-        }
-        
-        // Warn if user won't have enough to swap back (based on USD value)
-        try {
-          const priceResponse = await fetch('https://api.dexscreener.com/latest/dex/tokens/So11111111111111111111111111111111111111112');
-          const priceData = await priceResponse.json();
-          const solPriceUSD = priceData.pairs?.[0]?.priceUsd ? parseFloat(priceData.pairs[0].priceUsd) : 250;
-          const remainingUSD = willRemain * solPriceUSD;
-          
-          if (remainingUSD < 0.50) {
-            console.warn('⚠️ User will have very little SOL remaining:', willRemain, `($${remainingUSD.toFixed(2)})`);
-            showInfo(`You'll have $${remainingUSD.toFixed(2)} SOL left for future swaps`);
-          }
-        } catch (priceError) {
-          // Fallback to SOL amount warning
-          if (willRemain < 0.002) {
-            console.warn('⚠️ User will have very little SOL remaining:', willRemain);
-            showInfo("You'll have minimal SOL left for future transactions");
-          }
+        if (willRemain < 0.003) {
+          console.warn('⚠️ Low SOL remaining after swap:', willRemain);
+          showInfo(`Warning: You'll have only ${willRemain.toFixed(6)} SOL left`);
         }
       }
     } catch (balanceError) {
       console.warn('Could not check SOL balance:', balanceError);
-      // Continue anyway
+      // Continue anyway - let the swap attempt
     }
 
     setSwapping(true);
@@ -634,18 +614,26 @@ export default function SwapPage() {
     } catch (error: any) {
       console.error("❌ Swap error:", error);
       
+      // Show the actual error message from Jupiter/blockchain
       if (error.message === 'INSUFFICIENT_SOL_FOR_GAS') {
         showError("Insufficient SOL for fees");
       } else if (error.message?.includes('User rejected')) {
         showError("Transaction cancelled");
-      } else if (error.message?.includes('insufficient funds')) {
-        showError("Insufficient balance");
+      } else if (error.message?.includes('insufficient funds') || error.message?.includes('Insufficient funds')) {
+        showError("Insufficient balance for swap");
       } else if (error.message?.includes('Blockhash not found')) {
         showError("Transaction expired");
       } else if (error.message?.includes('Slippage')) {
         showError("Slippage exceeded");
+      } else if (error.message?.includes('0x1')) {
+        // Solana error code 0x1 = insufficient funds for fee
+        showError("Insufficient SOL for transaction fee");
+      } else if (error.message) {
+        // Show actual error message (truncated for mobile)
+        const shortError = error.message.substring(0, 50);
+        showError(shortError);
+        console.error('Full error:', error.message);
       } else {
-        // Generic error - keep it short for mobile
         showError("Swap failed");
       }
     } finally {
