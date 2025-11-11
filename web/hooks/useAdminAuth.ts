@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import { 
+  Transaction, 
+  TransactionInstruction, 
+  PublicKey,
+  SystemProgram 
+} from "@solana/web3.js";
 import bs58 from "bs58";
 
 interface AuthState {
@@ -9,8 +15,11 @@ interface AuthState {
   error: string | null;
 }
 
+const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+
 export function useAdminAuth() {
-  const { publicKey, signMessage } = useWallet();
+  const { publicKey, signTransaction } = useWallet();
+  const { connection } = useConnection();
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
     token: null,
@@ -71,10 +80,10 @@ export function useAdminAuth() {
   }, []);
 
   const login = useCallback(async () => {
-    if (!publicKey || !signMessage) {
+    if (!publicKey || !signTransaction) {
       setAuthState((prev) => ({
         ...prev,
-        error: "Wallet not connected or does not support message signing",
+        error: "Wallet not connected or does not support transaction signing",
       }));
       return false;
     }
@@ -86,30 +95,50 @@ export function useAdminAuth() {
     }));
 
     try {
-      // Create message to sign
-      const message = `Sign this message to authenticate as admin.\n\nWallet: ${publicKey.toString()}\nTimestamp: ${Date.now()}`;
-      
-      console.log('📝 Message to sign:', message);
       console.log('🔑 Wallet:', publicKey.toString());
+      console.log('📝 Creating authentication transaction...');
+
+      // Create a nonce message
+      const timestamp = Date.now();
+      const message = `StakePoint Admin Auth ${timestamp}`;
       
-      const messageBytes = new TextEncoder().encode(message);
+      // Get latest blockhash
+      const { blockhash } = await connection.getLatestBlockhash();
+      
+      // Create transaction with memo instruction (for Ledger compatibility)
+      const transaction = new Transaction({
+        recentBlockhash: blockhash,
+        feePayer: publicKey,
+      });
 
-      // Request signature from wallet
-      console.log('✍️ Requesting signature from wallet...');
-      const signature = await signMessage(messageBytes);
-      console.log('✅ Signature received, length:', signature.length);
+      // Add memo instruction with our auth message
+      transaction.add(
+        new TransactionInstruction({
+          programId: MEMO_PROGRAM_ID,
+          keys: [],
+          data: Buffer.from(message, "utf8"),
+        })
+      );
 
-      // Convert signature to base58
-      const signatureBase58 = bs58.encode(signature);
-      console.log('📦 Signature (base58):', signatureBase58.substring(0, 20) + '...');
+      console.log('✍️ Requesting transaction signature from wallet...');
+      
+      // Sign the transaction (works with Ledger!)
+      const signedTx = await signTransaction(transaction);
+      
+      console.log('✅ Transaction signed');
+
+      // Serialize the signed transaction
+      const serializedTx = bs58.encode(signedTx.serialize());
+      
+      console.log('📦 Serialized transaction:', serializedTx.substring(0, 20) + '...');
 
       const payload = {
         wallet: publicKey.toString(),
-        signature: signatureBase58,
-        message,
+        transaction: serializedTx,
+        message: message,
       };
 
-      console.log('📤 Sending auth request...');
+      console.log('📤 Sending auth request to backend...');
       
       // Send to backend for verification
       const response = await fetch("/api/admin/auth", {
@@ -123,9 +152,9 @@ export function useAdminAuth() {
       console.log('📥 Response status:', response.status);
       
       const data = await response.json();
-      console.log('📥 Response data:', data);
 
       if (!response.ok) {
+        console.error('❌ Auth failed:', data);
         throw new Error(data.error || "Authentication failed");
       }
 
@@ -143,11 +172,6 @@ export function useAdminAuth() {
       return true;
     } catch (error: any) {
       console.error("❌ Login error:", error);
-      console.error("❌ Error details:", {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
       
       setAuthState({
         isAuthenticated: false,
@@ -157,7 +181,7 @@ export function useAdminAuth() {
       });
       return false;
     }
-  }, [publicKey, signMessage]);
+  }, [publicKey, signTransaction, connection]);
 
   const logout = useCallback(() => {
     localStorage.removeItem("admin_token");

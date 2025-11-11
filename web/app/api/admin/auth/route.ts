@@ -1,93 +1,80 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import { PublicKey } from "@solana/web3.js";
+import { Transaction, PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
-import nacl from "tweetnacl";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { wallet, signature, message } = body;
+    const { wallet, transaction, message } = body;
 
     console.log('🔍 Auth request received:');
     console.log('  Wallet:', wallet);
-    console.log('  Signature (first 20 chars):', signature?.substring(0, 20));
     console.log('  Message:', message);
 
     // 1️⃣ Validate request body
-    if (!wallet || !signature || !message) {
-      console.log('❌ Missing required fields');
+    if (!wallet || !transaction || !message) {
       return NextResponse.json(
-        { error: "Missing required fields: wallet, signature, message" },
+        { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // 2️⃣ Get admin wallet list from environment
-    const adminWallets = process.env.ADMIN_WALLETS?.split(",").map((w) =>
-      w.trim()
-    );
-
-    console.log('🔐 Admin wallets:', adminWallets);
-
-    if (!adminWallets || adminWallets.length === 0) {
-      console.error("❌ ADMIN_WALLETS not configured");
-      return NextResponse.json(
-        { error: "Server configuration error" },
-        { status: 500 }
-      );
-    }
-
-    // 3️⃣ Check if wallet is in admin list
-    if (!adminWallets.includes(wallet)) {
-      console.warn(`⚠️ Unauthorized login attempt by wallet: ${wallet}`);
+    // 2️⃣ Check admin authorization
+    const adminWallets = process.env.ADMIN_WALLETS?.split(",").map((w) => w.trim());
+    
+    if (!adminWallets || !adminWallets.includes(wallet)) {
+      console.warn(`⚠️ Unauthorized: ${wallet}`);
       return NextResponse.json(
         { error: "Wallet not authorized" },
         { status: 403 }
       );
     }
 
-    console.log('✅ Wallet is authorized');
+    console.log('✅ Wallet authorized');
 
-    // 4️⃣ Verify the signature using Solana's method
+    // 3️⃣ Verify the transaction signature
     try {
-      console.log('🔍 Starting signature verification (Solana method)...');
+      console.log('🔍 Verifying transaction signature...');
       
-      // Convert message to Uint8Array
-      const messageBytes = new TextEncoder().encode(message);
-      console.log('  Message bytes length:', messageBytes.length);
-
-      // Decode signature from base58
-      const signatureBytes = bs58.decode(signature);
-      console.log('  Signature bytes length:', signatureBytes.length);
+      // Deserialize the transaction
+      const txBuffer = bs58.decode(transaction);
+      const tx = Transaction.from(txBuffer);
       
-      // Create PublicKey object
+      // Verify the transaction is signed by the correct wallet
       const publicKey = new PublicKey(wallet);
-      console.log('  Public key:', publicKey.toBase58());
-
-      // Verify using nacl with the correct format
-      const isValid = nacl.sign.detached.verify(
-        messageBytes,
-        signatureBytes,
-        publicKey.toBytes()
-      );
-
-      console.log('  Signature valid:', isValid);
-
-      if (!isValid) {
-        console.log('❌ Signature verification failed');
-        console.log('  Debug info:');
-        console.log('    Message (hex):', Buffer.from(messageBytes).toString('hex').substring(0, 40) + '...');
-        console.log('    Signature (hex):', Buffer.from(signatureBytes).toString('hex').substring(0, 40) + '...');
-        console.log('    PublicKey (hex):', Buffer.from(publicKey.toBytes()).toString('hex'));
-        
+      
+      // Check if transaction has signatures
+      if (!tx.signatures || tx.signatures.length === 0) {
+        console.log('❌ No signatures found in transaction');
         return NextResponse.json(
-          { error: "Invalid signature" },
+          { error: "Transaction not signed" },
           { status: 401 }
         );
       }
 
-      console.log('✅ Signature verified successfully');
+      // Verify the signature
+      const isValid = tx.verifySignatures();
+      
+      if (!isValid) {
+        console.log('❌ Transaction signature verification failed');
+        return NextResponse.json(
+          { error: "Invalid transaction signature" },
+          { status: 401 }
+        );
+      }
+
+      // Verify the transaction is signed by the admin wallet
+      const signerPublicKey = tx.signatures[0].publicKey;
+      if (!signerPublicKey.equals(publicKey)) {
+        console.log('❌ Transaction not signed by admin wallet');
+        return NextResponse.json(
+          { error: "Transaction not signed by authorized wallet" },
+          { status: 401 }
+        );
+      }
+
+      console.log('✅ Transaction signature verified');
     } catch (error) {
       console.error("❌ Signature verification error:", error);
       return NextResponse.json(
@@ -96,17 +83,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5️⃣ Get JWT secret
+    // 4️⃣ Get JWT secret
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      console.error("❌ JWT_SECRET not configured");
       return NextResponse.json(
         { error: "Server configuration error" },
         { status: 500 }
       );
     }
 
-    // 6️⃣ Generate JWT token
+    // 5️⃣ Generate JWT token
     const token = jwt.sign(
       { wallet },
       jwtSecret,

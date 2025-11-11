@@ -78,57 +78,64 @@ export default function PopUpAd() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={closePopUp}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={closePopUp}>
       <div
-        className="relative bg-white/[0.02] border border-white/[0.05] rounded-lg shadow-2xl max-w-md w-full mx-4 p-6"
+        className="relative bg-white/[0.02] border border-white/[0.05] rounded-lg shadow-2xl w-full max-w-lg mx-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={closePopUp}
-          className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors z-10"
+          className="absolute top-3 right-3 md:top-4 md:right-4 text-gray-400 hover:text-white transition-colors z-10 bg-black/50 rounded-full p-1.5"
         >
           <X className="w-5 h-5" />
         </button>
 
         {popUpData.image_url && (
-          <div className="mb-4 rounded-lg overflow-hidden border border-white/[0.05]">
+          <div className="rounded-t-lg overflow-hidden border-b border-white/[0.05]">
             <img
               src={popUpData.image_url}
               alt={popUpData.title}
-              className="w-full h-48 object-cover"
+              className="w-full h-auto"
+              style={{
+                aspectRatio: '16/9',
+                objectFit: 'cover',
+                maxHeight: '360px'
+              }}
             />
           </div>
         )}
 
-        <h2 
-          className="text-2xl font-bold mb-3"
-          style={{ 
-            background: 'linear-gradient(45deg, white, #fb57ff)', 
-            WebkitBackgroundClip: 'text', 
-            WebkitTextFillColor: 'transparent', 
-            backgroundClip: 'text' 
-          }}
-        >
-          {popUpData.title}
-        </h2>
-
-        {popUpData.description && (
-          <p className="text-gray-400 mb-6 leading-relaxed">
-            {popUpData.description}
-          </p>
-        )}
-
-        {popUpData.cta_text && popUpData.cta_link && (
-          <a
-            href={popUpData.cta_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full text-white font-semibold py-3 px-6 rounded-lg text-center"
-            style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
+        <div className="p-6 md:p-8">
+          <h2 
+            className="text-xl md:text-2xl font-bold mb-3"
+            style={{ 
+              background: 'linear-gradient(45deg, white, #fb57ff)', 
+              WebkitBackgroundClip: 'text', 
+              WebkitTextFillColor: 'transparent', 
+              backgroundClip: 'text' 
+            }}
           >
-            {popUpData.cta_text}
-          </a>
-        )}
+            {popUpData.title}
+          </h2>
+
+          {popUpData.description && (
+            <p className="text-gray-400 mb-6 leading-relaxed text-sm md:text-base">
+              {popUpData.description}
+            </p>
+          )}
+
+          {popUpData.cta_text && popUpData.cta_link && (
+            <a
+              href={popUpData.cta_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full text-white font-semibold py-3 px-6 rounded-lg text-center transition-transform hover:scale-[1.02]"
+              style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
+            >
+              {popUpData.cta_text}
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );
