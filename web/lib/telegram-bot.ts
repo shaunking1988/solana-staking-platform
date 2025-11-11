@@ -22,6 +22,7 @@ export class TelegramBotService {
   private bot: TelegramBot | null = null;
   private prisma: PrismaClient;
   private isRunning = false;
+  private bannerImageUrl: string = "https://image2url.com/images/1762876954512-706b19ed-165f-4d8e-a320-a0edaa7abc43.jpg";
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
@@ -58,6 +59,24 @@ export class TelegramBotService {
       await this.bot.stopPolling();
       this.isRunning = false;
       console.log('🛑 Telegram bot stopped.');
+    }
+  }
+
+  // Helper: Send message with optional banner image
+  private async sendMessageWithBanner(chatId: number, message: string) {
+    if (this.bannerImageUrl) {
+      try {
+        await this.bot!.sendPhoto(chatId, this.bannerImageUrl, {
+          caption: message,
+          parse_mode: 'Markdown'
+        });
+      } catch (error) {
+        // If image fails, send text only
+        console.error('Failed to send banner image:', error);
+        await this.bot!.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+      }
+    } else {
+      await this.bot!.sendMessage(chatId, message, { parse_mode: 'Markdown' });
     }
   }
 
@@ -221,11 +240,10 @@ export class TelegramBotService {
     let message = `🏆 *StakePoint Top ${limit} Traders - ${period}*\n\n`;
     message += `📈 Total Volume: $${this.formatNumber(stats.totalVolumeUsd)}\n`;
     message += `🔄 Total Swaps: ${this.formatNumber(stats.totalSwaps, 0)}\n`;
-    message += `💰 Fees Collected: $${this.formatNumber(stats.totalFeesUsd)}\n`;
     
     // Show reward pool for weekly leaderboard
     if (mode === 'week') {
-      message += `\n🎁 *Reward Pool (40% of fees): $${this.formatNumber(stats.rewardPoolUsd)}*\n`;
+      message += `\n🎁 *Reward Pool: $${this.formatNumber(stats.rewardPoolUsd)}*\n`;
       message += `   💎 Distributed to top 10 traders!\n`;
     }
     
@@ -240,11 +258,10 @@ export class TelegramBotService {
       message += `   💵 Volume: $${volume}\n`;
       message += `   🔄 Swaps: ${wallet.swaps}\n`;
       
-      // Show individual reward for weekly leaderboard (top 10 only)
+      // Show individual reward for weekly leaderboard (top 10 only - EQUAL SPLIT)
       if (mode === 'week' && wallet.rank <= 10 && stats.rewardPoolUsd > 0) {
-        const totalTopVolume = topWallets.slice(0, 10).reduce((sum, w) => sum + w.volumeUsd, 0);
-        const walletReward = totalTopVolume > 0 ? (wallet.volumeUsd / totalTopVolume) * stats.rewardPoolUsd : 0;
-        message += `   🎁 Reward: $${this.formatNumber(walletReward)}\n`;
+        const equalReward = stats.rewardPoolUsd / 10;
+        message += `   🎁 Reward: $${this.formatNumber(equalReward)}\n`;
       }
       
       message += `\n`;
@@ -282,14 +299,13 @@ I track the top traders on the StakePoint platform and show weekly rewards!
 /help - Show this help message
 
 *Weekly Rewards:*
-🎁 40% of fees collected each week are distributed to top 10 traders!
-💰 Rewards are proportional to your trading volume
+🎁 Reward pool split equally among top 10 traders!
 📅 Resets every Monday at 00:00
 
 Let's see who's leading the pack! 🚀
       `;
 
-      await this.bot!.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
+      await this.sendMessageWithBanner(chatId, welcomeMessage);
     });
 
     // Command: /help
@@ -306,8 +322,7 @@ Let's see who's leading the pack! 🚀
 /alltime - All-time top 10 traders
 
 *Rewards:*
-• 40% of weekly fees distributed to top 10 traders
-• Rewards proportional to your trading volume
+• Weekly reward pool split equally among top 10 traders
 • Resets every Monday 00:00
 
 *Time Ranges:*
@@ -318,7 +333,7 @@ Let's see who's leading the pack! 🚀
 💡 Data updates in real-time from the blockchain!
       `;
 
-      await this.bot!.sendMessage(chatId, helpMessage, { parse_mode: 'Markdown' });
+      await this.sendMessageWithBanner(chatId, helpMessage);
     });
 
     // Command: /toptraders or /top10 (calendar week, top 10)
@@ -335,7 +350,7 @@ Let's see who's leading the pack! 🚀
       }
 
       const message = this.formatLeaderboard(stats, 'week', 10);
-      await this.bot!.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+      await this.sendMessageWithBanner(chatId, message);
     });
 
     // Command: /top20 (calendar week, top 20)
@@ -352,7 +367,7 @@ Let's see who's leading the pack! 🚀
       }
 
       const message = this.formatLeaderboard(stats, 'week', 20);
-      await this.bot!.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+      await this.sendMessageWithBanner(chatId, message);
     });
 
     // Command: /monthly (30 days, top 10)
@@ -369,7 +384,7 @@ Let's see who's leading the pack! 🚀
       }
 
       const message = this.formatLeaderboard(stats, 'month', 10);
-      await this.bot!.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+      await this.sendMessageWithBanner(chatId, message);
     });
 
     // Command: /alltime (all time, top 10)
@@ -386,7 +401,7 @@ Let's see who's leading the pack! 🚀
       }
 
       const message = this.formatLeaderboard(stats, 'alltime', 10);
-      await this.bot!.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+      await this.sendMessageWithBanner(chatId, message);
     });
   }
 
