@@ -7,7 +7,6 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Add this webpack section
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.resolve.fallback = {
@@ -22,11 +21,11 @@ const nextConfig = {
         http: false,
         https: false,
         zlib: false,
+        querystring: false, // ⬅️ ADD THIS
       };
     }
     return config;
   },
-  // Skip database connections during build
   experimental: {
     instrumentationHook: true,
     serverActions: {
