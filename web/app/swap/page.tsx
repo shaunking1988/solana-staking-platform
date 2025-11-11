@@ -280,16 +280,14 @@ export default function SwapPage() {
         const priceData = await priceResponse.json();
         const solPriceUSD = priceData.pairs?.[0]?.priceUsd ? parseFloat(priceData.pairs[0].priceUsd) : 250; // Default to $250 if API fails
         
-        // Calculate SOL amount needed for ~$1 buffer (for round-trip fees)
-        const targetBufferUSD = 1.0;
+        // Calculate SOL amount needed for round-trip capability
+        const targetBufferUSD = 2.50;
         const txFeeBuffer = targetBufferUSD / solPriceUSD;
         
-        // IMPORTANT: Minimum buffer must be 0.005 SOL for ROUND TRIP:
-        // - First swap (SOL→Token): ~0.00205 SOL (includes token account creation)
-        // - Second swap (Token→SOL): ~0.00001 SOL
-        // - Network buffer/priority: ~0.003 SOL
-        // Maximum of 0.01 SOL to not be too conservative at low prices
-        const finalBuffer = Math.max(0.005, Math.min(0.01, txFeeBuffer));
+        // CRITICAL: Jupiter Ultra requires 0.01 SOL AFTER swap completes
+        // But the swap itself consumes ~0.005 SOL in fees
+        // So we need to keep: 0.01 (for next swap) + 0.005 (consumed in this swap) = 0.015 SOL
+        const finalBuffer = Math.max(0.015, Math.min(0.02, txFeeBuffer));
         
         const maxAmount = Math.max(0, tokenBalance - finalBuffer);
         setFromAmount(maxAmount.toFixed(6));
@@ -304,8 +302,8 @@ export default function SwapPage() {
         });
       } catch (error) {
         console.error('Failed to fetch SOL price, using default buffer:', error);
-        // Fallback to 0.005 SOL (safe for round trip)
-        const maxAmount = Math.max(0, tokenBalance - 0.005);
+        // Fallback to 0.015 SOL (accounts for fees consumed + 0.01 minimum for next swap)
+        const maxAmount = Math.max(0, tokenBalance - 0.015);
         setFromAmount(maxAmount.toFixed(6));
       }
     } else {
@@ -426,35 +424,32 @@ export default function SwapPage() {
         return;
       }
       
-      // CRITICAL: When swapping SOL, enforce minimum remaining for successful swap + round trip
+      // CRITICAL: When swapping SOL, enforce Jupiter Ultra's 0.01 SOL minimum
       if (fromToken?.address === "So11111111111111111111111111111111111111112") {
         const amountToSwap = parseFloat(fromAmount);
         const willRemain = solBalanceDecimal - amountToSwap;
         
-        // Jupiter Ultra needs at least ~0.003 SOL for:
-        // - Token account rent: 0.00204 SOL
-        // - Transaction fees: 0.00001 SOL
-        // - Buffer: 0.001 SOL
-        // We add extra for round-trip capability
-        const minimumRemaining = 0.005;
+        // Jupiter Ultra requires 0.01 SOL minimum for successful swaps
+        // This ensures referral fees are always collected
+        const minimumRemaining = 0.01;
         
         if (willRemain < minimumRemaining) {
           const maxYouCanSwap = (solBalanceDecimal - minimumRemaining).toFixed(6);
-          showError(`Need ${minimumRemaining.toFixed(3)} SOL for fees. Max you can swap: ${maxYouCanSwap} SOL`);
-          console.error('❌ Insufficient SOL for swap + round trip:', {
+          showError(`Need ${minimumRemaining} SOL for fees & round-trip. Max: ${maxYouCanSwap} SOL`);
+          console.error('❌ Insufficient SOL for Jupiter Ultra:', {
             balance: solBalanceDecimal,
             swapping: amountToSwap,
             willRemain: willRemain,
-            minimumNeeded: minimumRemaining,
+            jupiterMinimum: minimumRemaining,
             maxCanSwap: maxYouCanSwap,
           });
           return;
         }
         
-        // Warn if close to minimum (less than $1.50 worth)
-        if (willRemain < 0.006) {
+        // Warn if getting close to minimum
+        if (willRemain < 0.015) {
           console.warn('⚠️ Low SOL remaining after swap:', willRemain);
-          showInfo(`You'll have ${willRemain.toFixed(4)} SOL left for future swaps`);
+          showInfo(`You'll have ${willRemain.toFixed(4)} SOL left`);
         }
       }
     } catch (balanceError) {
