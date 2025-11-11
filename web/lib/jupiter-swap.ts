@@ -40,6 +40,7 @@ export async function getJupiterQuote(
 ): Promise<JupiterQuoteResponse | null> {
   try {
     console.log("🔍 Fetching Jupiter quote...");
+    console.log(`   - Slippage: ${slippageBps} bps (${slippageBps / 100}%)`);
     
     const params = new URLSearchParams({
       inputMint,
@@ -48,11 +49,19 @@ export async function getJupiterQuote(
       slippageBps: slippageBps.toString(),
     });
 
-    // Add platform fee if provided
+    // TEMPORARILY DISABLED: Platform fee causes 0x1789 slippage errors with Jupiter Lite API
+    // TODO: Implement platform fee as a separate post-swap transfer
+    /*
     if (platformFeeBps && platformFeeBps > 0) {
       params.append("platformFeeBps", platformFeeBps.toString());
       console.log(`💰 Adding platform fee: ${platformFeeBps} bps (${platformFeeBps / 100}%)`);
     }
+    */
+    if (platformFeeBps && platformFeeBps > 0) {
+      console.log(`⚠️ Platform fee ${platformFeeBps} bps temporarily disabled (Jupiter Lite API issue)`);
+    }
+    
+    console.log(`📡 Jupiter API URL: ${JUPITER_QUOTE_API}?${params.toString()}`);
 
     const response = await fetch(`${JUPITER_QUOTE_API}?${params}`);
     
@@ -101,11 +110,13 @@ export async function getJupiterSwapTransaction(
       },
     };
 
-    // Add fee account if platform fee is enabled
+    // TEMPORARILY DISABLED: Platform fee removed due to Jupiter Lite API issues
+    /*
     if (feeAccount && quoteResponse.platformFee) {
       requestBody.feeAccount = feeAccount;
       console.log(`💰 Fee account: ${feeAccount}`);
     }
+    */
 
     const response = await fetch(JUPITER_SWAP_API, {
       method: "POST",
@@ -193,6 +204,17 @@ export async function executeJupiterSwap(
     return txid;
   } catch (error: any) {
     console.error("❌ Jupiter swap failed:", error.message);
+    
+    // Check if it's a slippage error (0x1789 = 6025 = SlippageToleranceExceeded)
+    if (error.message?.includes("0x1789") || error.message?.includes("6025")) {
+      throw new Error("Slippage tolerance exceeded. Please increase slippage in settings (⚙️) and try again.");
+    }
+    
+    // Check for other common errors
+    if (error.message?.includes("insufficient")) {
+      throw new Error("Insufficient balance for this swap.");
+    }
+    
     return null;
   }
 }

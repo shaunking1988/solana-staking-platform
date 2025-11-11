@@ -43,7 +43,7 @@ export default function SwapPage() {
   const [toToken, setToToken] = useState<Token | null>(null);
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
-  const [slippage, setSlippage] = useState(0.5);
+  const [slippage, setSlippage] = useState(1.0); // 1% default (platform fee disabled due to Jupiter API issues)
   
   // UI state
   const [showTokenSelect, setShowTokenSelect] = useState<"from" | "to" | null>(null);
@@ -284,37 +284,51 @@ export default function SwapPage() {
 
       // Try Jupiter first
       console.log('🪐 Attempting swap with Jupiter...');
-      let txid = await executeJupiterSwap(
-        connection,
-        publicKey,
-        fromToken.address,
-        toToken.address,
-        amount,
-        Math.floor(slippage * 100),
-        signTransaction,
-        config?.platformFeeBps,
-        config?.treasuryWallet
-      );
-      
+      let txid: string | null = null;
       let source = 'Jupiter';
+      let jupiterError: Error | null = null;
       
-      // If Jupiter fails, try Raydium
-      if (!txid) {
-        console.log('⚠️ Jupiter swap failed, trying Raydium...');
-        txid = await executeRaydiumSwap(
+      try {
+        txid = await executeJupiterSwap(
           connection,
           publicKey,
           fromToken.address,
           toToken.address,
           amount,
           Math.floor(slippage * 100),
-          signTransaction as any
+          signTransaction,
+          config?.platformFeeBps,
+          config?.treasuryWallet
         );
-        source = 'Raydium';
+      } catch (error: any) {
+        jupiterError = error;
+        // If it's a slippage error, throw immediately (don't try Raydium)
+        if (error.message?.includes("Slippage tolerance exceeded")) {
+          throw error;
+        }
+      }
+      
+      // If Jupiter fails, try Raydium
+      if (!txid) {
+        console.log('⚠️ Jupiter swap failed, trying Raydium...');
+        try {
+          txid = await executeRaydiumSwap(
+            connection,
+            publicKey,
+            fromToken.address,
+            toToken.address,
+            amount,
+            Math.floor(slippage * 100),
+            signTransaction as any
+          );
+          source = 'Raydium';
+        } catch (error: any) {
+          console.error('❌ Raydium also failed:', error);
+        }
       }
       
       if (!txid) {
-        throw new Error('Both Jupiter and Raydium swaps failed');
+        throw new Error(jupiterError?.message || 'Both Jupiter and Raydium swaps failed. Please try again with higher slippage.');
       }
 
       console.log(`✅ Swap transaction sent via ${source}:`, txid);
@@ -457,7 +471,7 @@ export default function SwapPage() {
               <div>
                 <label className="text-sm text-gray-500 mb-2 block">Slippage Tolerance</label>
                 <div className="flex gap-2">
-                  {[0.1, 0.5, 1.0].map((value) => (
+                  {[0.5, 1.0, 2.0].map((value) => (
                     <button
                       key={value}
                       onClick={() => setSlippage(value)}
@@ -476,7 +490,7 @@ export default function SwapPage() {
                     type="number"
                     value={slippage}
                     onChange={(e) => {
-                      const value = parseFloat(e.target.value) || 0.5;
+                      const value = parseFloat(e.target.value) || 1.0;
                       if (!config || value <= config.maxSlippage) {
                         setSlippage(value);
                       }
@@ -488,11 +502,23 @@ export default function SwapPage() {
                     min="0.1"
                   />
                 </div>
-                {config && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Max slippage: {config.maxSlippage}%
-                  </p>
-                )}
+                <div className="mt-2 space-y-1">
+                  {config && (
+                    <p className="text-xs text-gray-500">
+                      Max slippage: {config.maxSlippage}%
+                    </p>
+                  )}
+                  {slippage < 0.5 && (
+                    <p className="text-xs text-yellow-500">
+                      ⚠️ Very low slippage may cause failed swaps
+                    </p>
+                  )}
+                  {config?.platformFeeBps && config.platformFeeBps > 0 && (
+                    <p className="text-xs text-yellow-400">
+                      ⚠️ Platform fee ({config.platformFeeBps / 100}%) temporarily disabled due to Jupiter API limitations
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           )}

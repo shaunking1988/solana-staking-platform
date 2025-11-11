@@ -29,6 +29,8 @@ export default function TokenSelectModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [allTokens, setAllTokens] = useState<Token[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [birdeyeToken, setBirdeyeToken] = useState<Token | null>(null);
+  const [isFetchingBirdeye, setIsFetchingBirdeye] = useState(false);
 
   // Fetch token list on mount
   useEffect(() => {
@@ -50,6 +52,56 @@ export default function TokenSelectModal({
     }
   }, [isOpen, allTokens.length]);
 
+  // Fetch token from Birdeye if it looks like a Solana address
+  useEffect(() => {
+    const fetchBirdeyeToken = async () => {
+      // Check if search query looks like a Solana address (43-44 characters, base58)
+      const isSolanaAddress = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(searchQuery.trim());
+      
+      if (!isSolanaAddress) {
+        setBirdeyeToken(null);
+        return;
+      }
+
+      // Check if already in Jupiter list
+      const existingToken = allTokens.find(
+        (token) => token.address.toLowerCase() === searchQuery.trim().toLowerCase()
+      );
+
+      if (existingToken) {
+        setBirdeyeToken(null);
+        return;
+      }
+
+      setIsFetchingBirdeye(true);
+      try {
+        const response = await fetch(`/api/birdeye/token-info?address=${searchQuery.trim()}`);
+        const data = await response.json();
+        
+        if (response.ok && data.address) {
+          setBirdeyeToken(data);
+        } else {
+          setBirdeyeToken(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch token from Birdeye:", error);
+        setBirdeyeToken(null);
+      } finally {
+        setIsFetchingBirdeye(false);
+      }
+    };
+
+    const debounce = setTimeout(() => {
+      if (searchQuery.trim()) {
+        fetchBirdeyeToken();
+      } else {
+        setBirdeyeToken(null);
+      }
+    }, 500);
+
+    return () => clearTimeout(debounce);
+  }, [searchQuery, allTokens]);
+
   // Filter tokens based on search
   const filteredTokens = allTokens.filter(
     (token) =>
@@ -57,6 +109,11 @@ export default function TokenSelectModal({
       token.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       token.address.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Combine filtered tokens with Birdeye token if available
+  const displayTokens = birdeyeToken 
+    ? [birdeyeToken, ...filteredTokens] 
+    : filteredTokens;
 
   if (!isOpen) return null;
 
@@ -143,16 +200,25 @@ export default function TokenSelectModal({
                 style={{ borderColor: '#fb57ff', borderTopColor: 'transparent' }}
               />
             </div>
-          ) : filteredTokens.length === 0 ? (
+          ) : displayTokens.length === 0 ? (
             <div className="text-center py-12 sm:py-16 px-4">
-              <p className="text-gray-400 text-sm sm:text-base">No tokens found</p>
-              <p className="text-gray-500 text-xs sm:text-sm mt-2">
-                Try a different search term
-              </p>
+              {isFetchingBirdeye ? (
+                <div 
+                  className="w-8 h-8 sm:w-10 sm:h-10 border-4 border-t-transparent rounded-full animate-spin mx-auto" 
+                  style={{ borderColor: '#fb57ff', borderTopColor: 'transparent' }}
+                />
+              ) : (
+                <>
+                  <p className="text-gray-400 text-sm sm:text-base">No tokens found</p>
+                  <p className="text-gray-500 text-xs sm:text-sm mt-2">
+                    Try searching by token name, symbol, or paste a contract address
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <div className="p-2 sm:p-3 space-y-1">
-              {filteredTokens.map((token) => (
+              {displayTokens.map((token, index) => (
                 <button
                   key={token.address}
                   onClick={() => {
