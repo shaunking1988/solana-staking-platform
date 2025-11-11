@@ -421,12 +421,24 @@ export default function SwapPage() {
         return;
       }
       
-      // Warn if user won't have enough to swap back (based on USD value)
+      // CRITICAL: When swapping SOL, check remaining balance AFTER swap
       if (fromToken?.address === "So11111111111111111111111111111111111111112") {
         const amountToSwap = parseFloat(fromAmount);
         const willRemain = solBalanceDecimal - amountToSwap;
         
-        // Try to get SOL price for better warning
+        // Must have at least 0.0001 SOL remaining for the transaction to complete
+        if (willRemain < 0.0001) {
+          showError("Insufficient SOL for fees - reduce swap amount");
+          console.error('❌ Not enough SOL remaining:', {
+            balance: solBalanceDecimal,
+            swapping: amountToSwap,
+            willRemain: willRemain,
+            needed: 0.0001
+          });
+          return;
+        }
+        
+        // Warn if user won't have enough to swap back (based on USD value)
         try {
           const priceResponse = await fetch('https://api.dexscreener.com/latest/dex/tokens/So11111111111111111111111111111111111111112');
           const priceData = await priceResponse.json();
