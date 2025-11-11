@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Coins, X, Sparkles, ArrowDownUp, BookOpen, LifeBuoy, Send, Lock, Download } from "lucide-react";
+import { Coins, X, Sparkles, ArrowDownUp, BookOpen, LifeBuoy, Send, Lock } from "lucide-react";
 
 const navItems = [
   { name: "Home", href: "/landing", icon: Sparkles },
@@ -23,14 +23,10 @@ export default function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const [isClient, setIsClient] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
     
-    // Check initial screen size
     const checkScreenSize = () => {
       setIsDesktop(window.innerWidth >= 1024);
     };
@@ -38,36 +34,9 @@ export default function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
     
-    // ✅ Check if app is already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true);
-    }
-    
-    // ✅ Listen for PWA install prompt
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setIsInstallable(true);
-      console.log('PWA install prompt available');
-    };
-    
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    
-    // ✅ Listen for successful install
-    window.addEventListener('appinstalled', () => {
-      setIsInstalled(true);
-      setIsInstallable(false);
-      setDeferredPrompt(null);
-      console.log('PWA installed successfully');
-    });
-    
-    return () => {
-      window.removeEventListener('resize', checkScreenSize);
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
+    return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // Close mobile menu when route changes
   useEffect(() => {
     if (isMobileMenuOpen) {
       onClose();
@@ -75,7 +44,6 @@ export default function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
-  // Prevent body scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -87,37 +55,13 @@ export default function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
     };
   }, [isMobileMenuOpen]);
 
-  // ✅ Handle PWA installation
-  const handleInstallApp = async () => {
-    if (!deferredPrompt) {
-      console.log('No install prompt available');
-      return;
-    }
-    
-    // Show the install prompt
-    deferredPrompt.prompt();
-    
-    // Wait for the user's response
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response: ${outcome}`);
-    
-    if (outcome === 'accepted') {
-      console.log('User accepted the install prompt');
-      setIsInstallable(false);
-      setDeferredPrompt(null);
-    } else {
-      console.log('User dismissed the install prompt');
-    }
-  };
-
-  // Don't render anything on server
   if (!isClient) {
     return null;
   }
 
   return (
     <>
-      {/* MOBILE OVERLAY - Only visible when menu is open */}
+      {/* MOBILE OVERLAY */}
       {isMobileMenuOpen && (
         <div
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden"
@@ -127,23 +71,23 @@ export default function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
         />
       )}
 
-      {/* SIDEBAR - Drawer on mobile, fixed on desktop */}
+      {/* SIDEBAR */}
       <aside
         className="fixed left-0 top-0 h-screen w-[280px] lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-64 flex flex-col justify-between bg-[#060609] border-r border-white/[0.05] transition-transform duration-300 ease-in-out z-50 overflow-y-auto"
         style={{
           transform: isDesktop ? 'translateX(0)' : (isMobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)'),
         }}
       >
-        {/* Pink gradient glow on bottom left */}
+        {/* Pink gradient glow */}
         <div 
           className="absolute bottom-0 left-0 w-64 h-64 opacity-50 blur-3xl pointer-events-none"
           style={{ background: 'linear-gradient(to top, rgba(251, 87, 255, 0.2), rgba(251, 87, 255, 0.05), transparent)' }}
         ></div>
+        
         <div className="relative z-10">
-          {/* Mobile Header with Logo and Close */}
+          {/* Mobile Header */}
           <div className="lg:hidden flex items-center justify-between px-4 py-4 border-b border-white/[0.05]">
             <div className="flex items-center gap-2">
-              {/* Logo */}
               <div className="w-7 h-7 rounded-lg bg-white/[0.03] flex items-center justify-center p-1">
                 <svg viewBox="0 0 24 24" className="w-full h-full" fill="none">
                   <defs>
@@ -173,8 +117,7 @@ export default function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
           <nav className="mt-4 px-3 lg:mt-6">
             <ul className="space-y-2">
               {navItems.map((item) => {
-                const isActive =
-                  pathname === item.href || pathname.startsWith(item.href + "/");
+                const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                 const Icon = item.icon;
 
                 return (
@@ -190,59 +133,18 @@ export default function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
                       style={isActive ? { background: 'rgba(251, 87, 255, 0.03)', color: '#fb57ff' } : {}}
                     >
                       <Icon className="flex-shrink-0 h-5 w-5" />
-                      <span className="text-base font-medium">
-                        {item.name}
-                      </span>
+                      <span className="text-base font-medium">{item.name}</span>
                     </Link>
                   </li>
                 );
               })}
             </ul>
-
-            {/* ✅ NEW: Install App Button - Only show if installable and not installed */}
-            {isInstallable && !isInstalled && (
-              <div className="mt-6 px-1">
-                <button
-                  onClick={handleInstallApp}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-gradient-to-r from-purple-600/10 to-pink-600/10 border border-purple-500/20 hover:border-purple-500/40 text-purple-300 hover:text-purple-200 transition-all active:scale-95"
-                >
-                  <Download className="flex-shrink-0 h-5 w-5" />
-                  <div className="flex flex-col items-start">
-                    <span className="text-sm font-semibold">
-                      Install App
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      Add to home screen
-                    </span>
-                  </div>
-                </button>
-              </div>
-            )}
-
-            {/* ✅ Show "Installed" badge if already installed */}
-            {isInstalled && (
-              <div className="mt-6 px-1">
-                <div className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-green-600/10 border border-green-500/20 text-green-300">
-                  <svg className="flex-shrink-0 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <div className="flex flex-col items-start">
-                    <span className="text-sm font-semibold">
-                      App Installed
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      Launch from home screen
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
           </nav>
         </div>
 
         {/* Bottom Info */}
         <div className="border-t border-white/[0.05] p-4 relative z-10">
-          {/* Social Icons - Only on mobile */}
+          {/* Social Icons */}
           <div className="lg:hidden flex items-center justify-center gap-4 mb-4">
             <a
               href="https://twitter.com"

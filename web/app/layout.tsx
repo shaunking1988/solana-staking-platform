@@ -2,6 +2,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { SolanaWalletProvider } from "@/components/SolanaWalletProvider";
+import { MobileBanner } from "@/components/MobileBanner"; // ✅ Add this import
 import { ToastProvider } from "@/components/ToastContainer";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { PoolDataProvider } from "@/hooks/usePoolData";
@@ -95,6 +96,7 @@ export default function RootLayout({
       <body className="bg-[#060609] text-gray-100 min-h-screen font-sans">
         <ThemeProvider>
           <SolanaWalletProvider>
+            <MobileBanner /> {/* ✅ Add this line */}
             <PoolDataProvider>
               <ToastProvider>
                 <LayoutContent>{children}</LayoutContent>
