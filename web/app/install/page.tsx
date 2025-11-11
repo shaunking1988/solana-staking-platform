@@ -11,9 +11,12 @@ export default function InstallPage() {
   useEffect(() => {
     // Auto-trigger install prompt when page loads
     if (isInstallable) {
-      installApp();
+      const triggerInstall = async () => {
+        await installApp();
+      };
+      triggerInstall();
     }
-  }, [isInstallable, installApp]);
+  }, [isInstallable]); // ✅ Removed installApp from dependencies
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
@@ -62,15 +65,15 @@ export default function InstallPage() {
                 <p className="text-sm text-gray-400">
                   <strong className="text-white">iOS (Safari):</strong>
                   <br />1. Tap the Share button
-                  <br />2. Select "Add to Home Screen"
-                  <br />3. Tap "Add"
+                  <br />2. Select &quot;Add to Home Screen&quot;
+                  <br />3. Tap &quot;Add&quot;
                 </p>
                 
                 <p className="text-sm text-gray-400">
                   <strong className="text-white">Android (Chrome):</strong>
                   <br />1. Tap the Menu (3 dots)
-                  <br />2. Select "Install app"
-                  <br />3. Tap "Install"
+                  <br />2. Select &quot;Install app&quot;
+                  <br />3. Tap &quot;Install&quot;
                 </p>
               </div>
             </div>
