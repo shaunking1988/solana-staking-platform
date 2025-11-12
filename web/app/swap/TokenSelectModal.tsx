@@ -20,7 +20,7 @@ interface TokenSelectModalProps {
 }
 
 const RECENT_TOKENS_KEY = 'stakepoint_recent_tokens';
-const MAX_RECENT_TOKENS = 5;
+const MAX_RECENT_TOKENS = 3;
 
 export default function TokenSelectModal({
   featuredTokens = [],

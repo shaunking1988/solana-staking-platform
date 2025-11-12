@@ -146,23 +146,43 @@ export default function AdminPage() {
 
   // ✅ Save Swap Configuration
   const handleSaveSwapConfig = async () => {
-    setSavingSwapConfig(true);
-    try {
-      const res = await authFetch("/api/admin/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(swapConfig),
-      });
+  setSavingSwapConfig(true);
+  try {
+    // ✅ CONVERT PERCENTAGES TO BASIS POINTS (BPS)
+    const platformFeeBps = Math.floor(swapConfig.platformFeePercentage * 100); // 1% → 100 BPS
+    const maxSlippageBps = Math.floor(swapConfig.maxSlippage * 100); // 50% → 5000 BPS
+    
+    console.log('💾 Saving swap config:', {
+      display: {
+        platformFeePercentage: swapConfig.platformFeePercentage + '%',
+        maxSlippage: swapConfig.maxSlippage + '%',
+      },
+      saved: {
+        platformFeeBps: platformFeeBps + ' BPS',
+        maxSlippageBps: maxSlippageBps + ' BPS',
+      }
+    });
+    
+    const res = await authFetch("/api/swap/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        swapEnabled: swapConfig.swapEnabled,
+        platformFeeBps: platformFeeBps,
+        maxSlippageBps: maxSlippageBps,
+        treasuryWallet: "Hc1Wk7NDPNjxT5qaSaPEJzMEtUhE3ZqXe2yQB6TQpbFb", // Your treasury wallet
+      }),
+    });
 
-      if (!res.ok) throw new Error("Failed to save swap config");
+    if (!res.ok) throw new Error("Failed to save swap config");
 
-      showSuccess("✅ Swap configuration saved successfully!");
-      loadSwapConfig();
-    } catch (error: any) {
-      showError(`❌ ${error.message || "Failed to save swap config"}`);
-    } finally {
-      setSavingSwapConfig(false);
-    }
+    showSuccess("✅ Swap configuration saved successfully!");
+    loadSwapConfig();
+  } catch (error: any) {
+    showError(`❌ ${error.message || "Failed to save swap config"}`);
+  } finally {
+    setSavingSwapConfig(false);
+  }
   };
 
   const loadFeaturedTokens = async () => {
