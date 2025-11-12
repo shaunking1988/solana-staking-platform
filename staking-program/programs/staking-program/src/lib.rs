@@ -10,7 +10,7 @@ use anchor_spl::token_interface::{
     TransferChecked,
 };
 
-declare_id!("BFwGMGMbAZPwgBXYPH7kRaTxXm1xzuK2SUH3JnfeDri1");
+declare_id!("7uKLyDU3tS6daQ9ic18gjoxkxBYuhTjswHiG6pD4R9fa");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
 
@@ -943,26 +943,15 @@ pub mod staking_program {
         .checked_add(amount)
         .ok_or(ErrorCode::MathOverflow)?;
     
+    // For fixed APY pools (rate_mode = 0), rate was already set in initialize_pool
     match project_mut.rate_mode {
         0 => {
-            // Calculate reward rate with 1e20 scaling (1e9 × 1e11)
-            let numerator = (project_mut.rate_bps_per_year as u128)
-    .checked_mul(1_000_000_000)      // 1e9 for lamports conversion
-    .ok_or(ErrorCode::MathOverflow)?;
-            
-            let denominator = (10_000u128)
-                .checked_mul(SECONDS_PER_YEAR as u128)
-                .ok_or(ErrorCode::MathOverflow)?;
-                
-            let rate_coefficient = numerator
-                .checked_div(denominator)
-                .ok_or(ErrorCode::DivisionByZero)?;
-            
-            require!(rate_coefficient <= u64::MAX as u128, ErrorCode::MathOverflow);
-            project_mut.reward_rate_per_second = rate_coefficient as u64;
+            // Fixed APY - rate already calculated in initialize_pool, don't recalculate
+            msg!("Fixed APY pool - rate: {}", project_mut.reward_rate_per_second);
         }
         
         1 => {
+            // Dynamic pool - recalculate based on total available rewards
             let total_available = project_mut.total_rewards_deposited
                 .checked_sub(project_mut.total_rewards_claimed)
                 .ok_or(ErrorCode::MathOverflow)?;
@@ -977,6 +966,8 @@ pub mod staking_program {
                     .checked_div(time_remaining as u64)
                     .unwrap_or(0);
             }
+            
+            msg!("Dynamic pool - new rate: {}", project_mut.reward_rate_per_second);
         }
         
         _ => return Err(ErrorCode::InvalidRateMode.into()),
