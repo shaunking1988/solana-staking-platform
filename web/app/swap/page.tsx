@@ -47,7 +47,15 @@ export default function SwapPage() {
   const [toToken, setToToken] = useState<Token | null>(null);
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
-  const [slippage, setSlippage] = useState(1.0); // 1% default
+  
+  // ✅ NEW: Auto Slippage & Priority Fee State
+  const [slippageMode, setSlippageMode] = useState<"auto" | "custom">("auto");
+  const [customSlippage, setCustomSlippage] = useState(1.0);
+  const [autoSlippage, setAutoSlippage] = useState(0.5);
+  const [priorityFee, setPriorityFee] = useState(0.0001);
+  
+  // Computed slippage value based on mode
+  const slippage = slippageMode === "auto" ? autoSlippage : customSlippage;
   
   // UI state
   const [showTokenSelect, setShowTokenSelect] = useState<"from" | "to" | null>(null);
@@ -56,6 +64,41 @@ export default function SwapPage() {
   const [lastTxSignature, setLastTxSignature] = useState<string | null>(null);
   const [currentQuote, setCurrentQuote] = useState<any>(null);
   const [tokenBalance, setTokenBalance] = useState<number | null>(null);
+
+  // ✅ Calculate Auto Slippage Based on Quote
+  useEffect(() => {
+    if (slippageMode === "auto" && currentQuote) {
+      const calculatedSlippage = calculateAutoSlippage(currentQuote);
+      setAutoSlippage(calculatedSlippage);
+    }
+  }, [currentQuote, slippageMode]);
+
+  // ✅ Smart Auto Slippage Calculator
+  const calculateAutoSlippage = (quote: any) => {
+    let calculatedSlippage = 0.5; // 0.5% default
+    
+    // Check if quote has slippage recommendation
+    if (quote.slippageBps) {
+      calculatedSlippage = quote.slippageBps / 100;
+    } else {
+      // Fallback: estimate based on price impact
+      const priceImpact = quote.priceImpactPct || 0;
+      
+      if (priceImpact > 2) {
+        calculatedSlippage = 2.0; // 2%
+      } else if (priceImpact > 1) {
+        calculatedSlippage = 1.0; // 1%
+      } else if (priceImpact > 0.5) {
+        calculatedSlippage = 0.5; // 0.5%
+      } else {
+        calculatedSlippage = 0.3; // 0.3%
+      }
+    }
+    
+    // Ensure it's within limits
+    const maxAllowed = config?.maxSlippage || 10;
+    return Math.min(calculatedSlippage, maxAllowed);
+  };
 
   // Load config from API
   useEffect(() => {
@@ -82,8 +125,8 @@ export default function SwapPage() {
           
           console.log('✅ Config loaded successfully');
           
-          if (slippage > maxSlippage) {
-            setSlippage(maxSlippage);
+          if (customSlippage > maxSlippage) {
+            setCustomSlippage(maxSlippage);
           }
         } else {
           setConfig({
@@ -505,43 +548,128 @@ export default function SwapPage() {
             </button>
           </div>
 
-          {/* Settings Panel */}
+          {/* ✅ UPDATED Settings Panel with Auto Slippage & Priority Fee */}
           {showSettings && (
-            <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-4 space-y-3">
+            <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-4 space-y-4">
+              
+              {/* Slippage Mode Toggle */}
               <div>
-                <label className="text-sm text-gray-500 mb-2 block">Slippage Tolerance</label>
-                <div className="flex gap-2">
-                  {[0.5, 1.0, 2.0].map((value) => (
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm text-gray-500">Slippage Tolerance</label>
+                  <div className="flex gap-1 bg-white/[0.05] rounded-lg p-1">
                     <button
-                      key={value}
-                      onClick={() => setSlippage(value)}
-                      disabled={config && value > config.maxSlippage}
-                      className={`flex-1 px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${
-                        slippage === value
+                      onClick={() => setSlippageMode("auto")}
+                      className={`px-3 py-1 text-xs rounded transition-all ${
+                        slippageMode === "auto"
+                          ? "text-white"
+                          : "text-gray-400 hover:text-gray-300"
+                      }`}
+                      style={slippageMode === "auto" ? { background: 'linear-gradient(45deg, black, #fb57ff)' } : {}}
+                    >
+                      Auto
+                    </button>
+                    <button
+                      onClick={() => setSlippageMode("custom")}
+                      className={`px-3 py-1 text-xs rounded transition-all ${
+                        slippageMode === "custom"
+                          ? "text-white"
+                          : "text-gray-400 hover:text-gray-300"
+                      }`}
+                      style={slippageMode === "custom" ? { background: 'linear-gradient(45deg, black, #fb57ff)' } : {}}
+                    >
+                      Custom
+                    </button>
+                  </div>
+                </div>
+
+                {/* Auto Mode - Show calculated value */}
+                {slippageMode === "auto" && (
+                  <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-400">Auto Slippage:</span>
+                      <span className="font-semibold" style={{ color: '#fb57ff' }}>
+                        {autoSlippage.toFixed(2)}%
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      ✨ Automatically adjusted based on market conditions
+                    </p>
+                  </div>
+                )}
+
+                {/* Custom Mode - Show preset buttons and input */}
+                {slippageMode === "custom" && (
+                  <>
+                    <div className="flex gap-2">
+                      {[0.1, 0.5, 1.0, 2.0].map((value) => (
+                        <button
+                          key={value}
+                          onClick={() => setCustomSlippage(value)}
+                          disabled={config && value > config.maxSlippage}
+                          className={`flex-1 px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${
+                            customSlippage === value
+                              ? "text-white"
+                              : "bg-white/[0.05] text-gray-300 hover:bg-white/[0.08]"
+                          }`}
+                          style={customSlippage === value ? { background: 'linear-gradient(45deg, black, #fb57ff)' } : {}}
+                        >
+                          {value}%
+                        </button>
+                      ))}
+                      <input
+                        type="number"
+                        value={customSlippage}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 1.0;
+                          if (!config || value <= config.maxSlippage) {
+                            setCustomSlippage(value);
+                          }
+                        }}
+                        max={config?.maxSlippage}
+                        className="w-20 px-3 py-2 bg-white/[0.05] border border-white/[0.05] rounded-lg text-white text-center focus:outline-none"
+                        style={{ borderColor: 'rgba(251, 87, 255, 0.3)' }}
+                        step="0.1"
+                        min="0.1"
+                      />
+                    </div>
+                    {config && customSlippage > config.maxSlippage && (
+                      <p className="text-xs text-yellow-400 mt-1">
+                        ⚠️ Maximum slippage is {config.maxSlippage}%
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* ✅ Priority Fee Control */}
+              <div>
+                <label className="text-sm text-gray-500 mb-2 block">
+                  Priority Fee (SOL)
+                </label>
+                <div className="flex gap-2">
+                  {[
+                    { label: "Low", value: 0.00001 },
+                    { label: "Med", value: 0.0001 },
+                    { label: "High", value: 0.001 },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setPriorityFee(option.value)}
+                      className={`flex-1 px-3 py-2 rounded-lg transition-all text-xs ${
+                        priorityFee === option.value
                           ? "text-white"
                           : "bg-white/[0.05] text-gray-300 hover:bg-white/[0.08]"
                       }`}
-                      style={slippage === value ? { background: 'linear-gradient(45deg, black, #fb57ff)' } : {}}
+                      style={priorityFee === option.value ? { background: 'linear-gradient(45deg, black, #fb57ff)' } : {}}
                     >
-                      {value}%
+                      <div>{option.label}</div>
+                      <div className="text-[10px] text-gray-400">{option.value}</div>
                     </button>
                   ))}
-                  <input
-                    type="number"
-                    value={slippage}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value) || 1.0;
-                      if (!config || value <= config.maxSlippage) {
-                        setSlippage(value);
-                      }
-                    }}
-                    max={config?.maxSlippage}
-                    className="w-20 px-3 py-2 bg-white/[0.05] border border-white/[0.05] rounded-lg text-white text-center focus:outline-none"
-                    style={{ borderColor: 'rgba(251, 87, 255, 0.3)' }}
-                    step="0.1"
-                    min="0.1"
-                  />
                 </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Higher priority = faster confirmation
+                </p>
               </div>
             </div>
           )}
@@ -660,7 +788,11 @@ export default function SwapPage() {
               )}
               <div className="flex justify-between">
                 <span className="text-gray-500">Slippage</span>
-                <span className="text-white">{slippage}%</span>
+                <span className="text-white">{slippage.toFixed(2)}% {slippageMode === "auto" && "✨"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Priority Fee</span>
+                <span className="text-white">{priorityFee} SOL</span>
               </div>
             </div>
           )}
