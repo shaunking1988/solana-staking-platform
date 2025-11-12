@@ -728,7 +728,7 @@ export default function SwapPage() {
               <span className="font-semibold text-white">Jupiter Routing</span>
             </div>
             <p className="text-sm text-gray-500">
-              Premium routing with best prices
+              Premium routing with the very best prices available!
             </p>
           </div>
 
@@ -738,7 +738,7 @@ export default function SwapPage() {
               <span className="font-semibold text-white">Best Execution</span>
             </div>
             <p className="text-sm text-gray-500">
-              Fast and reliable swaps
+              Fast and reliable swaps to ensure super speed swap execution!
             </p>
           </div>
 
@@ -749,7 +749,7 @@ export default function SwapPage() {
             </div>
             <p className="text-sm text-gray-500">
               {JUPITER_REFERRAL_ACCOUNT 
-                ? "Climb the leaderboard"
+                ? "Swap your way to the top of the weekly leaderboard to earn swap rewards!"
                 : "Coming soon"}
             </p>
           </div>
