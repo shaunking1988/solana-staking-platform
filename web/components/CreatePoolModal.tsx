@@ -381,7 +381,8 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
         initPoolAccounts.reflectionTokenMint = reflectionTokenMintToUse;
         initPoolAccounts.reflectionTokenAccount = reflectionVaultATA;
         initPoolAccounts.associatedTokenProgram = anchor.utils.token.ASSOCIATED_PROGRAM_ID;
-        
+        initPoolAccounts.reflectionTokenProgram = reflectionTokenProgram;
+
         console.log("✅ Reflection accounts:", {
           mint: reflectionTokenMintToUse.toString(),
           ata: reflectionVaultATA.toString(),
@@ -392,6 +393,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
         initPoolAccounts.reflectionTokenMint = program.programId;
         initPoolAccounts.reflectionTokenAccount = program.programId;
         initPoolAccounts.associatedTokenProgram = program.programId;
+         initPoolAccounts.reflectionTokenProgram = program.programId;
       }
 
             console.log("🔍 DEBUG - Pool Config:", {
