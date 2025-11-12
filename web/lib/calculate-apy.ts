@@ -31,11 +31,17 @@ export async function calculateRealAPY(
     const program = getProgram(wallet, connection);
     const projectData = await program.account.project.fetch(projectPDA);
     
-    const totalRewardsDeposited = projectData.totalRewardsDeposited.toNumber();
-    const totalRewardsClaimed = projectData.totalRewardsClaimed.toNumber();
-    const totalStaked = projectData.totalStaked.toNumber();
+    // ✅ FIX: Get token decimals to convert raw amounts to UI amounts
+    const mintInfo = await connection.getParsedAccountInfo(tokenMintPubkey);
+    const decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals || 9;
+    const divisor = Math.pow(10, decimals);
+    
+    // Convert raw amounts to UI amounts
+    const totalRewardsDeposited = projectData.totalRewardsDeposited.toNumber() / divisor;
+    const totalRewardsClaimed = projectData.totalRewardsClaimed.toNumber() / divisor;
+    const totalStaked = projectData.totalStaked.toNumber() / divisor;
     const poolDurationSeconds = projectData.poolDurationSeconds.toNumber();
-    const rewardRate = projectData.rewardRatePerSecond?.toNumber() || 0;
+    const rewardRate = (projectData.rewardRatePerSecond?.toNumber() || 0) / divisor;
     
     // Calculate available rewards
     const availableRewards = totalRewardsDeposited - totalRewardsClaimed;
@@ -135,12 +141,17 @@ export async function getPoolStatistics(
     const program = getProgram(wallet, connection);
     const projectData = await program.account.project.fetch(projectPDA);
     
+    // ✅ FIX: Get token decimals for proper conversion
+    const mintInfo = await connection.getParsedAccountInfo(tokenMintPubkey);
+    const decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals || 9;
+    const divisor = Math.pow(10, decimals);
+    
     return {
       isInitialized: projectData.isInitialized,
       isPaused: projectData.isPaused,
-      totalStaked: projectData.totalStaked.toNumber(),
-      totalRewardsDeposited: projectData.totalRewardsDeposited.toNumber(),
-      totalRewardsClaimed: projectData.totalRewardsClaimed.toNumber(),
+      totalStaked: projectData.totalStaked.toNumber() / divisor,
+      totalRewardsDeposited: projectData.totalRewardsDeposited.toNumber() / divisor,
+      totalRewardsClaimed: projectData.totalRewardsClaimed.toNumber() / divisor,
       poolDurationSeconds: projectData.poolDurationSeconds.toNumber(),
       lockupSeconds: projectData.lockupSeconds.toNumber(),
       rateBpsPerYear: projectData.rateBpsPerYear.toNumber(),
@@ -152,5 +163,3 @@ export async function getPoolStatistics(
     return null;
   }
 }
-
-
