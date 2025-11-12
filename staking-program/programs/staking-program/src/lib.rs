@@ -10,7 +10,7 @@ use anchor_spl::token_interface::{
     TransferChecked,
 };
 
-declare_id!("HS4LXq85DpjDDctwMQcioDyQWFo4oQu9SYxDpQKX29Pm");
+declare_id!("BFwGMGMbAZPwgBXYPH7kRaTxXm1xzuK2SUH3JnfeDri1");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
 
@@ -203,13 +203,20 @@ pub mod staking_program {
         if reflection_account_info.data_is_empty() {
             msg!("Creating reflection token ATA...");
             
+            // ✅ Get the correct token program for reflections
+            let reflection_token_program = if let Some(ref prog) = ctx.accounts.reflection_token_program {
+                prog.clone()
+            } else {
+                ctx.accounts.token_program.to_account_info()
+            };
+            
             let cpi_accounts = anchor_spl::associated_token::Create {
                 payer: ctx.accounts.admin.to_account_info(),
                 associated_token: reflection_account_info.clone(),
                 authority: ctx.accounts.staking_vault.to_account_info(),
                 mint: reflection_mint_info.clone(),
                 system_program: ctx.accounts.system_program.to_account_info(),
-                token_program: ctx.accounts.token_program.to_account_info(),
+                token_program: reflection_token_program.clone(),  // ← CHANGED: Use reflection token program
             };
             
             let cpi_ctx = CpiContext::new(ata_program.clone(), cpi_accounts);
@@ -1715,6 +1722,7 @@ pub struct InitializePool<'info> {
     pub associated_token_program: Option<AccountInfo<'info>>,
     pub system_program: Program<'info, System>,
     pub token_program: Interface<'info, TokenInterface>,
+    pub reflection_token_program: Option<AccountInfo<'info>>,
 }
 
 #[derive(Accounts)]

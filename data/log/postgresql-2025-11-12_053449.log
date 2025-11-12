@@ -1,0 +1,3 @@
+2025-11-12 05:34:49 GMT LOG:  database system was shut down at 2025-11-12 05:34:14 GMT
+2025-11-12 05:39:49 GMT LOG:  checkpoint starting: time
+2025-11-12 05:39:49 GMT LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.001 s, total=0.010 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/BF15DC8, redo lsn=0/BF15D70

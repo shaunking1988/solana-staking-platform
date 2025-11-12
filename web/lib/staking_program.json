@@ -1,5 +1,5 @@
 {
-  "address": "HS4LXq85DpjDDctwMQcioDyQWFo4oQu9SYxDpQKX29Pm",
+  "address": "BFwGMGMbAZPwgBXYPH7kRaTxXm1xzuK2SUH3JnfeDri1",
   "metadata": {
     "name": "staking_program",
     "version": "0.1.0",
@@ -1264,6 +1264,10 @@
         },
         {
           "name": "token_program"
+        },
+        {
+          "name": "reflection_token_program",
+          "optional": true
         }
       ],
       "args": [

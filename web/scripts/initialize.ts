@@ -3,7 +3,7 @@ import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
 import * as fs from "fs";
 
 const PROGRAM_ID = new PublicKey("BK7fM9EC2kYVSwc1H9MNia6ZZRo6ALP1YLgYaWmMR49W");
-const ADMIN_WALLET = new PublicKey("9zS3TWXEWQnYU2xFSMB7wvv7JuBJpcPtxw9kaf1STzvR");
+const ADMIN_WALLET = new PublicKey("ecfvkqWdJiYJRyUtWvuYpPWP5faf9GBcA1K6TaDW7wS");
 const RPC = "https://api.devnet.solana.com";
 
 async function initialize() {
