@@ -332,11 +332,11 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       setStatusMessage("Step 3/4: Initializing pool parameters...");
       console.log("⚙️ Transaction 3: Initialize Pool");
       // Determine reflection token mint
-const reflectionTokenMintToUse = poolConfig.enableReflections
-  ? (poolConfig.reflectionType === "external" && poolConfig.externalReflectionMint
-      ? new PublicKey(poolConfig.externalReflectionMint)
-      : tokenMintPubkey) // Use staking token for self-reflection
-  : null;
+      const reflectionTokenMintToUse = poolConfig.enableReflections
+        ? (poolConfig.reflectionType === "external" && poolConfig.externalReflectionMint
+            ? new PublicKey(poolConfig.externalReflectionMint)
+            : tokenMintPubkey)
+        : null;
 
       const initParams = {
         rateBpsPerYear: new anchor.BN(0),
@@ -360,10 +360,22 @@ const reflectionTokenMintToUse = poolConfig.enableReflections
 
       // Only add reflection accounts if reflections are enabled
       if (poolConfig.enableReflections && reflectionTokenMintToUse) {
+        // ✅ Detect the reflection token's program (might be different from staking token!)
+        const reflectionMintInfo = await connection.getAccountInfo(reflectionTokenMintToUse);
+        if (!reflectionMintInfo) {
+          throw new Error("Reflection token mint not found");
+        }
+        const reflectionTokenProgram = reflectionMintInfo.owner.equals(TOKEN_2022_PROGRAM_ID)
+          ? TOKEN_2022_PROGRAM_ID
+          : TOKEN_PROGRAM_ID;
+        
+        console.log(`✅ Reflection token program detected: ${reflectionTokenProgram.toString()}`);
+
         // Calculate the ATA address for the reflection vault
         const reflectionVaultATA = anchor.utils.token.associatedAddress({
           mint: reflectionTokenMintToUse,
           owner: stakingVaultPDA,
+          tokenProgramId: reflectionTokenProgram, // ✅ Use correct token program
         });
 
         initPoolAccounts.reflectionTokenMint = reflectionTokenMintToUse;
@@ -373,6 +385,7 @@ const reflectionTokenMintToUse = poolConfig.enableReflections
         console.log("✅ Reflection accounts:", {
           mint: reflectionTokenMintToUse.toString(),
           ata: reflectionVaultATA.toString(),
+          tokenProgram: reflectionTokenProgram.toString(),
         });
       } else {
         // Pass program ID as placeholder for optional accounts
@@ -399,7 +412,7 @@ const reflectionTokenMintToUse = poolConfig.enableReflections
         reflectionTokenAccount: initPoolAccounts.reflectionTokenAccount?.toString(),
         associatedTokenProgram: initPoolAccounts.associatedTokenProgram?.toString(),
       });
-      
+
       const initPoolTx = await program.methods
         .initializePool(
           tokenMintPubkey,
