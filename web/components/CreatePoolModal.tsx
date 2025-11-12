@@ -9,7 +9,7 @@ import { calculateEstimatedAPY, calculateRequiredRewards } from "@/lib/calculate
 import IntegrateModal from "@/components/IntegrateModal";
 import * as anchor from "@coral-xyz/anchor";
 
-const ADMIN_WALLET = new PublicKey("9zS3TWXEWQnYU2xFSMB7wvv7JuBJpcPtxw9kaf1STzvR");
+const ADMIN_WALLET = new PublicKey("ecfvkqWdJiYJRyUtWvuYpPWP5faf9GBcA1K6TaDW7wS");
 const POOL_CREATION_FEE = 1 * 10_000_000; // 0.01 SOL in lamports
 
 interface UserToken {
