@@ -49,7 +49,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
       <div className="flex items-center gap-2">
         {/* Social Icons - Desktop only */}
         <a
-          href="https://twitter.com"
+          href="https://twitter.com/stakepointapp"
           target="_blank"
           rel="noopener noreferrer"
           className="hidden lg:flex p-2 rounded-lg hover:bg-white/5 transition-colors"
@@ -60,7 +60,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
           </svg>
         </a>
         <a
-          href="https://t.me"
+          href="https://t.me/stakepointportal"
           target="_blank"
           rel="noopener noreferrer"
           className="hidden lg:flex p-2 rounded-lg hover:bg-white/5 transition-colors"
