@@ -331,37 +331,63 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       // Transaction 3: Initialize Pool
       setStatusMessage("Step 3/4: Initializing pool parameters...");
       console.log("⚙️ Transaction 3: Initialize Pool");
+      // Determine reflection token mint
+const reflectionTokenMintToUse = poolConfig.enableReflections
+  ? (poolConfig.reflectionType === "external" && poolConfig.externalReflectionMint
+      ? new PublicKey(poolConfig.externalReflectionMint)
+      : tokenMintPubkey) // Use staking token for self-reflection
+  : null;
+
       const initParams = {
-        rateBpsPerYear: new anchor.BN(0), // Not used for dynamic pools
-        rateMode: 1, // Variable pool = dynamic APR (auto-calculated based on rewards/staked)
-        lockupSeconds: new anchor.BN(parseInt(poolConfig.duration) * 86400), // Lock for full duration
+        rateBpsPerYear: new anchor.BN(0),
+        rateMode: 1,
+        lockupSeconds: new anchor.BN(parseInt(poolConfig.duration) * 86400),
         poolDurationSeconds: new anchor.BN(parseInt(poolConfig.duration) * 86400),
         referrer: null,
         referrerSplitBps: null,
         enableReflections: poolConfig.enableReflections,
-        reflectionToken: poolConfig.enableReflections && poolConfig.reflectionType === "external" && poolConfig.externalReflectionMint
-          ? new PublicKey(poolConfig.externalReflectionMint)
-          : poolConfig.enableReflections && poolConfig.reflectionType === "self"
-          ? tokenMintPubkey
-          : null,
+        reflectionToken: reflectionTokenMintToUse,
       };
+
+      // Build accounts object conditionally
+      const initPoolAccounts: any = {
+        project: projectPDA,
+        stakingVault: stakingVaultPDA,
+        admin: publicKey,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: tokenProgramId,
+      };
+
+      // Only add reflection accounts if reflections are enabled
+      if (poolConfig.enableReflections && reflectionTokenMintToUse) {
+        // Calculate the ATA address for the reflection vault
+        const reflectionVaultATA = anchor.utils.token.associatedAddress({
+          mint: reflectionTokenMintToUse,
+          owner: stakingVaultPDA,
+        });
+
+        initPoolAccounts.reflectionTokenMint = reflectionTokenMintToUse;
+        initPoolAccounts.reflectionTokenAccount = reflectionVaultATA;
+        initPoolAccounts.associatedTokenProgram = anchor.utils.token.ASSOCIATED_PROGRAM_ID;
+        
+        console.log("✅ Reflection accounts:", {
+          mint: reflectionTokenMintToUse.toString(),
+          ata: reflectionVaultATA.toString(),
+        });
+      } else {
+        // Pass program ID as placeholder for optional accounts
+        initPoolAccounts.reflectionTokenMint = program.programId;
+        initPoolAccounts.reflectionTokenAccount = program.programId;
+        initPoolAccounts.associatedTokenProgram = program.programId;
+      }
 
       const initPoolTx = await program.methods
         .initializePool(
-          tokenMintPubkey,        // token_mint
-          new anchor.BN(poolId),  // pool_id
-          initParams              // params struct
+          tokenMintPubkey,
+          new anchor.BN(poolId),
+          initParams
         )
-        .accounts({
-          project: projectPDA,
-          stakingVault: stakingVaultPDA,
-          reflectionTokenMint: null,
-          reflectionTokenAccount: null,
-          admin: publicKey,
-          associatedTokenProgram: null,
-          systemProgram: SystemProgram.programId,
-          tokenProgram: tokenProgramId,  // ✅ Use detected token program
-        })
+        .accounts(initPoolAccounts)
         .rpc();
       console.log("✅ Pool initialized:", initPoolTx);
 
