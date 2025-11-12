@@ -10,7 +10,7 @@ use anchor_spl::token_interface::{
     TransferChecked,
 };
 
-declare_id!("7uKLyDU3tS6daQ9ic18gjoxkxBYuhTjswHiG6pD4R9fa");
+declare_id!("47Z3KVcvmjNUBFroCkSKbNinzbsxhKpsLoUMVGpfrxCm");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
 
@@ -1462,50 +1462,59 @@ fn update_reward(project: &mut Account<Project>, stake: &mut Account<Stake>) -> 
         }
     }
     
-  project.last_update_time = current_time;
+    project.last_update_time = current_time;
     
-// Calculate rewards for this specific stake
-if stake.amount > 0 && project.total_staked > 0 {
-    let stake_last_update = stake.last_stake_timestamp;
-    let time_since_stake_update = current_time
-        .checked_sub(stake_last_update)
-        .unwrap_or(0)
-        .max(0);
-    
-    require!(time_since_stake_update >= 0, ErrorCode::InvalidTimestamp);
-    
-    // Adjust for pool end time
-    let effective_time = if current_time > project.pool_end_time {
-        if stake_last_update >= project.pool_end_time {
-            0
+    // Calculate rewards for this specific stake
+    if stake.amount > 0 && project.total_staked > 0 {
+        let stake_last_update = stake.last_stake_timestamp;
+        let time_since_stake_update = current_time
+            .checked_sub(stake_last_update)
+            .unwrap_or(0)
+            .max(0);
+        
+        require!(time_since_stake_update >= 0, ErrorCode::InvalidTimestamp);
+        
+        // Adjust for pool end time
+        let effective_time = if current_time > project.pool_end_time {
+            if stake_last_update >= project.pool_end_time {
+                0
+            } else {
+                (project.pool_end_time - stake_last_update).max(0) as u64
+            }
         } else {
-            (project.pool_end_time - stake_last_update).max(0) as u64
+            time_since_stake_update as u64
+        };
+        
+        if effective_time > 0 {
+            let intermediate = (project.reward_rate_per_second as u128)
+                .checked_mul(effective_time as u128)
+                .ok_or(ErrorCode::MathOverflow)?
+                .checked_mul(stake.amount as u128)
+                .ok_or(ErrorCode::MathOverflow)?;
+            
+            // ✅ Check rate_mode to use correct formula
+            let new_rewards_u128 = if project.rate_mode == 0 {
+                // Fixed APY: reward_rate_per_second has 1e9 scaling
+                // Formula: (amount × rate × time) / 1e9
+                intermediate
+                    .checked_div(1_000_000_000u128)
+                    .ok_or(ErrorCode::DivisionByZero)?
+            } else {
+                // Dynamic pool: reward_rate_per_second is lamports/sec for entire pool
+                // Formula: (amount × rate × time) / totalStaked
+                intermediate
+                    .checked_div(project.total_staked as u128)
+                    .ok_or(ErrorCode::DivisionByZero)?
+            };
+            
+            require!(new_rewards_u128 <= u64::MAX as u128, ErrorCode::MathOverflow);
+            let new_rewards = new_rewards_u128 as u64;
+            
+            stake.rewards_pending = stake.rewards_pending
+                .checked_add(new_rewards)
+                .ok_or(ErrorCode::MathOverflow)?;
         }
-    } else {
-        time_since_stake_update as u64
-    };
-    
-    if effective_time > 0 {
-        // reward_rate_per_second has 1e9 precision (WORKING FORMULA)
-        let intermediate = (project.reward_rate_per_second as u128)
-            .checked_mul(effective_time as u128)
-            .ok_or(ErrorCode::MathOverflow)?
-            .checked_mul(stake.amount as u128)
-            .ok_or(ErrorCode::MathOverflow)?;
-        
-        // Divide by precision (1e9) to get lamports (WORKING FORMULA)
-        let new_rewards_u128 = intermediate
-            .checked_div(1_000_000_000u128)  // 1e9
-            .ok_or(ErrorCode::DivisionByZero)?;
-        
-        require!(new_rewards_u128 <= u64::MAX as u128, ErrorCode::MathOverflow);
-        let new_rewards = new_rewards_u128 as u64;
-        
-        stake.rewards_pending = stake.rewards_pending
-            .checked_add(new_rewards)
-            .ok_or(ErrorCode::MathOverflow)?;
     }
-}
     
     Ok(())
 }
