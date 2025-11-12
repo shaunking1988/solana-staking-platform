@@ -381,6 +381,25 @@ const reflectionTokenMintToUse = poolConfig.enableReflections
         initPoolAccounts.associatedTokenProgram = program.programId;
       }
 
+            console.log("🔍 DEBUG - Pool Config:", {
+        enableReflections: poolConfig.enableReflections,
+        reflectionType: poolConfig.reflectionType,
+        externalReflectionMint: poolConfig.externalReflectionMint,
+      });
+
+      console.log("🔍 DEBUG - Reflection Token Mint:", reflectionTokenMintToUse?.toString());
+
+      console.log("🔍 DEBUG - Init Params:", {
+        enableReflections: initParams.enableReflections,
+        reflectionToken: initParams.reflectionToken?.toString(),
+      });
+
+      console.log("🔍 DEBUG - Accounts:", {
+        reflectionTokenMint: initPoolAccounts.reflectionTokenMint?.toString(),
+        reflectionTokenAccount: initPoolAccounts.reflectionTokenAccount?.toString(),
+        associatedTokenProgram: initPoolAccounts.associatedTokenProgram?.toString(),
+      });
+      
       const initPoolTx = await program.methods
         .initializePool(
           tokenMintPubkey,
