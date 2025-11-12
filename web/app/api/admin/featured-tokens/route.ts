@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
+import { PrismaClient } from "@prisma/client";
 import { verifyAdminToken } from "@/lib/adminMiddleware";
 
-const CONFIG_FILE = path.join(process.cwd(), "data", "featured-tokens.json");
+const prisma = new PrismaClient();
 
 interface FeaturedToken {
   address: string;
@@ -13,16 +12,6 @@ interface FeaturedToken {
   logoURI?: string;
   order: number;
   enabled: boolean;
-}
-
-// Ensure data directory exists
-async function ensureDataDirectory() {
-  const dataDir = path.join(process.cwd(), "data");
-  try {
-    await fs.access(dataDir);
-  } catch {
-    await fs.mkdir(dataDir, { recursive: true });
-  }
 }
 
 // Default featured tokens (SOL, USDC, USDT)
@@ -62,22 +51,19 @@ const DEFAULT_FEATURED_TOKENS: FeaturedToken[] = [
 // ====================================================================
 export async function GET() {
   try {
-    await ensureDataDirectory();
+    const config = await prisma.swapConfig.findFirst({
+      select: { featuredTokens: true },
+    });
 
-    try {
-      const data = await fs.readFile(CONFIG_FILE, "utf-8");
-      const config = JSON.parse(data);
-      return NextResponse.json(config);
-    } catch (error) {
-      // Return default tokens if file doesn't exist
-      return NextResponse.json({ featuredTokens: DEFAULT_FEATURED_TOKENS });
+    if (config && config.featuredTokens) {
+      const featuredTokens = JSON.parse(config.featuredTokens as string);
+      return NextResponse.json({ featuredTokens });
     }
+
+    return NextResponse.json({ featuredTokens: DEFAULT_FEATURED_TOKENS });
   } catch (error) {
     console.error("Failed to read featured tokens:", error);
-    return NextResponse.json(
-      { error: "Failed to read featured tokens" },
-      { status: 500 }
-    );
+    return NextResponse.json({ featuredTokens: DEFAULT_FEATURED_TOKENS });
   }
 }
 
@@ -86,7 +72,6 @@ export async function GET() {
 // Save/update featured tokens configuration
 // ====================================================================
 export async function POST(request: NextRequest) {
-  // 🛡️ SECURITY CHECK: Verify JWT token and admin status
   const authResult = await verifyAdminToken(request);
   if (!authResult.isValid) {
     return NextResponse.json(
@@ -99,7 +84,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { featuredTokens } = body;
 
-    // Validate input data
     if (!Array.isArray(featuredTokens)) {
       return NextResponse.json(
         { error: "Invalid featured tokens data" },
@@ -107,23 +91,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ Proceed with saving featured tokens (admin verified)
-    await ensureDataDirectory();
-    await fs.writeFile(
-      CONFIG_FILE,
-      JSON.stringify({ featuredTokens }, null, 2)
-    );
+    const existingConfig = await prisma.swapConfig.findFirst();
+    
+    if (existingConfig) {
+      await prisma.swapConfig.update({
+        where: { id: existingConfig.id },
+        data: {
+          featuredTokens: JSON.stringify(featuredTokens),
+        },
+      });
+    } else {
+      await prisma.swapConfig.create({
+        data: {
+          platformFeeBps: 100,
+          maxSlippageBps: 5000,
+          treasuryWallet: process.env.NEXT_PUBLIC_ADMIN_WALLET_1 || "",
+          enabled: true,
+          featuredTokens: JSON.stringify(featuredTokens),
+        },
+      });
+    }
 
-    // 📝 Log admin action for audit trail
     console.log(`[ADMIN] Featured tokens updated by wallet: ${authResult.wallet}`);
     console.log(`[ADMIN] New token count: ${featuredTokens.length}`);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to save featured tokens:", error);
+    console.error("Error details:", error.message, error.stack);
     return NextResponse.json(
-      { error: "Failed to save featured tokens" },
+      { error: "Failed to save featured tokens: " + error.message },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
