@@ -44,19 +44,18 @@ export function calculatePendingRewards(
       return Number(rewardsPending) / 1_000_000_000;
     }
 
-    // ✅ WORKING FORMULA from successful debugging session (Oct 21, 2025)
-    // Formula: (stakeAmount × rewardRatePerSecond × effectiveTime) / 1e9
+    // Formula: (stakeAmount × rewardRatePerSecond × effectiveTime) / totalStaked
     //
     // Breaking it down:
-    // - rewardRatePerSecond has 1e9 scaling (from rateBpsPerYear × 1e9 / (10000 × 31,536,000))
-    // - multiply by effectiveTime (seconds)
-    // - multiply by stakeAmount (lamports)
-    // - divide by 1e9 to remove the scaling
+    // - rewardRatePerSecond is in lamports/second for the ENTIRE POOL
+    // - multiply by effectiveTime (seconds) = total pool distribution
+    // - multiply by stakeAmount (user's lamports staked)
+    // - divide by totalStaked = user's proportional share
     //
-    // This gives us: (lamports × rate × seconds) / 1e9 = lamports earned
+    // This gives us: (user_stake / total_staked) × pool_rate × time = user's lamports earned
     
     const numerator = stakeAmount * rewardRatePerSecond * BigInt(effectiveTime);
-    const earnedLamports = numerator / 1_000_000_000n; // 1e9 (WORKING FORMULA)
+    const earnedLamports = numerator / totalStaked; // Divide by totalStaked for proportional share
     
     // Total pending = previously pending + newly earned
     const totalPendingLamports = rewardsPending + earnedLamports;
