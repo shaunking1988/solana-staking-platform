@@ -606,32 +606,11 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
   setCheckingRewardVault(true);
   
   try {
-    const tokenMintPubkey = new PublicKey(tokenMint);
-    const poolId = pool?.poolId ?? 0;  // ✅ ADD THIS LINE
+    // ✅ USE THE EXISTING getVaultInfo FUNCTION!
+    const vaultInfo = await getVaultInfo(tokenMint, pool?.poolId ?? 0);
     
-    // Step 1: Derive project PDA with pool_id ✅ FIXED
-    const [projectPDA] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("project"),
-        tokenMintPubkey.toBuffer(),
-        Buffer.from(new Uint8Array(new BigUint64Array([BigInt(poolId)]).buffer))  // ✅ ADD pool_id
-      ],
-      new PublicKey("47Z3KVcvmjNUBFroCkSKbNinzbsxhKpsLoUMVGpfrxCm")
-    );
-    
-    // Step 2: Derive reward vault PDA using project
-    const [rewardVaultPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("reward_vault"), projectPDA.toBuffer()],
-      new PublicKey("47Z3KVcvmjNUBFroCkSKbNinzbsxhKpsLoUMVGpfrxCm")
-    );
-    
-    console.log("🔍 Checking vault:", rewardVaultPDA.toString());
-    
-    // Step 3: Get token account info
-    const accountInfo = await getAccount(connection, rewardVaultPDA);
-    
-    const balance = accountInfo.amount;
-    const readableBalance = (Number(balance) / 1_000_000_000).toLocaleString();
+    const balance = vaultInfo.rewardVault.balance;
+    const readableBalance = balance.toLocaleString();
     
     setRewardVaultBalance(readableBalance);
     

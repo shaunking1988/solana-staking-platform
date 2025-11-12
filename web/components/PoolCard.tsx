@@ -167,27 +167,71 @@ export default function PoolCard(props: PoolCardProps) {
       return;
     }
 
-    const fetchReflectionBalance = async () => {
-      setReflectionLoading(true);
-      try {
-        if (stakeData && stakeData.reflectionsPending) {
-          const pendingReflections = Number(stakeData.reflectionsPending) / DECIMALS_MULTIPLIER;
-          setReflectionBalance(pendingReflections);
-        } else {
-          setReflectionBalance(0);
-        }
-      } catch (error) {
-        setReflectionBalance(0);
-      } finally {
-        setReflectionLoading(false);
-      }
-    };
+    // ✅ CALCULATE reflections properly from vault balance and stake data
+  const fetchReflectionBalance = async () => {
+    if (!connected || !publicKey || !effectiveMintAddress) {
+      setReflectionBalance(0);
+      return;
+    }
 
-    fetchReflectionBalance();
-    
-    const interval = setInterval(fetchReflectionBalance, 10000);
-    return () => clearInterval(interval);
-  }, [connected, reflectionTokenAccount, publicKey, name, stakeData]);
+    setReflectionLoading(true);
+    try {
+      // Get fresh project and stake data
+      const project = await getProjectInfo(effectiveMintAddress, poolId);
+      const userStake = await getUserStake(effectiveMintAddress, poolId);
+      
+      if (!project || !userStake || !project.reflectionVault) {
+        console.log("⚠️ No reflection data available");
+        setReflectionBalance(0);
+        return;
+      }
+
+      // Get user's staked amount
+      const userStakedAmount = userStake.amount.toNumber();
+      
+      if (userStakedAmount === 0) {
+        setReflectionBalance(0);
+        return;
+      }
+
+      // Get stored reflection rate from user's stake
+      const userReflectionPerTokenPaid = userStake.reflectionPerTokenPaid 
+        ? userStake.reflectionPerTokenPaid.toNumber() 
+        : 0;
+      
+      // Get current global reflection rate from project
+      const currentReflectionPerToken = project.reflectionPerTokenStored 
+        ? project.reflectionPerTokenStored.toNumber() 
+        : 0;
+
+      // Calculate pending reflections
+      // Formula: (current_rate - user_rate) * user_stake / PRECISION
+      const rateDifference = currentReflectionPerToken - userReflectionPerTokenPaid;
+      const pendingReflections = (rateDifference * userStakedAmount) / (DECIMALS_MULTIPLIER * DECIMALS_MULTIPLIER);
+      
+      console.log("🔍 Reflection Calculation:", {
+        userStaked: userStakedAmount,
+        userRate: userReflectionPerTokenPaid,
+        currentRate: currentReflectionPerToken,
+        rateDiff: rateDifference,
+        pending: pendingReflections
+      });
+      
+      setReflectionBalance(Math.max(0, pendingReflections));
+      
+    } catch (error: any) {
+      console.error("❌ Error fetching reflection balance:", error);
+      setReflectionBalance(0);
+    } finally {
+      setReflectionLoading(false);
+    }
+  };
+
+  fetchReflectionBalance();
+  
+  const interval = setInterval(fetchReflectionBalance, 10000);
+  return () => clearInterval(interval);
+}, [connected, reflectionTokenAccount, publicKey, name, stakeData]);
 
   const lockupInfo = useMemo(() => {
     if (!lockPeriod || type !== "locked" || !userStakeTimestamp) {
