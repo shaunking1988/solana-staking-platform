@@ -122,6 +122,7 @@ model SwapConfig {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   maxSlippageBps Int      @default(100)
+  featuredTokens String?  @db.Text
 }
 
 model SwapStats {
