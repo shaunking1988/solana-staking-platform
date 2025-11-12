@@ -207,8 +207,9 @@ export default function PoolCard(props: PoolCardProps) {
       // Calculate pending reflections
       // Formula: (current_rate - user_rate) * user_stake / PRECISION
       const rateDifference = currentReflectionPerToken - userReflectionPerTokenPaid;
-      const pendingReflections = (rateDifference * userStakedAmount) / (DECIMALS_MULTIPLIER * DECIMALS_MULTIPLIER);
-      
+      const pendingReflectionsLamports = (rateDifference * userStakedAmount) / DECIMALS_MULTIPLIER;  // ✅ NEW LINE 1
+      const pendingReflections = pendingReflectionsLamports / DECIMALS_MULTIPLIER;  // ✅ NEW LINE 2
+            
       console.log("🔍 Reflection Calculation:", {
         userStaked: userStakedAmount,
         userRate: userReflectionPerTokenPaid,
