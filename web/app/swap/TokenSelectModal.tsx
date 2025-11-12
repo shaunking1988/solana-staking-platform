@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Search, Sparkles } from "lucide-react";
+import { X, Search, Sparkles, Clock, XCircle } from "lucide-react";
 
 interface Token {
   address: string;
@@ -19,6 +19,9 @@ interface TokenSelectModalProps {
   title?: string;
 }
 
+const RECENT_TOKENS_KEY = 'stakepoint_recent_tokens';
+const MAX_RECENT_TOKENS = 5;
+
 export default function TokenSelectModal({
   featuredTokens = [],
   isOpen,
@@ -28,9 +31,47 @@ export default function TokenSelectModal({
 }: TokenSelectModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [allTokens, setAllTokens] = useState<Token[]>([]);
+  const [recentTokens, setRecentTokens] = useState<Token[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [birdeyeToken, setBirdeyeToken] = useState<Token | null>(null);
   const [isFetchingBirdeye, setIsFetchingBirdeye] = useState(false);
+
+  // Load recent tokens from localStorage
+  useEffect(() => {
+    if (isOpen) {
+      try {
+        const stored = localStorage.getItem(RECENT_TOKENS_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setRecentTokens(parsed);
+        }
+      } catch (error) {
+        console.error('Failed to load recent tokens:', error);
+      }
+    }
+  }, [isOpen]);
+
+  // Save token to recent searches
+  const saveToRecentTokens = (token: Token) => {
+    try {
+      const stored = localStorage.getItem(RECENT_TOKENS_KEY);
+      let recent: Token[] = stored ? JSON.parse(stored) : [];
+      
+      // Remove if already exists
+      recent = recent.filter(t => t.address !== token.address);
+      
+      // Add to front
+      recent.unshift(token);
+      
+      // Keep only last 5
+      recent = recent.slice(0, MAX_RECENT_TOKENS);
+      
+      localStorage.setItem(RECENT_TOKENS_KEY, JSON.stringify(recent));
+      setRecentTokens(recent);
+    } catch (error) {
+      console.error('Failed to save recent token:', error);
+    }
+  };
 
   // Fetch token list on mount
   useEffect(() => {
@@ -55,7 +96,6 @@ export default function TokenSelectModal({
   // Fetch token from Birdeye if it looks like a Solana address
   useEffect(() => {
     const fetchBirdeyeToken = async () => {
-      // Check if search query looks like a Solana address (43-44 characters, base58)
       const isSolanaAddress = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(searchQuery.trim());
       
       if (!isSolanaAddress) {
@@ -63,7 +103,6 @@ export default function TokenSelectModal({
         return;
       }
 
-      // Check if already in Jupiter list
       const existingToken = allTokens.find(
         (token) => token.address.toLowerCase() === searchQuery.trim().toLowerCase()
       );
@@ -115,12 +154,25 @@ export default function TokenSelectModal({
     ? [birdeyeToken, ...filteredTokens] 
     : filteredTokens;
 
+  // Handle token selection
+  const handleSelectToken = (token: Token) => {
+    saveToRecentTokens(token);
+    onSelectToken(token);
+    onClose();
+  };
+
+  // Clear search
+  const clearSearch = () => {
+    setSearchQuery("");
+    setBirdeyeToken(null);
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-[#1A1F2E] rounded-2xl w-full max-w-[90vw] sm:max-w-md max-h-[80vh] flex flex-col shadow-2xl border border-white/[0.05]">
-        {/* Header - Mobile optimized */}
+        {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/[0.05]">
           <h2 className="text-lg sm:text-xl font-bold text-white">{title}</h2>
           <button
@@ -132,7 +184,7 @@ export default function TokenSelectModal({
           </button>
         </div>
 
-        {/* Search Bar - Mobile optimized */}
+        {/* Search Bar with Clear Button */}
         <div className="p-4 sm:p-6 border-b border-white/[0.05]">
           <div className="relative">
             <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -141,16 +193,68 @@ export default function TokenSelectModal({
               placeholder="Search by name or address..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white/[0.05] border border-white/[0.05] text-white rounded-xl pl-10 sm:pl-12 pr-4 py-3 sm:py-4 
+              className="w-full bg-white/[0.05] border border-white/[0.05] text-white rounded-xl pl-10 sm:pl-12 pr-10 sm:pr-12 py-3 sm:py-4 
                        focus:outline-none 
                        placeholder-gray-500 text-sm sm:text-base min-h-[44px]"
               style={{ borderColor: 'rgba(251, 87, 255, 0.3)' }}
               autoFocus
             />
+            {searchQuery && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-white/[0.08] rounded-lg transition-colors"
+                aria-label="Clear search"
+              >
+                <XCircle className="w-5 h-5 text-gray-400 hover:text-gray-300" />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Featured Tokens - Mobile optimized grid */}
+        {/* Recent Tokens - Only show when not searching */}
+        {!searchQuery && recentTokens.length > 0 && (
+          <div className="p-4 sm:p-6 border-b border-white/[0.05]">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <Clock className="w-4 h-4 text-gray-400" />
+              <span className="text-xs sm:text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                Recent
+              </span>
+            </div>
+            <div className="space-y-1">
+              {recentTokens.map((token) => (
+                <button
+                  key={token.address}
+                  onClick={() => handleSelectToken(token)}
+                  className="w-full flex items-center gap-3 p-2 sm:p-3 hover:bg-white/[0.05] 
+                           rounded-xl transition-all min-h-[44px]"
+                >
+                  {token.logoURI ? (
+                    <img
+                      src={token.logoURI}
+                      alt={token.symbol}
+                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex-shrink-0"
+                    />
+                  ) : (
+                    <div 
+                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex-shrink-0" 
+                      style={{ background: 'rgba(251, 87, 255, 0.2)' }}
+                    />
+                  )}
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="font-semibold text-white text-sm">
+                      {token.symbol}
+                    </div>
+                    <div className="text-xs text-gray-400 truncate">
+                      {token.name}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Featured Tokens - Only show when not searching */}
         {featuredTokens.length > 0 && !searchQuery && (
           <div className="p-4 sm:p-6 border-b border-white/[0.05]">
             <div className="flex items-center gap-2 mb-3 sm:mb-4">
@@ -163,10 +267,7 @@ export default function TokenSelectModal({
               {featuredTokens.map((token) => (
                 <button
                   key={token.address}
-                  onClick={() => {
-                    onSelectToken(token);
-                    onClose();
-                  }}
+                  onClick={() => handleSelectToken(token)}
                   className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-white/[0.05] hover:bg-white/[0.08] 
                            rounded-xl transition-all hover:scale-105 min-h-[44px]"
                 >
@@ -191,7 +292,7 @@ export default function TokenSelectModal({
           </div>
         )}
 
-        {/* Token List - Mobile optimized scrolling */}
+        {/* Token List */}
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="flex items-center justify-center py-12 sm:py-16">
@@ -221,10 +322,7 @@ export default function TokenSelectModal({
               {displayTokens.map((token, index) => (
                 <button
                   key={token.address}
-                  onClick={() => {
-                    onSelectToken(token);
-                    onClose();
-                  }}
+                  onClick={() => handleSelectToken(token)}
                   className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-white/[0.05] 
                            rounded-xl transition-colors text-left min-h-[56px] sm:min-h-[64px]"
                 >

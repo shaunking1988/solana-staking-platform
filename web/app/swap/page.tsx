@@ -8,7 +8,6 @@ import { ArrowDownUp, Settings, Info, TrendingUp, Zap, ExternalLink } from "luci
 import { useToast } from "@/components/ToastContainer";
 import TokenSelectModal from "./TokenSelectModal";
 import { executeJupiterSwap, getJupiterQuote } from "@/lib/jupiter-swap";
-import { executeRaydiumSwap, getRaydiumQuote } from "@/lib/raydium-swap";
 
 interface Token {
   address: string;
@@ -58,7 +57,7 @@ export default function SwapPage() {
   const [currentQuote, setCurrentQuote] = useState<any>(null);
   const [tokenBalance, setTokenBalance] = useState<number | null>(null);
 
-  // Load config from API - MAINNET CONFIGURATION
+  // Load config from API
   useEffect(() => {
     const loadConfig = async () => {
       try {
@@ -69,36 +68,24 @@ export default function SwapPage() {
           
           console.log('📋 Loaded swap config from API:', data);
           
-          // Convert basis points to percentage
           const platformFeePercentage = (data.platformFeeBps || 100) / 100;
           const maxSlippage = (data.maxSlippageBps || 5000) / 100;
           
           setConfig({
             swapEnabled: data.swapEnabled ?? true,
-            platformFeePercentage, // e.g., 100 bps = 1%
+            platformFeePercentage,
             platformFeeBps: data.platformFeeBps || 100,
-            maxSlippage, // e.g., 5000 bps = 50%
+            maxSlippage,
             priorityFee: 0.0001,
             treasuryWallet: data.treasuryWallet || "",
           });
           
-          console.log('✅ Config loaded:', {
-            swapEnabled: data.swapEnabled,
-            platformFeeBps: data.platformFeeBps,
-            platformFeePercentage: platformFeePercentage + '%',
-            treasuryWallet: data.treasuryWallet,
-            maxSlippage: maxSlippage + '%',
-            jupiterReferralAccount: JUPITER_REFERRAL_ACCOUNT ? 'Configured' : 'Not configured',
-            jupiterReferralFee: JUPITER_REFERRAL_FEE_BPS / 100 + '%',
-          });
+          console.log('✅ Config loaded successfully');
           
-          // Update slippage if it exceeds max
           if (slippage > maxSlippage) {
             setSlippage(maxSlippage);
           }
         } else {
-          console.error('❌ Failed to load config:', res.status);
-          // Use defaults
           setConfig({
             swapEnabled: true,
             platformFeePercentage: 1.0,
@@ -132,7 +119,7 @@ export default function SwapPage() {
   const loadTokens = async () => {
     setLoading(true);
     try {
-      // Load featured tokens from admin panel
+      // Load featured tokens
       try {
         const featuredRes = await fetch("/api/admin/featured-tokens");
         if (featuredRes.ok) {
@@ -173,7 +160,7 @@ export default function SwapPage() {
     }
   };
 
-  // Get quote when amount changes - with debounce
+  // Get quote when amount changes
   useEffect(() => {
     const timer = setTimeout(() => {
       if (fromToken && toToken && fromAmount && parseFloat(fromAmount) > 0) {
@@ -187,7 +174,7 @@ export default function SwapPage() {
     return () => clearTimeout(timer);
   }, [fromToken, toToken, fromAmount, slippage]);
 
-  // Fetch token balance when wallet or fromToken changes
+  // Fetch token balance
   useEffect(() => {
     if (publicKey && fromToken) {
       fetchTokenBalance();
@@ -200,36 +187,21 @@ export default function SwapPage() {
     if (!publicKey || !fromToken) return;
 
     try {
-      console.log('💰 Fetching balance for:', {
-        token: fromToken.symbol,
-        address: fromToken.address,
-        decimals: fromToken.decimals,
-      });
-
       // For SOL (native token)
       if (fromToken.address === "So11111111111111111111111111111111111111112") {
         const balance = await connection.getBalance(publicKey);
-        setTokenBalance(balance / Math.pow(10, 9)); // Convert lamports to SOL
-        console.log('✅ SOL balance:', balance / Math.pow(10, 9));
+        setTokenBalance(balance / Math.pow(10, 9));
       } else {
-        // For SPL tokens - try both regular SPL and Token-2022
+        // For SPL tokens
         const tokenMint = new PublicKey(fromToken.address);
         const tokenAccount = await getAssociatedTokenAddress(tokenMint, publicKey);
         
-        console.log('🔍 Looking for token account:', tokenAccount.toBase58());
-        
         try {
-          // First try regular SPL token
           const accountInfo = await getAccount(connection, tokenAccount);
           const balance = Number(accountInfo.amount) / Math.pow(10, fromToken.decimals);
           setTokenBalance(balance);
-          console.log('✅ Token balance (SPL):', {
-            raw: accountInfo.amount.toString(),
-            decimal: balance,
-            decimals: fromToken.decimals,
-          });
         } catch (splError: any) {
-          // Try Token-2022 (Token Extensions)
+          // Try Token-2022
           try {
             const TOKEN_2022_PROGRAM_ID = new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
             const token2022Account = await getAssociatedTokenAddress(
@@ -239,19 +211,11 @@ export default function SwapPage() {
               TOKEN_2022_PROGRAM_ID
             );
             
-            console.log('🔍 Trying Token-2022 account:', token2022Account.toBase58());
-            
             const accountInfo = await getAccount(connection, token2022Account, undefined, TOKEN_2022_PROGRAM_ID);
             const balance = Number(accountInfo.amount) / Math.pow(10, fromToken.decimals);
             setTokenBalance(balance);
-            console.log('✅ Token balance (Token-2022):', {
-              raw: accountInfo.amount.toString(),
-              decimal: balance,
-              decimals: fromToken.decimals,
-            });
           } catch (token2022Error: any) {
-            console.error('❌ Token account error (both SPL and Token-2022):', splError.message, token2022Error.message);
-            setTokenBalance(0); // Account doesn't exist
+            setTokenBalance(0);
           }
         }
       }
@@ -261,103 +225,37 @@ export default function SwapPage() {
     }
   };
 
-  const handleHalfAmount = async () => {
-    if (tokenBalance === null) {
-      console.log('⚠️ Cannot use 50%: balance not loaded');
-      return;
-    }
+  const handleHalfAmount = () => {
+    if (tokenBalance === null) return;
     
-    console.log('📊 50% button clicked:', {
-      token: fromToken?.symbol,
-      balance: tokenBalance,
-    });
-    
-    // For SOL, calculate 50% but still leave buffer for fees
+    // For SOL, leave 0.015 SOL buffer (suggestion only - not enforced)
     if (fromToken?.address === "So11111111111111111111111111111111111111112") {
-      try {
-        // Get current SOL price
-        const priceResponse = await fetch('https://api.dexscreener.com/latest/dex/tokens/So11111111111111111111111111111111111111112');
-        const priceData = await priceResponse.json();
-        const solPriceUSD = priceData.pairs?.[0]?.priceUsd ? parseFloat(priceData.pairs[0].priceUsd) : 250;
-        
-        const targetBufferUSD = 2.50;
-        const txFeeBuffer = targetBufferUSD / solPriceUSD;
-        const finalBuffer = Math.max(0.015, Math.min(0.02, txFeeBuffer));
-        
-        // Calculate 50% of (balance - buffer)
-        const maxUsable = Math.max(0, tokenBalance - finalBuffer);
-        const halfAmount = maxUsable * 0.5;
-        
-        setFromAmount(halfAmount.toFixed(6));
-        
-        console.log('💰 50% calculation (with buffer):', {
-          solPrice: '$' + solPriceUSD.toFixed(2),
-          buffer: finalBuffer.toFixed(6) + ' SOL',
-          maxUsable: maxUsable.toFixed(6) + ' SOL',
-          halfAmount: halfAmount.toFixed(6) + ' SOL',
-        });
-      } catch (error) {
-        console.error('Failed to fetch SOL price, using default buffer:', error);
-        const maxUsable = Math.max(0, tokenBalance - 0.015);
-        const halfAmount = maxUsable * 0.5;
-        setFromAmount(halfAmount.toFixed(6));
-      }
+      const buffer = 0.015;
+      const maxUsable = Math.max(0, tokenBalance - buffer);
+      const halfAmount = maxUsable * 0.5;
+      setFromAmount(halfAmount.toFixed(6));
     } else {
-      // For other tokens, simply use 50% of balance
       const halfAmount = tokenBalance * 0.5;
       setFromAmount(halfAmount.toFixed(6));
-      console.log('💰 Set 50% amount (Token):', halfAmount.toFixed(6));
     }
   };
 
-  const handleMaxAmount = async () => {
-    if (tokenBalance === null) {
-      console.log('⚠️ Cannot use MAX: balance not loaded');
-      return;
-    }
+  const handleMaxAmount = () => {
+    if (tokenBalance === null) return;
     
-    console.log('🔝 MAX button clicked:', {
-      token: fromToken?.symbol,
-      balance: tokenBalance,
-    });
-    
-    // For SOL, leave enough for round-trip swaps based on USD value
+    // For SOL, leave 0.015 SOL buffer (helpful suggestion - user can override)
     if (fromToken?.address === "So11111111111111111111111111111111111111112") {
-      try {
-        // Get current SOL price
-        const priceResponse = await fetch('https://api.dexscreener.com/latest/dex/tokens/So11111111111111111111111111111111111111112');
-        const priceData = await priceResponse.json();
-        const solPriceUSD = priceData.pairs?.[0]?.priceUsd ? parseFloat(priceData.pairs[0].priceUsd) : 250; // Default to $250 if API fails
-        
-        // Calculate SOL amount needed for round-trip capability
-        const targetBufferUSD = 2.50;
-        const txFeeBuffer = targetBufferUSD / solPriceUSD;
-        
-        // CRITICAL: Jupiter Ultra requires 0.01 SOL AFTER swap completes
-        // But the swap itself consumes ~0.005 SOL in fees
-        // So we need to keep: 0.01 (for next swap) + 0.005 (consumed in this swap) = 0.015 SOL
-        const finalBuffer = Math.max(0.015, Math.min(0.02, txFeeBuffer));
-        
-        const maxAmount = Math.max(0, tokenBalance - finalBuffer);
-        setFromAmount(maxAmount.toFixed(6));
-        
-        console.log('💰 MAX calculation (round-trip safe):', {
-          solPrice: '$' + solPriceUSD.toFixed(2),
-          targetBufferUSD: '$' + targetBufferUSD,
-          calculatedBuffer: txFeeBuffer.toFixed(6) + ' SOL',
-          finalBuffer: finalBuffer.toFixed(6) + ' SOL',
-          bufferValueUSD: '$' + (finalBuffer * solPriceUSD).toFixed(2),
-          maxAmount: maxAmount.toFixed(6) + ' SOL',
-        });
-      } catch (error) {
-        console.error('Failed to fetch SOL price, using default buffer:', error);
-        // Fallback to 0.015 SOL (accounts for fees consumed + 0.01 minimum for next swap)
-        const maxAmount = Math.max(0, tokenBalance - 0.015);
-        setFromAmount(maxAmount.toFixed(6));
-      }
+      const buffer = 0.015; // Accounts for swap fees + round-trip capability
+      const maxAmount = Math.max(0, tokenBalance - buffer);
+      setFromAmount(maxAmount.toFixed(6));
+      
+      console.log('💰 MAX calculation:', {
+        balance: tokenBalance.toFixed(6) + ' SOL',
+        buffer: buffer + ' SOL (suggestion - not enforced)',
+        maxAmount: maxAmount.toFixed(6) + ' SOL',
+      });
     } else {
       setFromAmount(tokenBalance.toFixed(6));
-      console.log('💰 Set MAX amount (Token):', tokenBalance.toFixed(6));
     }
   };
 
@@ -371,13 +269,10 @@ export default function SwapPage() {
       console.log('🔍 Fetching quote:', {
         from: fromToken.symbol,
         to: toToken.symbol,
-        fromAmount,
-        amountLamports: amount,
+        amount: fromAmount,
       });
       
-      // Try Jupiter first
-      console.log('🪐 Trying Jupiter...');
-      let quote = await getJupiterQuote(
+      const quote = await getJupiterQuote(
         fromToken.address,
         toToken.address,
         amount,
@@ -386,60 +281,21 @@ export default function SwapPage() {
         config?.treasuryWallet
       );
       
-      let source = 'Jupiter';
-      
-      // If Jupiter fails, try Raydium
       if (!quote) {
-        console.log('⚠️ Jupiter failed, trying Raydium...');
-        const raydiumQuote = await getRaydiumQuote(
-          connection,
-          fromToken.address,
-          toToken.address,
-          amount,
-          Math.floor(slippage * 100)
-        );
-        
-        if (raydiumQuote) {
-          // Convert Raydium response to Jupiter-like format
-          quote = {
-            inputMint: raydiumQuote.data.inputMint,
-            inAmount: raydiumQuote.data.inputAmount,
-            outputMint: raydiumQuote.data.outputMint,
-            outAmount: raydiumQuote.data.outputAmount,
-            otherAmountThreshold: raydiumQuote.data.otherAmountThreshold,
-            swapMode: raydiumQuote.data.swapType,
-            slippageBps: raydiumQuote.data.slippageBps,
-            platformFee: null,
-            priceImpactPct: raydiumQuote.data.priceImpactPct.toString(),
-            routePlan: raydiumQuote.data.routePlan,
-          };
-          source = 'Raydium';
-        }
-      }
-      
-      if (!quote) {
-        console.error('❌ Both Jupiter and Raydium failed to provide quote');
+        console.error('❌ Failed to get quote');
         setToAmount("");
         setCurrentQuote(null);
         return;
       }
       
-      console.log(`📊 Quote received from ${source}`);
-      setCurrentQuote({ ...quote, source });
+      console.log('📊 Quote received from Jupiter');
+      setCurrentQuote({ ...quote, source: 'Jupiter' });
       
-      // Convert output amount from lamports to decimal
       if (quote.outAmount) {
         const outAmountDecimal = parseFloat(quote.outAmount) / Math.pow(10, toToken.decimals);
         const displayDecimals = outAmountDecimal < 0.01 ? 8 : outAmountDecimal < 1 ? 6 : 2;
         setToAmount(outAmountDecimal.toFixed(displayDecimals));
-        
-        console.log('💱 Converted output:', {
-          lamports: quote.outAmount,
-          decimal: outAmountDecimal.toFixed(displayDecimals),
-          decimals: toToken.decimals,
-        });
       } else {
-        console.error('❌ No outAmount in quote');
         setToAmount("");
       }
     } catch (error) {
@@ -462,49 +318,8 @@ export default function SwapPage() {
       return;
     }
 
-    // Check SOL balance and enforce minimum for successful swaps
-    try {
-      const solBalance = await connection.getBalance(publicKey);
-      const solBalanceDecimal = solBalance / 1e9;
-      
-      // Only block if literally no SOL at all
-      if (solBalanceDecimal < 0.000001) {
-        showError("No SOL in wallet");
-        return;
-      }
-      
-      // CRITICAL: When swapping SOL, enforce Jupiter Ultra's 0.01 SOL minimum
-      if (fromToken?.address === "So11111111111111111111111111111111111111112") {
-        const amountToSwap = parseFloat(fromAmount);
-        const willRemain = solBalanceDecimal - amountToSwap;
-        
-        // Jupiter Ultra requires 0.01 SOL minimum for successful swaps
-        // This ensures referral fees are always collected
-        const minimumRemaining = 0.01;
-        
-        if (willRemain < minimumRemaining) {
-          const maxYouCanSwap = (solBalanceDecimal - minimumRemaining).toFixed(6);
-          showError(`Need ${minimumRemaining} SOL for fees & round-trip. Max: ${maxYouCanSwap} SOL`);
-          console.error('❌ Insufficient SOL for Jupiter Ultra:', {
-            balance: solBalanceDecimal,
-            swapping: amountToSwap,
-            willRemain: willRemain,
-            jupiterMinimum: minimumRemaining,
-            maxCanSwap: maxYouCanSwap,
-          });
-          return;
-        }
-        
-        // Warn if getting close to minimum
-        if (willRemain < 0.015) {
-          console.warn('⚠️ Low SOL remaining after swap:', willRemain);
-          showInfo(`You'll have ${willRemain.toFixed(4)} SOL left`);
-        }
-      }
-    } catch (balanceError) {
-      console.warn('Could not check SOL balance:', balanceError);
-      // Don't block - let Jupiter handle it
-    }
+    // NO FRONTEND VALIDATION BLOCKS!
+    // Let Jupiter handle all validation and show real errors
 
     setSwapping(true);
     setLastTxSignature(null);
@@ -512,74 +327,30 @@ export default function SwapPage() {
     try {
       const amount = Math.floor(parseFloat(fromAmount) * Math.pow(10, fromToken.decimals));
 
-      console.log('🔄 Executing swap...', {
-        fromToken: fromToken.symbol,
-        toToken: toToken.symbol,
-        fromAmount: fromAmount,
-        amountLamports: amount,
-        walletBalance: await connection.getBalance(publicKey) / 1e9,
+      console.log('🔄 Executing swap via Jupiter...', {
+        from: fromToken.symbol,
+        to: toToken.symbol,
+        amount: fromAmount,
       });
 
-      // Try Jupiter first
-      console.log('🪐 Attempting swap with Jupiter...');
-      let txid: string | null = null;
-      let source = 'Jupiter';
-      let jupiterError: Error | null = null;
-      
-      try {
-        txid = await executeJupiterSwap(
-          connection,
-          publicKey,
-          fromToken.address,
-          toToken.address,
-          amount,
-          Math.floor(slippage * 100),
-          signTransaction,
-          config?.platformFeeBps,
-          config?.treasuryWallet
-        );
-      } catch (error: any) {
-        jupiterError = error;
-        console.error('❌ Jupiter swap error:', error);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-        
-        // If it's a slippage error, throw immediately (don't try Raydium)
-        if (error.message?.includes("Slippage tolerance exceeded")) {
-          throw error;
-        }
-      }
-      
-      // If Jupiter fails, try Raydium
-      if (!txid) {
-        console.log('⚠️ Jupiter swap failed, trying Raydium...');
-        try {
-          txid = await executeRaydiumSwap(
-            connection,
-            publicKey,
-            fromToken.address,
-            toToken.address,
-            amount,
-            Math.floor(slippage * 100),
-            signTransaction as any
-          );
-          source = 'Raydium';
-        } catch (error: any) {
-          console.error('❌ Raydium also failed:', error);
-        }
-      }
-      
-      if (!txid) {
-        throw new Error(jupiterError?.message || 'Both Jupiter and Raydium swaps failed. Please try again with higher slippage.');
-      }
+      const txid = await executeJupiterSwap(
+        connection,
+        publicKey,
+        fromToken.address,
+        toToken.address,
+        amount,
+        Math.floor(slippage * 100),
+        signTransaction,
+        config?.platformFeeBps,
+        config?.treasuryWallet
+      );
 
-      console.log(`✅ Swap transaction sent via ${source}:`, txid);
+      console.log('✅ Swap transaction sent:', txid);
       setLastTxSignature(txid);
 
-      // Show pending - short message for mobile
-      showInfo(`📤 Swap sent via ${source}...`);
+      showInfo('📤 Swap sent...');
 
-      // Wait for confirmation with better error handling
+      // Wait for confirmation
       try {
         const latestBlockhash = await connection.getLatestBlockhash('finalized');
         
@@ -596,53 +367,40 @@ export default function SwapPage() {
         setFromAmount("");
         setToAmount("");
         setCurrentQuote(null);
-        
-        // Refresh balance
         fetchTokenBalance();
         
       } catch (confirmError: any) {
         console.warn('⚠️ Confirmation issue:', confirmError.message);
         
-        // Check actual status
         const status = await connection.getSignatureStatus(txid);
         
         if (status.value?.confirmationStatus === 'confirmed' || 
             status.value?.confirmationStatus === 'finalized') {
-          console.log('✅ Transaction actually confirmed');
           showSuccess(`✅ ${fromToken.symbol} → ${toToken.symbol}`);
           setFromAmount("");
           setToAmount("");
           setCurrentQuote(null);
           fetchTokenBalance();
         } else if (status.value?.err) {
-          console.error('❌ Transaction failed:', status.value.err);
           throw new Error(`Transaction failed: ${JSON.stringify(status.value.err)}`);
         } else {
-          showInfo(`⏳ Swap pending...`);
+          showInfo('⏳ Swap pending...');
         }
       }
       
-      // Record stats with USD volume calculation
+      // Record stats
       try {
-        // Import the price calculation utility
         const { calculateSwapVolumeUSD } = await import('@/lib/token-prices');
         
         const fromAmountDecimal = parseFloat(fromAmount);
         const toAmountDecimal = parseFloat(toAmount);
         
-        // Calculate USD volume for leaderboard
-        const { volumeUsd, priceUsd, pricedToken } = await calculateSwapVolumeUSD(
+        const { volumeUsd, priceUsd } = await calculateSwapVolumeUSD(
           fromToken.address,
           fromAmountDecimal,
           toToken.address,
           toAmountDecimal
         );
-        
-        console.log('💰 Swap volume:', {
-          volumeUsd: volumeUsd.toFixed(2),
-          priceUsd: priceUsd.toFixed(4),
-          pricedToken: pricedToken === fromToken.address ? fromToken.symbol : toToken.symbol,
-        });
 
         await fetch("/api/swap/stats", {
           method: "POST",
@@ -654,59 +412,34 @@ export default function SwapPage() {
             toAmount: toAmountDecimal,
             userAddress: publicKey.toString(),
             txid: txid,
-            source: source,
-            referralFeeCollected: source === 'Jupiter' && JUPITER_REFERRAL_ACCOUNT,
+            source: 'Jupiter',
+            referralFeeCollected: !!JUPITER_REFERRAL_ACCOUNT,
             volumeUsd: volumeUsd,
             priceUsd: priceUsd,
           }),
         });
       } catch (statsError) {
         console.error('Stats recording failed:', statsError);
-        // Still record stats even if USD calculation fails
-        try {
-          await fetch("/api/swap/stats", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              fromToken: fromToken.symbol,
-              toToken: toToken.symbol,
-              fromAmount: parseFloat(fromAmount),
-              toAmount: parseFloat(toAmount),
-              userAddress: publicKey.toString(),
-              txid: txid,
-              source: source,
-              referralFeeCollected: source === 'Jupiter' && JUPITER_REFERRAL_ACCOUNT,
-              volumeUsd: 0,
-              priceUsd: 0,
-            }),
-          });
-        } catch (fallbackError) {
-          console.error('Fallback stats recording also failed:', fallbackError);
-        }
       }
 
     } catch (error: any) {
       console.error("❌ Swap error:", error);
       
-      // Show the actual error message from Jupiter/blockchain
-      if (error.message === 'INSUFFICIENT_SOL_FOR_GAS') {
-        showError("Insufficient SOL for fees");
-      } else if (error.message?.includes('User rejected')) {
+      // Show Jupiter's actual error message
+      if (error.message?.includes('User rejected')) {
         showError("Transaction cancelled");
-      } else if (error.message?.includes('insufficient funds') || error.message?.includes('Insufficient funds')) {
-        showError("Insufficient balance for swap");
-      } else if (error.message?.includes('Blockhash not found')) {
-        showError("Transaction expired");
+      } else if (error.message?.includes('Insufficient SOL')) {
+        // Jupiter's actual error about needing more SOL
+        showError(error.message);
+      } else if (error.message?.includes('insufficient') || error.message?.includes('Insufficient')) {
+        showError(error.message.substring(0, 60));
       } else if (error.message?.includes('Slippage')) {
-        showError("Slippage exceeded");
-      } else if (error.message?.includes('0x1')) {
-        // Solana error code 0x1 = insufficient funds for fee
-        showError("Insufficient SOL for transaction fee");
+        showError("Slippage exceeded - try higher %");
+      } else if (error.message?.includes('Blockhash not found')) {
+        showError("Transaction expired - try again");
       } else if (error.message) {
-        // Show actual error message (truncated for mobile)
-        const shortError = error.message.substring(0, 50);
-        showError(shortError);
-        console.error('Full error:', error.message);
+        // Show first 60 chars of actual error
+        showError(error.message.substring(0, 60));
       } else {
         showError("Swap failed");
       }
@@ -724,12 +457,10 @@ export default function SwapPage() {
     setCurrentQuote(null);
   };
 
-  // Helper to get explorer link
   const getExplorerLink = (signature: string) => {
     return `https://solscan.io/tx/${signature}`;
   };
 
-  // Calculate effective fee (Jupiter referral fee)
   const jupiterFeePercentage = JUPITER_REFERRAL_FEE_BPS / 100;
 
   return (
@@ -747,11 +478,10 @@ export default function SwapPage() {
             Powered by StakePoint
           </p>
           
-          {/* Referral status warning */}
           {!JUPITER_REFERRAL_ACCOUNT && (
             <div className="mt-2 border rounded-lg p-2" style={{ background: 'rgba(251, 191, 0, 0.2)', borderColor: 'rgba(251, 191, 0, 0.5)' }}>
               <p className="text-sm text-yellow-200">
-                ⚠️ Jupiter referral account not configured - fees will not be collected
+                ⚠️ Jupiter referral not configured
               </p>
             </div>
           )}
@@ -759,9 +489,6 @@ export default function SwapPage() {
           {config && !config.swapEnabled && (
             <div className="mt-4 bg-red-500/20 border border-red-500 rounded-lg p-3">
               <p className="text-red-200 font-semibold">⚠️ Swap Disabled</p>
-              <p className="text-red-300 text-sm">
-                Swapping is currently disabled by the administrator
-              </p>
             </div>
           )}
         </div>
@@ -789,7 +516,7 @@ export default function SwapPage() {
                       key={value}
                       onClick={() => setSlippage(value)}
                       disabled={config && value > config.maxSlippage}
-                      className={`flex-1 px-3 py-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                      className={`flex-1 px-3 py-2 rounded-lg transition-all disabled:opacity-50 ${
                         slippage === value
                           ? "text-white"
                           : "bg-white/[0.05] text-gray-300 hover:bg-white/[0.08]"
@@ -814,18 +541,6 @@ export default function SwapPage() {
                     step="0.1"
                     min="0.1"
                   />
-                </div>
-                <div className="mt-2 space-y-1">
-                  {config && (
-                    <p className="text-xs text-gray-500">
-                      Max slippage: {config.maxSlippage}%
-                    </p>
-                  )}
-                  {slippage < 0.5 && (
-                    <p className="text-xs text-yellow-500">
-                      ⚠️ Very low slippage may cause failed swaps
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
@@ -925,34 +640,32 @@ export default function SwapPage() {
             <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-3 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">Route</span>
-                <span className="text-white">
-                  {currentQuote?.source || 'Jupiter'}
-                </span>
+                <span className="text-white">Jupiter</span>
               </div>
-              {fromToken && toToken && !toAmount.startsWith('~') && (
+              {fromToken && toToken && (
                 <div className="flex justify-between">
                   <span className="text-gray-500">Rate</span>
                   <span className="text-white">
-                    1 {fromToken.symbol} ≈ {(parseFloat(toAmount.replace('~', '')) / parseFloat(fromAmount)).toFixed(6)} {toToken.symbol}
+                    1 {fromToken.symbol} ≈ {(parseFloat(toAmount) / parseFloat(fromAmount)).toFixed(6)} {toToken.symbol}
                   </span>
                 </div>
               )}
-              {JUPITER_REFERRAL_ACCOUNT && currentQuote?.source === 'Jupiter' && (
+              {JUPITER_REFERRAL_ACCOUNT && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Integrator Fee ({jupiterFeePercentage}%)</span>
+                  <span className="text-gray-500">Fee ({jupiterFeePercentage}%)</span>
                   <span className="text-white">
                     {((parseFloat(fromAmount) * jupiterFeePercentage) / 100).toFixed(6)} {fromToken?.symbol}
                   </span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-gray-500">Slippage Tolerance</span>
+                <span className="text-gray-500">Slippage</span>
                 <span className="text-white">{slippage}%</span>
               </div>
             </div>
           )}
 
-          {/* Last Transaction Link - Mobile Optimized */}
+          {/* Last Transaction */}
           {lastTxSignature && (
             <a
               href={getExplorerLink(lastTxSignature)}
@@ -992,17 +705,16 @@ export default function SwapPage() {
             ) : (
               <>
                 <Zap className="w-5 h-5" />
-                Swap via Ultra
+                Swap
               </>
             )}
           </button>
 
-          {/* Warning */}
           {!publicKey && (
             <div className="border rounded-lg p-3 flex items-start gap-2" style={{ background: 'rgba(251, 87, 255, 0.2)', borderColor: 'rgba(251, 87, 255, 0.5)' }}>
               <Info className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#fb57ff' }} />
               <p className="text-sm" style={{ color: '#fb57ff' }}>
-                Please connect your wallet to start swapping
+                Connect wallet to start swapping
               </p>
             </div>
           )}
@@ -1016,7 +728,7 @@ export default function SwapPage() {
               <span className="font-semibold text-white">Jupiter Routing</span>
             </div>
             <p className="text-sm text-gray-500">
-              Premium routing with better prices
+              Premium routing with best prices
             </p>
           </div>
 
@@ -1026,19 +738,19 @@ export default function SwapPage() {
               <span className="font-semibold text-white">Best Execution</span>
             </div>
             <p className="text-sm text-gray-500">
-              Fast and reliable swaps from multiple Dex's
+              Fast and reliable swaps
             </p>
           </div>
 
           <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Info className="w-5 h-5" style={{ color: '#fb57ff' }} />
-              <span className="font-semibold text-white">User Swap Rewards</span>
+              <span className="font-semibold text-white">Swap Rewards</span>
             </div>
             <p className="text-sm text-gray-500">
               {JUPITER_REFERRAL_ACCOUNT 
-                ? "Swap your way to the top 10 spot of the rewards Leaderboard"
-                : "Rewards coming soon"}
+                ? "Climb the leaderboard"
+                : "Coming soon"}
             </p>
           </div>
         </div>
