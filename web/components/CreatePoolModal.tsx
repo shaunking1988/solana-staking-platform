@@ -462,32 +462,63 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       // Save to database
       setStatusMessage("Saving pool information...");
       
-      // Calculate reflection vault address if enabled
+      // ✅ FETCH ACTUAL BLOCKCHAIN DATA instead of calculating
       let reflectionVaultAddress = null;
       let reflectionSymbol = null;
+      let actualReflectionMint = null;
 
       if (poolConfig.enableReflections) {
-        const reflectionMint = poolConfig.reflectionType === "external" 
-          ? new PublicKey(poolConfig.externalReflectionMint)
-          : tokenMintPubkey;
-        
-        // Get the reflection token's program
-        const reflectionMintInfo = await connection.getAccountInfo(reflectionMint);
-        const reflectionTokenProgram = reflectionMintInfo?.owner.equals(TOKEN_2022_PROGRAM_ID)
-          ? TOKEN_2022_PROGRAM_ID
-          : TOKEN_PROGRAM_ID;
-        
-        // Calculate the ATA address
-        reflectionVaultAddress = anchor.utils.token.associatedAddress({
-          mint: reflectionMint,
-          owner: stakingVaultPDA,
-          tokenProgramId: reflectionTokenProgram,
-        }).toString();
-        
-        // Set symbol
-        reflectionSymbol = poolConfig.reflectionType === "self" 
-          ? selectedToken.symbol 
-          : "SOL"; // You might want to fetch the actual symbol for external tokens
+        try {
+          // Get actual project data from blockchain
+          const projectData = await program.account.project.fetch(projectPDA);
+          
+          if (projectData.reflectionVault && !projectData.reflectionVault.equals(SystemProgram.programId)) {
+            reflectionVaultAddress = projectData.reflectionVault.toString();
+            actualReflectionMint = projectData.reflectionToken?.toString();
+            
+            // Fetch symbol if external
+            if (poolConfig.reflectionType === "external" && actualReflectionMint) {
+              try {
+                const response = await fetch(`/api/birdeye/token-info?address=${actualReflectionMint}`);
+                const result = await response.json();
+                reflectionSymbol = result.symbol || result.fallback?.symbol || "REFLECT";
+              } catch {
+                reflectionSymbol = "REFLECT";
+              }
+            } else {
+              reflectionSymbol = selectedToken.symbol;
+            }
+            
+            console.log("✅ Reflection vault synced from blockchain:", {
+              vault: reflectionVaultAddress,
+              mint: actualReflectionMint,
+              symbol: reflectionSymbol
+            });
+          }
+        } catch (fetchErr) {
+          console.error("⚠️ Could not fetch reflection data, using calculated values:", fetchErr);
+          
+          // Fallback to calculated values
+          const reflectionMint = poolConfig.reflectionType === "external" 
+            ? new PublicKey(poolConfig.externalReflectionMint)
+            : tokenMintPubkey;
+          
+          const reflectionMintInfo = await connection.getAccountInfo(reflectionMint);
+          const reflectionTokenProgram = reflectionMintInfo?.owner.equals(TOKEN_2022_PROGRAM_ID)
+            ? TOKEN_2022_PROGRAM_ID
+            : TOKEN_PROGRAM_ID;
+          
+          reflectionVaultAddress = anchor.utils.token.associatedAddress({
+            mint: reflectionMint,
+            owner: stakingVaultPDA,
+            tokenProgramId: reflectionTokenProgram,
+          }).toString();
+          
+          actualReflectionMint = reflectionMint.toString();
+          reflectionSymbol = poolConfig.reflectionType === "self" 
+            ? selectedToken.symbol 
+            : "REFLECT";
+        }
       }
 
       const poolData = {
@@ -503,9 +534,9 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
         poolId: poolId,
         hasSelfReflections: poolConfig.enableReflections && poolConfig.reflectionType === "self",
         hasExternalReflections: poolConfig.enableReflections && poolConfig.reflectionType === "external",
-        externalReflectionMint: poolConfig.reflectionType === "external" ? poolConfig.externalReflectionMint : null,
-        reflectionTokenAccount: reflectionVaultAddress,  // ✅ ADD THIS
-        reflectionTokenSymbol: reflectionSymbol,          // ✅ ADD THIS
+        externalReflectionMint: actualReflectionMint,
+        reflectionTokenAccount: reflectionVaultAddress,
+        reflectionTokenSymbol: reflectionSymbol,
         isInitialized: true,
         isPaused: false,
         paymentTxSignature: paymentSignature,
@@ -527,7 +558,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       }
 
       const savedPool = await response.json();
-      console.log("✅ Pool saved to database:", savedPool);
+      console.log("✅ Pool saved to database with blockchain-synced reflection data:", savedPool);
 
       // Show success modal with shareable URL - DON'T refresh yet
       setCreatedPoolId(savedPool.pool.id);

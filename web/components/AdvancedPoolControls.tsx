@@ -452,7 +452,7 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
     }
   };
 
-  const debugVaultPDAs = async () => {
+    const debugVaultPDAs = async () => {
     if (!tokenMint) {
       console.error("❌ No token mint");
       showMessage("error", "❌ No token mint set");
@@ -460,64 +460,64 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
     }
     
     try {
-      const tokenMintPubkey = new PublicKey(tokenMint);
-      
       console.log("🔍 TOKEN MINT:", tokenMint);
+      console.log("🔢 POOL ID:", pool?.poolId ?? 0);
       
-      const [projectPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("project"), tokenMintPubkey.toBuffer()],
-        new PublicKey("47Z3KVcvmjNUBFroCkSKbNinzbsxhKpsLoUMVGpfrxCm")
-      );
+      // ✅ USE getVaultInfo() instead of manual derivation!
+      const vaultInfo = await getVaultInfo(tokenMint, pool?.poolId ?? 0);
       
-      console.log("📦 PROJECT PDA:", projectPDA.toString());
+      console.log("\n📦 VAULT INFORMATION:");
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       
-      const [stakingVaultPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("staking_vault"), projectPDA.toBuffer()],
-        new PublicKey("47Z3KVcvmjNUBFroCkSKbNinzbsxhKpsLoUMVGpfrxCm")
-      );
+      // Staking Vault
+      console.log("\n💰 STAKING VAULT:");
+      console.log("   Address:", vaultInfo.stakingVault.address);
+      console.log("   Exists:", vaultInfo.stakingVault.exists ? "✅ YES" : "❌ NO");
+      console.log("   Balance:", vaultInfo.stakingVault.balance.toLocaleString(), "tokens");
       
-      const [rewardVaultPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("reward_vault"), projectPDA.toBuffer()],
-        new PublicKey("47Z3KVcvmjNUBFroCkSKbNinzbsxhKpsLoUMVGpfrxCm")
-      );
+      // Reward Vault
+      console.log("\n🎁 REWARD VAULT:");
+      console.log("   Address:", vaultInfo.rewardVault.address);
+      console.log("   Exists:", vaultInfo.rewardVault.exists ? "✅ YES" : "❌ NO");
+      console.log("   Balance:", vaultInfo.rewardVault.balance.toLocaleString(), "tokens");
       
-      console.log("💰 STAKING VAULT PDA:", stakingVaultPDA.toString());
-      console.log("🎁 REWARD VAULT PDA:", rewardVaultPDA.toString());
-      
-      console.log("\n🔍 Checking account existence on-chain...");
-      
-      try {
-        const stakingInfo = await connection.getAccountInfo(stakingVaultPDA);
-        console.log("✅ Staking Vault EXISTS:", stakingInfo ? "YES" : "NO");
-        if (stakingInfo) {
-          console.log("   Owner:", stakingInfo.owner.toString());
-          console.log("   Lamports:", stakingInfo.lamports);
-        }
-      } catch (e) {
-        console.log("❌ Staking Vault: ERROR", e);
-      }
-      
-      try {
-        const rewardInfo = await connection.getAccountInfo(rewardVaultPDA);
-        console.log("✅ Reward Vault EXISTS:", rewardInfo ? "YES" : "NO");
-        if (rewardInfo) {
-          console.log("   Owner:", rewardInfo.owner.toString());
-          console.log("   Lamports:", rewardInfo.lamports);
-          console.log("   Data length:", rewardInfo.data.length);
+      // Reflection Vault
+      console.log("\n✨ REFLECTION VAULT:");
+      if (vaultInfo.reflectionVault.tokenMint) {
+        console.log("   Token Account:", vaultInfo.reflectionVault.tokenAccount);
+        console.log("   Token Mint:", vaultInfo.reflectionVault.tokenMint);
+        console.log("   Exists:", vaultInfo.reflectionVault.exists ? "✅ YES" : "⚠️ NOT INITIALIZED");
+        console.log("   Balance:", vaultInfo.reflectionVault.balance.toLocaleString(), "tokens");
+        
+        // ✅ Check actual on-chain balance
+        try {
+          const reflectionVaultPubkey = new PublicKey(vaultInfo.reflectionVault.tokenAccount);
+          const accountInfo = await connection.getAccountInfo(reflectionVaultPubkey);
           
-          try {
-            const tokenAccount = await getAccount(connection, rewardVaultPDA);
-            const balance = tokenAccount.amount;
-            const readableBalance = (Number(balance) / 1_000_000_000).toLocaleString();
-            console.log("   💰 TOKEN BALANCE:", readableBalance, "tokens");
-            console.log("   🪙 Token Mint:", tokenAccount.mint.toString());
-          } catch (tokenErr: any) {
-            console.log("   ⚠️ Could not parse as token account:", tokenErr.message);
+          if (accountInfo) {
+            console.log("   ✅ Account exists on-chain");
+            console.log("   Owner:", accountInfo.owner.toString());
+            console.log("   Lamports:", accountInfo.lamports);
+            
+            try {
+              const tokenAccount = await getAccount(connection, reflectionVaultPubkey);
+              const balance = tokenAccount.amount;
+              const readableBalance = (Number(balance) / 1_000_000_000).toLocaleString();
+              console.log("   💰 ACTUAL TOKEN BALANCE:", readableBalance, "tokens");
+            } catch (tokenErr: any) {
+              console.log("   ⚠️ Could not parse as token account:", tokenErr.message);
+            }
+          } else {
+            console.log("   ❌ Account does NOT exist on-chain");
           }
+        } catch (checkErr: any) {
+          console.log("   ❌ Error checking account:", checkErr.message);
         }
-      } catch (e: any) {
-        console.log("❌ Reward Vault: ERROR", e.message);
+      } else {
+        console.log("   ❌ Not configured (reflections disabled)");
       }
+      
+      console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       
       if (publicKey) {
         console.log("\n📜 Your recent transactions:");
