@@ -462,22 +462,52 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       // Save to database
       setStatusMessage("Saving pool information...");
       
+      // Calculate reflection vault address if enabled
+      let reflectionVaultAddress = null;
+      let reflectionSymbol = null;
+
+      if (poolConfig.enableReflections) {
+        const reflectionMint = poolConfig.reflectionType === "external" 
+          ? new PublicKey(poolConfig.externalReflectionMint)
+          : tokenMintPubkey;
+        
+        // Get the reflection token's program
+        const reflectionMintInfo = await connection.getAccountInfo(reflectionMint);
+        const reflectionTokenProgram = reflectionMintInfo?.owner.equals(TOKEN_2022_PROGRAM_ID)
+          ? TOKEN_2022_PROGRAM_ID
+          : TOKEN_PROGRAM_ID;
+        
+        // Calculate the ATA address
+        reflectionVaultAddress = anchor.utils.token.associatedAddress({
+          mint: reflectionMint,
+          owner: stakingVaultPDA,
+          tokenProgramId: reflectionTokenProgram,
+        }).toString();
+        
+        // Set symbol
+        reflectionSymbol = poolConfig.reflectionType === "self" 
+          ? selectedToken.symbol 
+          : "SOL"; // You might want to fetch the actual symbol for external tokens
+      }
+
       const poolData = {
         name: selectedToken.name,
         symbol: selectedToken.symbol,
         tokenMint: selectedToken.mint,
         logo: selectedToken.logoURI,
-        apr: "0", // Dynamic - calculated on frontend based on actual stakes
-        apy: "0", // Dynamic - calculated on frontend based on actual stakes
+        apr: "0",
+        apy: "0",
         type: "locked",
-        lockPeriod: poolConfig.lockPeriod, // Minimum lock period for stakers
+        lockPeriod: poolConfig.lockPeriod,
         rewards: selectedToken.symbol,
         poolId: poolId,
         hasSelfReflections: poolConfig.enableReflections && poolConfig.reflectionType === "self",
         hasExternalReflections: poolConfig.enableReflections && poolConfig.reflectionType === "external",
         externalReflectionMint: poolConfig.reflectionType === "external" ? poolConfig.externalReflectionMint : null,
+        reflectionTokenAccount: reflectionVaultAddress,  // ✅ ADD THIS
+        reflectionTokenSymbol: reflectionSymbol,          // ✅ ADD THIS
         isInitialized: true,
-        isPaused: false, // Pool is active - rewards already deposited in tx 4
+        isPaused: false,
         paymentTxSignature: paymentSignature,
         createTxSignature: createProjectTx,
         initTxSignature: initPoolTx,
