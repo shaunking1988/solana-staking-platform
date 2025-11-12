@@ -48,7 +48,8 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
   
   const [poolConfig, setPoolConfig] = useState({
     rewardAmount: "1000",
-    duration: "90",
+    duration: "90",        // Pool duration (how long rewards are distributed)
+    lockPeriod: "30",      // Minimum lock period for stakers
     enableReflections: false,
     reflectionType: "self" as "self" | "external",
     externalReflectionMint: "",
@@ -341,7 +342,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       const initParams = {
         rateBpsPerYear: new anchor.BN(0),
         rateMode: 1,
-        lockupSeconds: new anchor.BN(parseInt(poolConfig.duration) * 86400),
+        lockupSeconds: new anchor.BN(parseInt(poolConfig.lockPeriod) * 86400),  // ✅ Use separate lock period
         poolDurationSeconds: new anchor.BN(parseInt(poolConfig.duration) * 86400),
         referrer: null,
         referrerSplitBps: null,
@@ -469,7 +470,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
         apr: "0", // Dynamic - calculated on frontend based on actual stakes
         apy: "0", // Dynamic - calculated on frontend based on actual stakes
         type: "locked",
-        lockPeriod: poolConfig.duration, // Lock period equals duration
+        lockPeriod: poolConfig.lockPeriod, // Minimum lock period for stakers
         rewards: selectedToken.symbol,
         poolId: poolId,
         hasSelfReflections: poolConfig.enableReflections && poolConfig.reflectionType === "self",
@@ -704,7 +705,36 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
                   min="1"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Tokens will be locked for the entire duration
+                  How long rewards will be distributed (your rewards are locked for this duration)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Minimum Lock Period for Stakers (days)</label>
+                <input
+                  type="number"
+                  value={poolConfig.lockPeriod}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const duration = parseInt(poolConfig.duration);
+                    const lockPeriod = parseInt(value);
+                    
+                    // Prevent lock period from exceeding pool duration
+                    if (lockPeriod > duration) {
+                      setPoolConfig({ ...poolConfig, lockPeriod: poolConfig.duration });
+                    } else {
+                      setPoolConfig({ ...poolConfig, lockPeriod: value });
+                    }
+                  }}
+                  className="w-full p-3 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white focus:outline-none transition-colors"
+                  onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.5)'}
+                  onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
+                  placeholder="30"
+                  min="0"
+                  max={poolConfig.duration}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  How long stakers must wait before they can unstake. Set to 0 for flexible staking (no lock).
                 </p>
               </div>
 
@@ -815,6 +845,9 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
                   <div className="text-xs text-gray-400">
                     • Pool duration: {poolConfig.duration} days
                   </div>
+                  <div className="text-xs text-gray-400">
+                    • Staker lock period: {poolConfig.lockPeriod} days
+                  </div>
                   <div className="text-xs text-[#fb57ff] mt-3 font-medium">
                     ✨ APY updates in real-time on the pools page
                   </div>
@@ -887,13 +920,13 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
                   <div className="text-gray-400 text-sm">Reward Deposit:</div>
                   <div className="text-white font-medium text-sm text-right">{parseFloat(poolConfig.rewardAmount).toLocaleString()} {selectedToken.symbol}</div>
 
-                  <div className="text-gray-400 text-sm">Lock Duration:</div>
-                  <div className="text-white font-medium text-sm text-right">
-                    {poolConfig.duration} days (Full Duration)
-                  </div>
-
                   <div className="text-gray-400 text-sm">Pool Duration:</div>
                   <div className="text-white font-medium text-sm text-right">{poolConfig.duration} days</div>
+
+                  <div className="text-gray-400 text-sm">Staker Lock Period:</div>
+                  <div className="text-white font-medium text-sm text-right">
+                    {poolConfig.lockPeriod} days {parseInt(poolConfig.lockPeriod) === 0 ? "(Flexible)" : ""}
+                  </div>
 
                   <div className="text-gray-400 text-sm">Status:</div>
                   <div className="font-medium text-sm text-right" style={{ color: '#fb57ff' }}>Ready to Launch</div>
