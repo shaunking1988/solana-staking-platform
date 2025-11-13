@@ -169,11 +169,6 @@ export default function PoolCard(props: PoolCardProps) {
 
     // ✅ CALCULATE reflections properly from vault balance and stake data
   const fetchReflectionBalance = async () => {
-    if (!connected || !publicKey || !effectiveMintAddress) {
-      setReflectionBalance(0);
-      return;
-    }
-
     setReflectionLoading(true);
     try {
       // Get fresh project and stake data
@@ -181,47 +176,60 @@ export default function PoolCard(props: PoolCardProps) {
       const userStake = await getUserStake(effectiveMintAddress, poolId);
       
       if (!project || !userStake || !project.reflectionVault) {
-        console.log("⚠️ No reflection data available");
+        console.log(`⚠️ [${name}] No reflection data available`);
         setReflectionBalance(0);
+        setReflectionLoading(false);
         return;
       }
 
-      // Get user's staked amount
-      const userStakedAmount = userStake.amount.toNumber();
+      // Get user's staked amount (in lamports)
+      const userStakedLamports = userStake.amount ? userStake.amount.toNumber() : 0;
       
-      if (userStakedAmount === 0) {
+      if (userStakedLamports === 0) {
+        console.log(`⚠️ [${name}] User has no stake`);
         setReflectionBalance(0);
+        setReflectionLoading(false);
         return;
       }
 
-      // Get stored reflection rate from user's stake
+      // Get reflection rates
       const userReflectionPerTokenPaid = userStake.reflectionPerTokenPaid 
         ? userStake.reflectionPerTokenPaid.toNumber() 
         : 0;
       
-      // Get current global reflection rate from project
       const currentReflectionPerToken = project.reflectionPerTokenStored 
         ? project.reflectionPerTokenStored.toNumber() 
         : 0;
 
       // Calculate pending reflections
-      // Formula: (current_rate - user_rate) * user_stake / PRECISION
       const rateDifference = currentReflectionPerToken - userReflectionPerTokenPaid;
-      const pendingReflectionsLamports = (rateDifference * userStakedAmount) / DECIMALS_MULTIPLIER;  // ✅ NEW LINE 1
-      const pendingReflections = pendingReflectionsLamports / DECIMALS_MULTIPLIER;  // ✅ NEW LINE 2
-            
-      console.log("🔍 Reflection Calculation:", {
-        userStaked: userStakedAmount,
+      const pendingReflectionsLamports = (rateDifference * userStakedLamports) / DECIMALS_MULTIPLIER;
+
+      // ✅ CHECK IF REFLECTION TOKEN IS NATIVE SOL
+      const isNativeSOL = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
+
+      // ✅ NEW: For Native SOL, divide only once (lamports → SOL)
+      // ✅ For SPL/Token-2022, divide twice (lamports → base units → tokens with decimals)
+      const pendingReflections = isNativeSOL 
+        ? pendingReflectionsLamports / 1_000_000_000  // Single division for SOL
+        : pendingReflectionsLamports / DECIMALS_MULTIPLIER;  // Double division for tokens
+        
+      console.log(`🔍 [${name}] Reflection Calculation:`, {
+        userStakedLamports: userStakedLamports,
+        userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
         userRate: userReflectionPerTokenPaid,
         currentRate: currentReflectionPerToken,
         rateDiff: rateDifference,
-        pending: pendingReflections
+        pendingLamports: pendingReflectionsLamports,
+        pendingTokens: pendingReflections,
+        isNativeSOL: isNativeSOL,
+        reflectionToken: project.reflectionToken?.toString(),
       });
       
       setReflectionBalance(Math.max(0, pendingReflections));
       
     } catch (error: any) {
-      console.error("❌ Error fetching reflection balance:", error);
+      console.error(`❌ [${name}] Error fetching reflection balance:`, error);
       setReflectionBalance(0);
     } finally {
       setReflectionLoading(false);

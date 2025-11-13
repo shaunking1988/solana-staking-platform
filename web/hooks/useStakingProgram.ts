@@ -811,9 +811,10 @@ try {
             stakingVault: stakingVaultPDA,
             reflectionVault: reflectionVaultPubkey,
             userReflectionAccount: userReflectionAccount,
-            tokenMintAccount: reflectionTokenMint,  // ✅ Add reflection mint account
+            reflectionTokenMint: reflectionTokenMint,  // ✅ Changed from tokenMintAccount
             user: publicKey,
-            tokenProgram: reflectionTokenProgramId,  // ✅ Use reflection token's program
+            tokenProgram: reflectionTokenProgramId,
+            systemProgram: SystemProgram.programId,  // ✅ ADD THIS LINE
           })
           .instruction();
         
@@ -835,9 +836,10 @@ try {
             stakingVault: stakingVaultPDA,
             reflectionVault: reflectionVaultPubkey,
             userReflectionAccount: userReflectionAccount,
-            tokenMintAccount: reflectionTokenMint,  // ✅ Add reflection mint account
+            reflectionTokenMint: reflectionTokenMint,  // ✅ Changed from tokenMintAccount
             user: publicKey,
-            tokenProgram: reflectionTokenProgramId,  // ✅ Use reflection token's program
+            tokenProgram: reflectionTokenProgramId,
+            systemProgram: SystemProgram.programId,  // ✅ ADD THIS LINE
           })
           .rpc({ skipPreflight: false, commitment: 'confirmed' });
 
@@ -885,20 +887,20 @@ try {
     const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
     const [userStakePDA] = getPDAs.userStake(projectPDA, publicKey);
 
-    // ✅ CRITICAL FIX: Fetch the reflection vault from project data, not a PDA!
+    // ✅ Fetch the project data to get the EXACT reflection vault address stored on-chain
     const project = await program.account.project.fetch(projectPDA, "confirmed");
     
     if (!project.reflectionVault) {
       throw new Error("Reflections not enabled for this pool");
     }
 
-    // ✅ Use the actual reflection vault address from blockchain
-    const reflectionVaultPubkey = project.reflectionVault;
+    // ✅ USE THE EXACT ADDRESS STORED IN project.reflectionVault!
+    const reflectionVaultPubkey = new PublicKey(project.reflectionVault.toString());
 
     console.log("🔄 Refreshing reflections...");
     console.log("   Project:", projectPDA.toString());
     console.log("   User Stake:", userStakePDA.toString());
-    console.log("   Reflection Vault:", reflectionVaultPubkey.toString());
+    console.log("   Reflection Vault (from blockchain):", reflectionVaultPubkey.toString());
     
     // Add random padding to compute units to make transaction unique
     const timestamp = Date.now();
@@ -913,12 +915,12 @@ try {
       .accounts({
         project: projectPDA,
         stake: userStakePDA,
-        reflectionVault: reflectionVaultPubkey,  // ✅ Now using correct address!
+        reflectionVault: reflectionVaultPubkey,  // ✅ Use the STORED address!
         user: publicKey,
       })
       .preInstructions([computeBudgetIx])
       .rpc({ 
-        skipPreflight: true,  // ✅ Skip simulation to bypass caching
+        skipPreflight: true,
         commitment: 'confirmed',
       });
 

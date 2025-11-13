@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { getAssociatedTokenAddress, getAccount } from "@solana/spl-token";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { 
   Play, 
   Pause, 
@@ -61,6 +62,7 @@ interface Pool {
 
 export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; onUpdate: () => void }) {
   const { publicKey } = useWallet();
+  const { getAuthHeaders } = useAdminAuth();
   const { connection } = useConnection();
   const {
     createProject,
@@ -189,60 +191,109 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
   };
 
   const syncPoolStatusToDB = async () => {
-    if (!tokenMint || !pool?.id) {
-      showMessage("error", "❌ Pool ID or token mint missing");
-      return;
-    }
+  if (!tokenMint || !pool?.id) {
+    showMessage("error", "❌ Pool ID or token mint missing");
+    return;
+  }
 
-    setSyncing(true);
+  setSyncing(true);
 
-    try {
-      const info = await getProjectInfo(tokenMint, pool?.poolId ?? 0);
-      
-      const safeToNumber = (val: any) => {
-        if (!val) return 0;
-        if (typeof val === 'number') return val;
-        if (typeof val === 'object' && val.toNumber) return val.toNumber();
-        if (typeof val === 'string') return parseFloat(val) || 0;
-        return 0;
-      };
-      
-      const apyBps = safeToNumber(info.rateBpsPerYear);
-      const lockSeconds = safeToNumber(info.lockupSeconds);
-      const isPausedValue = Boolean(info.isPaused);
-      
-      const updateData = {
-        id: pool.id,
-        isInitialized: true,
-        apy: (apyBps / 100),
-        lockPeriod: Math.round(lockSeconds / 86400),
-        isPaused: isPausedValue,
-        // ✅ NEW: Add reflection fields from blockchain
-        hasExternalReflections: !!(info.reflectionToken && info.reflectionVault),
-        externalReflectionMint: info.reflectionToken?.toString() || null,
-        reflectionTokenAccount: info.reflectionVault?.toString() || null,
-        reflectionTokenSymbol: pool.reflectionTokenSymbol || null,
-      };
-      
-      const response = await fetch(`/api/admin/pools`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updateData)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Database update failed`);
+  try {
+    const info = await getProjectInfo(tokenMint, pool?.poolId ?? 0);
+    
+    const safeToNumber = (val: any) => {
+      if (!val) return 0;
+      if (typeof val === 'number') return val;
+      if (typeof val === 'object' && val.toNumber) return val.toNumber();
+      if (typeof val === 'string') return parseFloat(val) || 0;
+      return 0;
+    };
+    
+    const apyBps = safeToNumber(info.rateBpsPerYear);
+    const lockSeconds = safeToNumber(info.lockupSeconds);
+    const isPausedValue = Boolean(info.isPaused);
+    
+    let reflectionTokenSymbol = null;
+    let reflectionTokenDecimals = null;
+    
+    // ✅ FETCH REFLECTION TOKEN METADATA IF IT EXISTS
+    if (info.reflectionToken && info.reflectionVault) {
+      try {
+        const reflectionMintPubkey = new PublicKey(info.reflectionToken.toString());
+        const mintInfo = await connection.getParsedAccountInfo(reflectionMintPubkey);
+        
+        if (mintInfo.value && 'parsed' in mintInfo.value.data) {
+          const parsedData = mintInfo.value.data.parsed;
+          reflectionTokenDecimals = parsedData.info.decimals;
+          
+          // Try to get token symbol from metadata
+          try {
+            // Use Metaplex to get token metadata
+            const metadataPDA = PublicKey.findProgramAddressSync(
+              [
+                Buffer.from('metadata'),
+                new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s').toBuffer(),
+                reflectionMintPubkey.toBuffer(),
+              ],
+              new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
+            )[0];
+            
+            const metadataAccount = await connection.getAccountInfo(metadataPDA);
+            if (metadataAccount) {
+              // Parse metadata (simplified - you might need a proper parser)
+              const metadata = metadataAccount.data;
+              // This is a simplified extraction - proper metadata parsing would be better
+              const symbolStart = 65; // Approximate offset for symbol in metadata
+              const symbolBytes = metadata.slice(symbolStart, symbolStart + 10);
+              const symbol = new TextDecoder().decode(symbolBytes).replace(/\0/g, '').trim();
+              if (symbol) {
+                reflectionTokenSymbol = symbol;
+              }
+            }
+          } catch (metadataErr) {
+            console.log('Could not fetch token metadata:', metadataErr);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching reflection token info:', err);
       }
-      
-      showMessage("success", "✅ Status synced!");
-      setTimeout(() => onUpdate(), 500);
-      
-    } catch (error: any) {
-      showMessage("error", `❌ Sync failed: ${error.message}`);
-    } finally {
-      setSyncing(false);
     }
-  };
+    
+    const updateData = {
+      id: pool.id,
+      isInitialized: true,
+      apy: (apyBps / 100),
+      lockPeriod: Math.round(lockSeconds / 86400),
+      isPaused: isPausedValue,
+      hasExternalReflections: !!(info.reflectionToken && info.reflectionVault),
+      externalReflectionMint: info.reflectionToken?.toString() || null,
+      reflectionTokenAccount: info.reflectionVault?.toString() || null,
+      reflectionTokenSymbol: reflectionTokenSymbol,
+      reflectionTokenDecimals: reflectionTokenDecimals,
+    };
+    
+    const response = await fetch(`/api/admin/pools`, {
+      method: "PATCH",
+      headers: { 
+        "Content-Type": "application/json",
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify(updateData)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Database update failed`);
+    }
+    
+    showMessage("success", "✅ Status synced with reflection token details!");
+    setTimeout(() => onUpdate(), 500);
+    
+  } catch (error: any) {
+    showMessage("error", `❌ Sync failed: ${error.message}`);
+  } finally {
+    setSyncing(false);
+  }
+};
 
   const checkPoolStatus = async () => {
     setCheckingStatus(true);
@@ -352,7 +403,7 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
     
     try {
       const tokenMintPubkey = new PublicKey(tokenMint);
-      const programId = new PublicKey("afkrGbxfK9GVPDxPY9t1GMVD4hKwj4gitBcbBUe5o3N");
+      const programId = new PublicKey("Es7JZM42QxG7qvxr7CFp6YtNtwN4kwwfQCAnTz5cjDLv");
       const TOKEN_PROGRAM = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
       
       // Derive PDAs
@@ -650,8 +701,10 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
       }
       await fetch(`/api/admin/pools`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: pool?.id, depositsPaused: !isPaused }),
+        headers: { 
+  "Content-Type": "application/json",
+  ...getAuthHeaders(),
+},        body: JSON.stringify({ id: pool?.id, depositsPaused: !isPaused }),
       });
       
       await checkPoolStatus();
@@ -681,8 +734,10 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
       }
       await fetch(`/api/admin/pools`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: pool?.id, withdrawalsPaused: !isPaused }),
+        headers: { 
+  "Content-Type": "application/json",
+  ...getAuthHeaders(),
+},        body: JSON.stringify({ id: pool?.id, withdrawalsPaused: !isPaused }),
       });
       await checkPoolStatus();
       onUpdate();
@@ -711,8 +766,10 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
       }
       await fetch(`/api/admin/pools`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: pool?.id, claimsPaused: !isPaused }),
+        headers: { 
+  "Content-Type": "application/json",
+  ...getAuthHeaders(),
+},        body: JSON.stringify({ id: pool?.id, claimsPaused: !isPaused }),
       });
       await checkPoolStatus();
       onUpdate();
@@ -746,8 +803,10 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
       
       await fetch(`/api/admin/pools`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: pool?.id, isPaused: !isPaused }),
+        headers: { 
+  "Content-Type": "application/json",
+  ...getAuthHeaders(),
+},        body: JSON.stringify({ id: pool?.id, isPaused: !isPaused }),
       });
       
       showTxModal('success', 'Pool Status Updated!', `Pool is now ${isPaused ? 'ACTIVE' : 'PAUSED'}`, txSignature);
@@ -770,8 +829,10 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
       await transferAdmin(tokenMint, newAdminWallet);
       await fetch(`/api/admin/pools`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: pool?.id, adminWallet: newAdminWallet }),
+        headers: { 
+  "Content-Type": "application/json",
+  ...getAuthHeaders(),
+},        body: JSON.stringify({ id: pool?.id, adminWallet: newAdminWallet }),
       });
       showMessage("success", "✅ Admin ownership transferred!");
       setActiveModal(null);
@@ -841,8 +902,10 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
       await setReflections(tokenMint, pool?.poolId ?? 0, reflectionEnabled, reflectionMint);
       await fetch(`/api/admin/pools`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        headers: { 
+  "Content-Type": "application/json",
+  ...getAuthHeaders(),
+},        body: JSON.stringify({ 
           id: pool?.id,
           hasSelfReflections: reflectionEnabled && reflectionType === "self",
           hasExternalReflections: reflectionEnabled && reflectionType === "external",
@@ -929,8 +992,10 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
       await emergencyUnlock(tokenMint, pool?.poolId ?? 0);
       await fetch(`/api/admin/pools`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: pool?.id, isEmergencyUnlocked: true, lockPeriod: 0 }),
+        headers: { 
+  "Content-Type": "application/json",
+  ...getAuthHeaders(),
+},        body: JSON.stringify({ id: pool?.id, isEmergencyUnlocked: true, lockPeriod: 0 }),
       });
       showMessage("success", "✅ Pool emergency unlocked!");
       setActiveModal(null);
@@ -954,8 +1019,10 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
       showMessage("success", "✅ Project created!");
       await fetch(`/api/admin/pools`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: pool?.id, projectCreated: true, projectPda: result.projectPda }),
+        headers: { 
+  "Content-Type": "application/json",
+  ...getAuthHeaders(),
+},        body: JSON.stringify({ id: pool?.id, projectCreated: true, projectPda: result.projectPda }),
       });
       onUpdate();
     } catch (err: any) {
@@ -1017,8 +1084,10 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
       
       await fetch(`/api/admin/pools`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: pool?.id, apy, lockPeriod }),
+        headers: { 
+  "Content-Type": "application/json",
+  ...getAuthHeaders(),
+},        body: JSON.stringify({ id: pool?.id, apy, lockPeriod }),
       });
       
       showTxModal('success', 'Parameters Updated!', `APY: ${apy}%, Lock Period: ${lockPeriod} days`, txSignature);
@@ -1120,8 +1189,10 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
       await setFees(platformFee * 100, flatFee * 1_000_000_000);
       await fetch(`/api/admin/pools`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: pool?.id, platformFeePercent: platformFee, flatSolFee: flatFee }),
+        headers: { 
+  "Content-Type": "application/json",
+  ...getAuthHeaders(),
+},        body: JSON.stringify({ id: pool?.id, platformFeePercent: platformFee, flatSolFee: flatFee }),
       });
       showMessage("success", "✅ Fees updated!");
       setActiveModal(null);
@@ -1152,8 +1223,10 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
       }
       await fetch(`/api/admin/pools`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        headers: { 
+  "Content-Type": "application/json",
+  ...getAuthHeaders(),
+},        body: JSON.stringify({ 
           id: pool?.id,
           referralEnabled,
           referralWallet: referralEnabled ? referralWallet : null,
@@ -1594,14 +1667,30 @@ ${calculatedPerToken > storedPerToken
                       </button>
                     </div>
                   </div>
+                  
+                  {/* ✅ IMPROVED BALANCE DISPLAY WITH DECIMALS & SYMBOL */}
                   <div className="flex items-center justify-between pt-2 border-t border-gray-700">
                     <span className="text-gray-400">Balance:</span>
-                    <span className="text-lg font-bold text-yellow-400">
-                      {vaultInfo.reflectionVault.balance.toLocaleString()} tokens
-                    </span>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-yellow-400">
+                        {vaultInfo.reflectionVault.balance.toLocaleString(undefined, {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: vaultInfo.reflectionVault.decimals || 9,
+                        })}
+                        {vaultInfo.reflectionVault.symbol && (
+                          <span className="text-sm ml-1">{vaultInfo.reflectionVault.symbol}</span>
+                        )}
+                      </div>
+                      {vaultInfo.reflectionVault.decimals && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          ({vaultInfo.reflectionVault.decimals} decimals)
+                        </div>
+                      )}
+                    </div>
                   </div>
+                  
                   {vaultInfo.reflectionVault.exists && (
-                    <a
+                   <a 
                       href={`https://explorer.solana.com/address/${vaultInfo.reflectionVault.tokenAccount}?cluster=devnet`}
                       target="_blank"
                       rel="noopener noreferrer"

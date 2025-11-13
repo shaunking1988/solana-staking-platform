@@ -78,9 +78,7 @@ const sendTransactionWithFreshBlockhash = async (
 
     // Derive PDAs
     const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
-
     const [stakingVaultPDA] = getPDAs.stakingVault(tokenMintPubkey, poolId);
-
     const [rewardVaultPDA] = getPDAs.rewardVault(tokenMintPubkey, poolId);
 
     // Get project data
@@ -89,9 +87,12 @@ const sendTransactionWithFreshBlockhash = async (
     // Fetch staking vault balance
     let stakingBalance = 0;
     let stakingExists = false;
+    let stakingDecimals = 9;
     try {
       const balance = await connection.getTokenAccountBalance(stakingVaultPDA);
-      stakingBalance = balance.value.uiAmount || 0;
+      // ✅ FIX: Handle null uiAmount
+      stakingBalance = balance.value.uiAmount ?? (Number(balance.value.amount) / Math.pow(10, balance.value.decimals));
+      stakingDecimals = balance.value.decimals;
       stakingExists = true;
     } catch (e) {
       console.log("Staking vault not initialized");
@@ -100,9 +101,12 @@ const sendTransactionWithFreshBlockhash = async (
     // Fetch reward vault balance
     let rewardBalance = 0;
     let rewardExists = false;
+    let rewardDecimals = 9;
     try {
       const balance = await connection.getTokenAccountBalance(rewardVaultPDA);
-      rewardBalance = balance.value.uiAmount || 0;
+      // ✅ FIX: Handle null uiAmount
+      rewardBalance = balance.value.uiAmount ?? (Number(balance.value.amount) / Math.pow(10, balance.value.decimals));
+      rewardDecimals = balance.value.decimals;
       rewardExists = true;
     } catch (e) {
       console.log("Reward vault not initialized");
@@ -120,10 +124,56 @@ const sendTransactionWithFreshBlockhash = async (
 
       let reflectionBalance = 0;
       let reflectionExists = false;
+      let reflectionDecimals = 9;
+      let reflectionSymbol = null;
+
       try {
-        const balance = await connection.getTokenAccountBalance(reflectionTokenAccount);
-        reflectionBalance = balance.value.uiAmount || 0;
-        reflectionExists = true;
+        // ✅ CHECK IF IT'S NATIVE SOL
+        const isNativeSOL = reflectionTokenMint.toString() === 'So11111111111111111111111111111111111111112';
+        
+        if (isNativeSOL) {
+          // ✅ FOR WSOL: Use account lamports instead of token amount
+          const accountInfo = await connection.getAccountInfo(reflectionTokenAccount);
+          if (accountInfo) {
+            reflectionBalance = accountInfo.lamports / 1_000_000_000;
+            reflectionExists = true;
+            reflectionSymbol = 'SOL';
+            console.log('✅ WSOL Account - Using lamports:', accountInfo.lamports);
+          }
+        } else {
+          // ✅ FOR REGULAR TOKENS: Use token amount
+          const balance = await connection.getTokenAccountBalance(reflectionTokenAccount);
+          reflectionBalance = balance.value.uiAmount ?? (Number(balance.value.amount) / Math.pow(10, balance.value.decimals));
+          reflectionDecimals = balance.value.decimals;
+          reflectionExists = true;
+        }
+
+        // Try to get token symbol from metadata (skip for native SOL)
+        if (!isNativeSOL) {
+          try {
+            const metadataPDA = PublicKey.findProgramAddressSync(
+              [
+                Buffer.from('metadata'),
+                new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s').toBuffer(),
+                reflectionTokenMint.toBuffer(),
+              ],
+              new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
+            )[0];
+
+            const metadataAccount = await connection.getAccountInfo(metadataPDA);
+            if (metadataAccount) {
+              const data = metadataAccount.data;
+              let nameLength = data[65];
+              let symbolStart = 65 + 4 + nameLength;
+              let symbolLength = data[symbolStart];
+              let symbolBytes = data.slice(symbolStart + 4, symbolStart + 4 + symbolLength);
+              reflectionSymbol = new TextDecoder().decode(symbolBytes).replace(/\0/g, '').trim();
+            }
+          } catch (metaErr) {
+            console.log('Could not fetch reflection token metadata:', metaErr);
+          }
+        }
+
       } catch (e) {
         console.log("Reflection vault not initialized");
       }
@@ -132,6 +182,8 @@ const sendTransactionWithFreshBlockhash = async (
         tokenMint: reflectionTokenMint.toString(),
         tokenAccount: reflectionTokenAccount.toString(),
         balance: reflectionBalance,
+        decimals: reflectionDecimals,
+        symbol: reflectionSymbol || (reflectionTokenMint.toString() === 'So11111111111111111111111111111111111111112' ? 'SOL' : null),
         exists: reflectionExists,
       };
     }
@@ -140,16 +192,21 @@ const sendTransactionWithFreshBlockhash = async (
       stakingVault: {
         address: stakingVaultPDA.toString(),
         balance: stakingBalance,
+        decimals: stakingDecimals,
         exists: stakingExists,
       },
       rewardVault: {
         address: rewardVaultPDA.toString(),
         balance: rewardBalance,
+        decimals: rewardDecimals,
         exists: rewardExists,
       },
       reflectionVault: reflectionInfo || {
-        address: "Not Configured",
+        tokenMint: null,
+        tokenAccount: "Not Configured",
         balance: 0,
+        decimals: 9,
+        symbol: null,
         exists: false,
       },
       projectData,

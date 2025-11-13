@@ -31,6 +31,7 @@ model Pool {
   externalReflectionMint String?    @map("external_reflection_mint")
   reflectionTokenAccount String?    @map("reflection_token_account")
   reflectionTokenSymbol  String?    @map("reflection_token_symbol")
+  reflectionTokenDecimals   Int?
   isInitialized          Boolean    @default(false) @map("is_initialized")
   poolAddress            String?    @map("pool_address")
   isPaused               Boolean    @default(false) @map("is_paused")

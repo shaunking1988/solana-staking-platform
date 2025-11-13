@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{self as token, CloseAccount, Token};
+use anchor_spl::token::{self as token, Token};
 use anchor_spl::token_interface::{
     self as token_interface,
     Mint,
@@ -10,9 +10,72 @@ use anchor_spl::token_interface::{
     TransferChecked,
 };
 
-declare_id!("afkrGbxfK9GVPDxPY9t1GMVD4hKwj4gitBcbBUe5o3N");
+declare_id!("Es7JZM42QxG7qvxr7CFp6YtNtwN4kwwfQCAnTz5cjDLv");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
+
+// ✅ NEW: Helper to check if a mint is Native SOL
+fn is_native_sol(mint: &Pubkey) -> bool {
+    mint.to_string() == "So11111111111111111111111111111111111111112"
+}
+
+// ✅ NEW: Helper to transfer tokens (supports SPL, Token-2022, and Native SOL)
+fn transfer_tokens<'info>(
+    from: AccountInfo<'info>,
+    to: AccountInfo<'info>,
+    authority: AccountInfo<'info>,
+    mint: &InterfaceAccount<'info, Mint>,
+    token_program: AccountInfo<'info>,
+    system_program: AccountInfo<'info>,
+    amount: u64,
+    signer_seeds: Option<&[&[&[u8]]]>,
+) -> Result<()> {
+    if is_native_sol(&mint.key()) {
+        // Native SOL transfer using system program
+        msg!("💰 Transferring Native SOL: {} lamports", amount);
+        let transfer_ix = system_program::Transfer {
+            from: from.clone(),
+            to: to.clone(),
+        };
+        
+        if let Some(seeds) = signer_seeds {
+            system_program::transfer(
+                CpiContext::new_with_signer(system_program, transfer_ix, seeds),
+                amount,
+            )?;
+        } else {
+            system_program::transfer(
+                CpiContext::new(system_program, transfer_ix),
+                amount,
+            )?;
+        }
+    } else {
+        // SPL Token or Token-2022 transfer
+        msg!("🪙 Transferring SPL/Token-2022: {} units", amount);
+        let transfer_ix = TransferChecked {
+            from,
+            to,
+            authority,
+            mint: mint.to_account_info(),
+        };
+        
+        if let Some(seeds) = signer_seeds {
+            token_interface::transfer_checked(
+                CpiContext::new_with_signer(token_program, transfer_ix, seeds),
+                amount,
+                mint.decimals,
+            )?;
+        } else {
+            token_interface::transfer_checked(
+                CpiContext::new(token_program, transfer_ix),
+                amount,
+                mint.decimals,
+            )?;
+        }
+    }
+    
+    Ok(())
+}
 
 #[program]
 pub mod staking_program {
@@ -342,33 +405,29 @@ pub mod staking_program {
     stake.last_stake_timestamp = current_time;
 }
                        
-        token_interface::transfer_checked(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                TransferChecked {
-                    from: ctx.accounts.user_token_account.to_account_info(),
-                    to: ctx.accounts.staking_vault.to_account_info(),
-                    authority: ctx.accounts.user.to_account_info(),
-                    mint: ctx.accounts.token_mint_account.to_account_info(),
-                },
-            ),
+        // ✅ Transfer tokens to staking vault (supports SPL, Token-2022, Native SOL)
+        transfer_tokens(
+            ctx.accounts.user_token_account.to_account_info(),
+            ctx.accounts.staking_vault.to_account_info(),
+            ctx.accounts.user.to_account_info(),
+            &ctx.accounts.token_mint_account,
+            ctx.accounts.token_program.to_account_info(),
+            ctx.accounts.system_program.to_account_info(),
             amount_after_fee,
-            ctx.accounts.token_mint_account.decimals,
+            None,
         )?;
         
+        // ✅ Transfer token fee to fee collector
         if token_fee > 0 {
-            token_interface::transfer_checked(
-                CpiContext::new(
-                    ctx.accounts.token_program.to_account_info(),
-                    TransferChecked {
-                        from: ctx.accounts.user_token_account.to_account_info(),
-                        to: ctx.accounts.fee_collector_token_account.to_account_info(),
-                        authority: ctx.accounts.user.to_account_info(),
-                        mint: ctx.accounts.token_mint_account.to_account_info(),
-                    },
-                ),
+            transfer_tokens(
+                ctx.accounts.user_token_account.to_account_info(),
+                ctx.accounts.fee_collector_token_account.to_account_info(),
+                ctx.accounts.user.to_account_info(),
+                &ctx.accounts.token_mint_account,
+                ctx.accounts.token_program.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
                 token_fee,
-                ctx.accounts.token_mint_account.decimals,
+                None,
             )?;
         }
         
@@ -534,37 +593,29 @@ pub mod staking_program {
         ];
         let signer = &[&seeds[..]];
         
-        // Transfer tokens to user
-        token_interface::transfer_checked(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                TransferChecked {
-                    from: ctx.accounts.staking_vault.to_account_info(),
-                    to: ctx.accounts.withdrawal_token_account.to_account_info(),
-                    authority: ctx.accounts.project.to_account_info(),
-                    mint: ctx.accounts.token_mint_account.to_account_info(),
-                },
-                signer,
-            ),
+        // ✅ Transfer tokens to user (supports SPL, Token-2022, Native SOL)
+        transfer_tokens(
+            ctx.accounts.staking_vault.to_account_info(),
+            ctx.accounts.withdrawal_token_account.to_account_info(),
+            ctx.accounts.project.to_account_info(),
+            &ctx.accounts.token_mint_account,
+            ctx.accounts.token_program.to_account_info(),
+            ctx.accounts.system_program.to_account_info(),
             amount_after_fee,
-            ctx.accounts.token_mint_account.decimals,
+            Some(signer),
         )?;
         
-        // Transfer token fee
+        // ✅ Transfer token fee to fee collector
         if token_fee > 0 {
-            token_interface::transfer_checked(
-                CpiContext::new_with_signer(
-                    ctx.accounts.token_program.to_account_info(),
-                    TransferChecked {
-                        from: ctx.accounts.staking_vault.to_account_info(),
-                        to: ctx.accounts.fee_collector_token_account.to_account_info(),
-                        authority: ctx.accounts.project.to_account_info(),
-                        mint: ctx.accounts.token_mint_account.to_account_info(),
-                    },
-                    signer,
-                ),
+            transfer_tokens(
+                ctx.accounts.staking_vault.to_account_info(),
+                ctx.accounts.fee_collector_token_account.to_account_info(),
+                ctx.accounts.project.to_account_info(),
+                &ctx.accounts.token_mint_account,
+                ctx.accounts.token_program.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
                 token_fee,
-                ctx.accounts.token_mint_account.decimals,
+                Some(signer),
             )?;
         }
         
@@ -705,19 +756,16 @@ pub mod staking_program {
     ];
     let signer = &[&seeds[..]];
     
-    token_interface::transfer_checked(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            TransferChecked {
-                from: ctx.accounts.reward_vault.to_account_info(),
-                to: ctx.accounts.user_token_account.to_account_info(),
-                authority: ctx.accounts.project.to_account_info(),
-                mint: ctx.accounts.token_mint_account.to_account_info(),
-            },
-            signer,
-        ),
+    // ✅ Transfer rewards (supports SPL, Token-2022, Native SOL)
+    transfer_tokens(
+        ctx.accounts.reward_vault.to_account_info(),
+        ctx.accounts.user_token_account.to_account_info(),
+        ctx.accounts.project.to_account_info(),
+        &ctx.accounts.token_mint_account,
+        ctx.accounts.token_program.to_account_info(),
+        ctx.accounts.system_program.to_account_info(),
         rewards,
-        ctx.accounts.token_mint_account.decimals,
+        Some(signer),
     )?;
     
     // Collect SOL fee (with referral split if applicable)
@@ -850,19 +898,16 @@ pub mod staking_program {
         ];
         let signer = &[&seeds[..]];
         
-        token_interface::transfer_checked(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                TransferChecked {
-                    from: ctx.accounts.reflection_vault.to_account_info(),
-                    to: ctx.accounts.user_reflection_account.to_account_info(),
-                    authority: ctx.accounts.staking_vault.to_account_info(),
-                    mint: ctx.accounts.reflection_token_mint.to_account_info(),
-                },
-                signer,
-            ),
+        // ✅ Transfer reflections (supports SPL, Token-2022, Native SOL)
+        transfer_tokens(
+            ctx.accounts.reflection_vault.to_account_info(),
+            ctx.accounts.user_reflection_account.to_account_info(),
+            ctx.accounts.staking_vault.to_account_info(),
+            &ctx.accounts.reflection_token_mint,
+            ctx.accounts.token_program.to_account_info(),
+            ctx.accounts.system_program.to_account_info(),
             reflections,
-            ctx.accounts.reflection_token_mint.decimals,
+            Some(signer),
         )?;
         
         emit!(ReflectionsClaimed {
@@ -966,67 +1011,7 @@ pub mod staking_program {
     
     Ok(())
 }
-    pub fn emergency_return_stake(
-        ctx: Context<EmergencyReturnStake>,
-        token_mint: Pubkey,
-        pool_id: u64,
-        user_pubkey: Pubkey,
-    ) -> Result<()> {
-        require!(ctx.accounts.stake.user == user_pubkey, ErrorCode::InvalidStakeAccount);
-        require!(ctx.accounts.stake.amount > 0, ErrorCode::NoStake);
-        require!(
-            ctx.accounts.staking_vault.amount >= ctx.accounts.stake.amount,
-            ErrorCode::InsufficientVaultBalance
-        );
-        
-        let project_token_mint = ctx.accounts.project.token_mint;
-        let project_pool_id = ctx.accounts.project.pool_id;
-        let project_bump = ctx.accounts.project.bump;
-        let project_key = ctx.accounts.project.key();
-        let stake_amount = ctx.accounts.stake.amount;
-        
-        update_reward(&mut ctx.accounts.project, &mut ctx.accounts.stake)?;
-        
-        let stake_mut = &mut ctx.accounts.stake;
-        stake_mut.amount = 0;
-        
-        let project_mut = &mut ctx.accounts.project;
-        project_mut.total_staked = project_mut.total_staked
-            .checked_sub(stake_amount)
-            .ok_or(ErrorCode::MathOverflow)?;
-        
-        let seeds = &[
-            b"project",
-            project_token_mint.as_ref(),
-            &project_pool_id.to_le_bytes(),
-            &[project_bump],
-        ];
-        let signer = &[&seeds[..]];
-        
-        token_interface::transfer_checked(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                TransferChecked {
-                    from: ctx.accounts.staking_vault.to_account_info(),
-                    to: ctx.accounts.user_withdrawal_account.to_account_info(),
-                    authority: ctx.accounts.project.to_account_info(),
-                    mint: ctx.accounts.token_mint_account.to_account_info(),
-                },
-                signer,
-            ),
-            stake_amount,
-            ctx.accounts.token_mint_account.decimals,
-        )?;
-        
-        emit!(EmergencyStakeReturned {
-            project: project_key,
-            user: user_pubkey,
-            amount: stake_amount,
-        });
-        
-        Ok(())
-    }
-
+    
     pub fn transfer_admin(
         ctx: Context<TransferAdmin>,
         token_mint: Pubkey,
@@ -1041,120 +1026,6 @@ pub mod staking_program {
             project: project.key(),
             old_admin,
             new_admin,
-        });
-        
-        Ok(())
-    }
-
-    // ✅ NEW: Close a project and recover rent (only if no active stakes)
-    pub fn close_project(ctx: Context<CloseProject>, _token_mint: Pubkey, _pool_id: u64) -> Result<()> {
-        let project = &ctx.accounts.project;
-        
-        // Safety check: ensure no active stakes
-        require!(project.total_staked == 0, ErrorCode::CannotCloseWithActiveStakes);
-        
-        // Store project key to avoid temporary value issues
-        let project_key = project.key();
-        
-        // Close staking vault (return tokens + rent to admin)
-        let staking_vault_data = ctx.accounts.staking_vault.try_borrow_data()?;
-        if !staking_vault_data.is_empty() {
-            drop(staking_vault_data);
-            
-            // Close the token account
-            let close_staking_cpi = token::CloseAccount {
-                account: ctx.accounts.staking_vault.to_account_info(),
-                destination: ctx.accounts.admin.to_account_info(),
-                authority: ctx.accounts.staking_vault.to_account_info(),
-            };
-            let project_seeds = &[
-                b"staking_vault",
-                project_key.as_ref(),
-                &[ctx.bumps.staking_vault],
-            ];
-            token::close_account(
-                CpiContext::new_with_signer(
-                    ctx.accounts.token_program.to_account_info(),
-                    close_staking_cpi,
-                    &[project_seeds],
-                )
-            )?;
-        }
-        
-        // Close reward vault
-        let reward_vault_data = ctx.accounts.reward_vault.try_borrow_data()?;
-        if !reward_vault_data.is_empty() {
-            drop(reward_vault_data);
-            
-            let close_reward_cpi = token::CloseAccount {
-                account: ctx.accounts.reward_vault.to_account_info(),
-                destination: ctx.accounts.admin.to_account_info(),
-                authority: ctx.accounts.reward_vault.to_account_info(),
-            };
-            let reward_seeds = &[
-                b"reward_vault",
-                project_key.as_ref(),
-                &[ctx.bumps.reward_vault],
-            ];
-            token::close_account(
-                CpiContext::new_with_signer(
-                    ctx.accounts.token_program.to_account_info(),
-                    close_reward_cpi,
-                    &[reward_seeds],
-                )
-            )?;
-        }
-        
-        // Close reflection vault if it exists
-        if let Some(reflection_vault_info) = &ctx.accounts.reflection_vault {
-            let reflection_vault_data = reflection_vault_info.try_borrow_data()?;
-            if !reflection_vault_data.is_empty() {
-                drop(reflection_vault_data);
-                
-                let close_reflection_cpi = token::CloseAccount {
-                    account: reflection_vault_info.to_account_info(),
-                    destination: ctx.accounts.admin.to_account_info(),
-                    authority: reflection_vault_info.to_account_info(),
-                };
-                let reflection_seeds = &[
-                    b"reflection_vault",
-                    project_key.as_ref(),
-                    &[ctx.bumps.reflection_vault.unwrap()],
-                ];
-                token::close_account(
-                    CpiContext::new_with_signer(
-                        ctx.accounts.token_program.to_account_info(),
-                        close_reflection_cpi,
-                        &[reflection_seeds],
-                    )
-                )?;
-            }
-        }
-        
-        emit!(ProjectClosed {
-            project: project_key,
-            admin: ctx.accounts.admin.key(),
-        });
-        
-        // The project account itself will be closed automatically by Anchor's `close` constraint
-        Ok(())
-    }
-
-    pub fn update_pool_params(
-        ctx: Context<UpdatePoolParams>,
-        token_mint: Pubkey,
-        pool_id: u64,
-        rate_bps_per_year: u64,
-        lockup_seconds: u64,
-    ) -> Result<()> {
-        let project = &mut ctx.accounts.project;
-        project.rate_bps_per_year = rate_bps_per_year;
-        project.lockup_seconds = lockup_seconds;
-        
-        emit!(ProjectParamsUpdated {
-            project: project.key(),
-            rate_bps_per_year,
-            lockup_seconds,
         });
         
         Ok(())
@@ -1253,66 +1124,6 @@ pub mod staking_program {
             platform_sol_fee,
         });
         
-        Ok(())
-    }
-
-    pub fn pause_deposits(
-        ctx: Context<PauseControl>,
-        token_mint: Pubkey,
-        pool_id: u64
-    ) -> Result<()> {
-        ctx.accounts.project.deposit_paused = true;
-        emit!(DepositsPaused { project: ctx.accounts.project.key() });
-        Ok(())
-    }
-
-    pub fn unpause_deposits(
-        ctx: Context<PauseControl>,
-        token_mint: Pubkey,
-        pool_id: u64
-    ) -> Result<()> {
-        ctx.accounts.project.deposit_paused = false;
-        emit!(DepositsUnpaused { project: ctx.accounts.project.key() });
-        Ok(())
-    }
-
-    pub fn pause_withdrawals(
-        ctx: Context<PauseControl>,
-        token_mint: Pubkey,
-        pool_id: u64
-    ) -> Result<()> {
-        ctx.accounts.project.withdraw_paused = true;
-        emit!(WithdrawalsPaused { project: ctx.accounts.project.key() });
-        Ok(())
-    }
-
-    pub fn unpause_withdrawals(
-        ctx: Context<PauseControl>,
-        token_mint: Pubkey,
-        pool_id: u64
-    ) -> Result<()> {
-        ctx.accounts.project.withdraw_paused = false;
-        emit!(WithdrawalsUnpaused { project: ctx.accounts.project.key() });
-        Ok(())
-    }
-
-    pub fn pause_claims(
-        ctx: Context<PauseControl>,
-        token_mint: Pubkey,
-        pool_id: u64
-    ) -> Result<()> {
-        ctx.accounts.project.claim_paused = true;
-        emit!(ClaimsPaused { project: ctx.accounts.project.key() });
-        Ok(())
-    }
-
-    pub fn unpause_claims(
-        ctx: Context<PauseControl>,
-        token_mint: Pubkey,
-        pool_id: u64
-    ) -> Result<()> {
-        ctx.accounts.project.claim_paused = false;
-        emit!(ClaimsUnpaused { project: ctx.accounts.project.key() });
         Ok(())
     }
 
@@ -1523,11 +1334,26 @@ fn update_reflection(
     let vault = reflection_vault.ok_or(ErrorCode::ReflectionVaultRequired)?;
     let current_time = Clock::get()?.unix_timestamp;
     
+    // ✅ Check if reflection token is Native SOL
+    let is_native_sol = project.reflection_token
+        .map(|mint| is_native_sol(&mint))
+        .unwrap_or(false);
+    
+    // ✅ Read balance from correct field (lamports for SOL, amount for tokens)
+    let current_balance = if is_native_sol {
+        vault.to_account_info().lamports()
+    } else {
+        vault.amount
+    };
+    
+    msg!("🔍 Reflection Type: {}", if is_native_sol { "Native SOL" } else { "SPL/Token-2022" });
+    msg!("🔍 Reading balance from: {}", if is_native_sol { "lamports" } else { "amount field" });
+    
     // ✅ BOX: Move calculation data to heap (not stack)
     let calc = Box::new(ReflectionCalc {
-        current_balance: vault.amount,
+        current_balance,
         last_balance: project.last_reflection_balance,
-        new_tokens: vault.amount.saturating_sub(project.last_reflection_balance),
+        new_tokens: current_balance.saturating_sub(project.last_reflection_balance),
         total_staked: project.total_staked,
     });
 
@@ -1930,6 +1756,7 @@ pub struct ClaimReflections<'info> {
     pub user: Signer<'info>,
     
     pub token_program: Interface<'info, TokenInterface>,
+    pub system_program: Program<'info, System>,  // ✅ ADD THIS LINE
 }
 
 #[derive(Accounts)]
@@ -1989,47 +1816,6 @@ pub struct DepositRewards<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(token_mint: Pubkey, pool_id: u64, user_pubkey: Pubkey)]
-pub struct EmergencyReturnStake<'info> {
-    #[account(
-        mut,
-        seeds = [b"project", token_mint.as_ref(), &pool_id.to_le_bytes()],
-        bump = project.bump,
-        constraint = project.admin == admin.key() @ ErrorCode::Unauthorized
-    )]
-    pub project: Box<Account<'info, Project>>,
-    
-    #[account(
-        mut,
-        seeds = [b"stake", project.key().as_ref(), user_pubkey.as_ref()],
-        bump = stake.bump
-    )]
-    pub stake: Account<'info, Stake>,
-    
-    #[account(
-        mut,
-        seeds = [b"staking_vault", project.key().as_ref()],
-        bump,
-        constraint = staking_vault.mint == token_mint @ ErrorCode::WrongTokenType,
-        constraint = staking_vault.key() == project.staking_vault @ ErrorCode::UnauthorizedVault
-    )]
-    pub staking_vault: InterfaceAccount<'info, TokenAccount>,
-    
-    #[account(
-        mut,
-        constraint = user_withdrawal_account.owner == stake.withdrawal_wallet @ ErrorCode::InvalidWithdrawalWallet
-    )]
-    pub user_withdrawal_account: InterfaceAccount<'info, TokenAccount>,
-    
-    pub token_mint_account: InterfaceAccount<'info, Mint>,
-    
-    #[account(mut)]
-    pub admin: Signer<'info>,
-    
-    pub token_program: Interface<'info, TokenInterface>,
-}
-
-#[derive(Accounts)]
 #[instruction(token_mint: Pubkey, pool_id: u64)]
 pub struct TransferAdmin<'info> {
     #[account(
@@ -2042,49 +1828,6 @@ pub struct TransferAdmin<'info> {
     
     #[account(mut)]
     pub admin: Signer<'info>,
-}
-
-#[derive(Accounts)]
-#[instruction(token_mint: Pubkey, pool_id: u64)]
-pub struct CloseProject<'info> {
-    #[account(
-        mut,
-        seeds = [b"project", token_mint.as_ref(), &pool_id.to_le_bytes()],
-        bump = project.bump,
-        constraint = project.admin == admin.key() @ ErrorCode::Unauthorized,
-        close = admin
-    )]
-    pub project: Account<'info, Project>,
-    
-    /// CHECK: Staking vault - will be closed and rent returned
-    #[account(
-        mut,
-        seeds = [b"staking_vault", project.key().as_ref()],
-        bump,
-    )]
-    pub staking_vault: AccountInfo<'info>,
-    
-    /// CHECK: Reward vault - will be closed and rent returned
-    #[account(
-        mut,
-        seeds = [b"reward_vault", project.key().as_ref()],
-        bump,
-    )]
-    pub reward_vault: AccountInfo<'info>,
-    
-    /// CHECK: Reflection vault - optional, will be closed if exists
-    #[account(
-        mut,
-        seeds = [b"reflection_vault", project.key().as_ref()],
-        bump,
-    )]
-    pub reflection_vault: Option<AccountInfo<'info>>,
-    
-    #[account(mut)]
-    pub admin: Signer<'info>,
-    
-    pub token_program: Interface<'info, TokenInterface>,
-    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -2390,23 +2133,10 @@ pub struct RewardsDeposited {
 }
 
 #[event]
-pub struct EmergencyStakeReturned {
-    pub project: Pubkey,
-    pub user: Pubkey,
-    pub amount: u64,
-}
-
-#[event]
 pub struct AdminTransferred {
     pub project: Pubkey,
     pub old_admin: Pubkey,
     pub new_admin: Pubkey,
-}
-
-#[event]
-pub struct ProjectClosed {
-    pub project: Pubkey,
-    pub admin: Pubkey,
 }
 
 #[event]
@@ -2445,36 +2175,6 @@ pub struct ReflectionsDisabled {
 pub struct FeesUpdated {
     pub platform_token_fee_bps: u64,
     pub platform_sol_fee: u64,
-}
-
-#[event]
-pub struct DepositsPaused {
-    pub project: Pubkey,
-}
-
-#[event]
-pub struct DepositsUnpaused {
-    pub project: Pubkey,
-}
-
-#[event]
-pub struct WithdrawalsPaused {
-    pub project: Pubkey,
-}
-
-#[event]
-pub struct WithdrawalsUnpaused {
-    pub project: Pubkey,
-}
-
-#[event]
-pub struct ClaimsPaused {
-    pub project: Pubkey,
-}
-
-#[event]
-pub struct ClaimsUnpaused {
-    pub project: Pubkey,
 }
 
 #[event]
@@ -2561,8 +2261,6 @@ pub enum ErrorCode {
     WrongTokenType,
     #[msg("Unauthorized vault - must belong to this project")]
     UnauthorizedVault,
-    #[msg("Invalid stake account for specified user")]
-    InvalidStakeAccount,
     #[msg("Invalid withdrawal wallet - does not match stake withdrawal_wallet")]
     InvalidWithdrawalWallet,
     #[msg("Invalid reflection vault - does not match project reflection vault")]
@@ -2581,6 +2279,4 @@ pub enum ErrorCode {
     MissingAssociatedTokenProgram,
     #[msg("Please refresh reflections before claiming - new tokens have arrived in the vault")]
     RefreshRequired,
-    #[msg("Cannot close project with active stakes - all users must withdraw first")]
-    CannotCloseWithActiveStakes,
 }

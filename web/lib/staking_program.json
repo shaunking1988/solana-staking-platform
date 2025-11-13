@@ -1,5 +1,5 @@
 {
-  "address": "afkrGbxfK9GVPDxPY9t1GMVD4hKwj4gitBcbBUe5o3N",
+  "address": "Es7JZM42QxG7qvxr7CFp6YtNtwN4kwwfQCAnTz5cjDLv",
   "metadata": {
     "name": "staking_program",
     "version": "0.1.0",
@@ -278,6 +278,10 @@
         },
         {
           "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -362,164 +366,6 @@
         },
         {
           "name": "amount",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "close_project",
-      "discriminator": [
-        117,
-        209,
-        53,
-        106,
-        93,
-        55,
-        112,
-        49
-      ],
-      "accounts": [
-        {
-          "name": "project",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "token_mint"
-              },
-              {
-                "kind": "arg",
-                "path": "pool_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "staking_vault",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  116,
-                  97,
-                  107,
-                  105,
-                  110,
-                  103,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "project"
-              }
-            ]
-          }
-        },
-        {
-          "name": "reward_vault",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  119,
-                  97,
-                  114,
-                  100,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "project"
-              }
-            ]
-          }
-        },
-        {
-          "name": "reflection_vault",
-          "writable": true,
-          "optional": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  102,
-                  108,
-                  101,
-                  99,
-                  116,
-                  105,
-                  111,
-                  110,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "project"
-              }
-            ]
-          }
-        },
-        {
-          "name": "admin",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "token_program"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "_token_mint",
-          "type": "pubkey"
-        },
-        {
-          "name": "_pool_id",
           "type": "u64"
         }
       ]
@@ -924,134 +770,6 @@
       ]
     },
     {
-      "name": "emergency_return_stake",
-      "discriminator": [
-        155,
-        66,
-        131,
-        150,
-        218,
-        110,
-        93,
-        21
-      ],
-      "accounts": [
-        {
-          "name": "project",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "token_mint"
-              },
-              {
-                "kind": "arg",
-                "path": "pool_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "stake",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  116,
-                  97,
-                  107,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "project"
-              },
-              {
-                "kind": "arg",
-                "path": "user_pubkey"
-              }
-            ]
-          }
-        },
-        {
-          "name": "staking_vault",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  116,
-                  97,
-                  107,
-                  105,
-                  110,
-                  103,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "project"
-              }
-            ]
-          }
-        },
-        {
-          "name": "user_withdrawal_account",
-          "writable": true
-        },
-        {
-          "name": "token_mint_account"
-        },
-        {
-          "name": "admin",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "token_program"
-        }
-      ],
-      "args": [
-        {
-          "name": "token_mint",
-          "type": "pubkey"
-        },
-        {
-          "name": "pool_id",
-          "type": "u64"
-        },
-        {
-          "name": "user_pubkey",
-          "type": "pubkey"
-        }
-      ]
-    },
-    {
       "name": "emergency_unlock",
       "discriminator": [
         17,
@@ -1290,122 +1008,6 @@
       ]
     },
     {
-      "name": "pause_claims",
-      "discriminator": [
-        126,
-        36,
-        199,
-        228,
-        204,
-        57,
-        224,
-        237
-      ],
-      "accounts": [
-        {
-          "name": "project",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "token_mint"
-              },
-              {
-                "kind": "arg",
-                "path": "pool_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "admin",
-          "writable": true,
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "token_mint",
-          "type": "pubkey"
-        },
-        {
-          "name": "pool_id",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "pause_deposits",
-      "discriminator": [
-        206,
-        186,
-        203,
-        153,
-        253,
-        61,
-        206,
-        122
-      ],
-      "accounts": [
-        {
-          "name": "project",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "token_mint"
-              },
-              {
-                "kind": "arg",
-                "path": "pool_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "admin",
-          "writable": true,
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "token_mint",
-          "type": "pubkey"
-        },
-        {
-          "name": "pool_id",
-          "type": "u64"
-        }
-      ]
-    },
-    {
       "name": "pause_project",
       "discriminator": [
         8,
@@ -1416,64 +1018,6 @@
         162,
         129,
         230
-      ],
-      "accounts": [
-        {
-          "name": "project",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "token_mint"
-              },
-              {
-                "kind": "arg",
-                "path": "pool_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "admin",
-          "writable": true,
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "token_mint",
-          "type": "pubkey"
-        },
-        {
-          "name": "pool_id",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "pause_withdrawals",
-      "discriminator": [
-        91,
-        80,
-        49,
-        92,
-        10,
-        224,
-        203,
-        1
       ],
       "accounts": [
         {
@@ -1797,122 +1341,6 @@
       ]
     },
     {
-      "name": "unpause_claims",
-      "discriminator": [
-        115,
-        254,
-        41,
-        223,
-        7,
-        61,
-        91,
-        247
-      ],
-      "accounts": [
-        {
-          "name": "project",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "token_mint"
-              },
-              {
-                "kind": "arg",
-                "path": "pool_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "admin",
-          "writable": true,
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "token_mint",
-          "type": "pubkey"
-        },
-        {
-          "name": "pool_id",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "unpause_deposits",
-      "discriminator": [
-        15,
-        5,
-        224,
-        0,
-        74,
-        156,
-        151,
-        163
-      ],
-      "accounts": [
-        {
-          "name": "project",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "token_mint"
-              },
-              {
-                "kind": "arg",
-                "path": "pool_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "admin",
-          "writable": true,
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "token_mint",
-          "type": "pubkey"
-        },
-        {
-          "name": "pool_id",
-          "type": "u64"
-        }
-      ]
-    },
-    {
       "name": "unpause_project",
       "discriminator": [
         65,
@@ -1923,64 +1351,6 @@
         9,
         150,
         90
-      ],
-      "accounts": [
-        {
-          "name": "project",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "token_mint"
-              },
-              {
-                "kind": "arg",
-                "path": "pool_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "admin",
-          "writable": true,
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "token_mint",
-          "type": "pubkey"
-        },
-        {
-          "name": "pool_id",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "unpause_withdrawals",
-      "discriminator": [
-        79,
-        193,
-        132,
-        23,
-        106,
-        111,
-        25,
-        202
       ],
       "accounts": [
         {
@@ -2136,72 +1506,6 @@
         },
         {
           "name": "duration_seconds",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "update_pool_params",
-      "discriminator": [
-        231,
-        113,
-        152,
-        162,
-        225,
-        80,
-        237,
-        116
-      ],
-      "accounts": [
-        {
-          "name": "project",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "token_mint"
-              },
-              {
-                "kind": "arg",
-                "path": "pool_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "admin",
-          "writable": true,
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "token_mint",
-          "type": "pubkey"
-        },
-        {
-          "name": "pool_id",
-          "type": "u64"
-        },
-        {
-          "name": "rate_bps_per_year",
-          "type": "u64"
-        },
-        {
-          "name": "lockup_seconds",
           "type": "u64"
         }
       ]
@@ -2502,71 +1806,6 @@
       ]
     },
     {
-      "name": "ClaimsPaused",
-      "discriminator": [
-        206,
-        206,
-        66,
-        135,
-        233,
-        245,
-        249,
-        105
-      ]
-    },
-    {
-      "name": "ClaimsUnpaused",
-      "discriminator": [
-        16,
-        244,
-        191,
-        37,
-        1,
-        125,
-        251,
-        1
-      ]
-    },
-    {
-      "name": "DepositsPaused",
-      "discriminator": [
-        148,
-        244,
-        198,
-        121,
-        18,
-        138,
-        222,
-        13
-      ]
-    },
-    {
-      "name": "DepositsUnpaused",
-      "discriminator": [
-        166,
-        2,
-        73,
-        157,
-        33,
-        169,
-        96,
-        69
-      ]
-    },
-    {
-      "name": "EmergencyStakeReturned",
-      "discriminator": [
-        33,
-        74,
-        105,
-        161,
-        3,
-        122,
-        199,
-        111
-      ]
-    },
-    {
       "name": "EmergencyUnlockEvent",
       "discriminator": [
         144,
@@ -2642,19 +1881,6 @@
         198,
         254,
         229
-      ]
-    },
-    {
-      "name": "ProjectClosed",
-      "discriminator": [
-        99,
-        119,
-        201,
-        52,
-        106,
-        26,
-        76,
-        87
       ]
     },
     {
@@ -2812,32 +2038,6 @@
         9,
         158
       ]
-    },
-    {
-      "name": "WithdrawalsPaused",
-      "discriminator": [
-        6,
-        90,
-        244,
-        128,
-        39,
-        13,
-        28,
-        183
-      ]
-    },
-    {
-      "name": "WithdrawalsUnpaused",
-      "discriminator": [
-        2,
-        63,
-        166,
-        105,
-        33,
-        127,
-        136,
-        90
-      ]
     }
   ],
   "errors": [
@@ -2993,58 +2193,48 @@
     },
     {
       "code": 6030,
-      "name": "InvalidStakeAccount",
-      "msg": "Invalid stake account for specified user"
-    },
-    {
-      "code": 6031,
       "name": "InvalidWithdrawalWallet",
       "msg": "Invalid withdrawal wallet - does not match stake withdrawal_wallet"
     },
     {
-      "code": 6032,
+      "code": 6031,
       "name": "InvalidReflectionVault",
       "msg": "Invalid reflection vault - does not match project reflection vault"
     },
     {
-      "code": 6033,
+      "code": 6032,
       "name": "InvalidProject",
       "msg": "Invalid project - stake does not belong to this project"
     },
     {
-      "code": 6034,
+      "code": 6033,
       "name": "InconsistentTotalStaked",
       "msg": "Inconsistent total staked - total_staked is less than withdrawal amount"
     },
     {
-      "code": 6035,
+      "code": 6034,
       "name": "InvalidTimestamp",
       "msg": "Invalid timestamp - clock moved backwards"
     },
     {
-      "code": 6036,
+      "code": 6035,
       "name": "PoolEnded",
       "msg": "Pool has ended - cannot deposit after pool end time"
     },
     {
-      "code": 6037,
+      "code": 6036,
       "name": "InvalidRateMode",
       "msg": "Invalid rate mode - must be 0 (fixed APY) or 1 (variable APR)"
     },
     {
-      "code": 6038,
+      "code": 6037,
       "name": "MissingAssociatedTokenProgram",
       "msg": "Missing Associated Token Program - required when reflections are enabled"
     },
     {
-      "code": 6039,
+      "code": 6038,
       "name": "RefreshRequired",
       "msg": "Please refresh reflections before claiming - new tokens have arrived in the vault"
-    },
-    {
-      "code": 6040,
-      "name": "CannotCloseWithActiveStakes",
-      "msg": "Cannot close project with active stakes - all users must withdraw first"
     }
   ],
   "types": [
@@ -3064,74 +2254,6 @@
           {
             "name": "new_admin",
             "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "ClaimsPaused",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "project",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "ClaimsUnpaused",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "project",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "DepositsPaused",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "project",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "DepositsUnpaused",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "project",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "EmergencyStakeReturned",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "project",
-            "type": "pubkey"
-          },
-          {
-            "name": "user",
-            "type": "pubkey"
-          },
-          {
-            "name": "amount",
-            "type": "u64"
           }
         ]
       }
@@ -3487,22 +2609,6 @@
       }
     },
     {
-      "name": "ProjectClosed",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "project",
-            "type": "pubkey"
-          },
-          {
-            "name": "admin",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
       "name": "ProjectCreated",
       "type": {
         "kind": "struct",
@@ -3808,30 +2914,6 @@
           {
             "name": "remaining",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "WithdrawalsPaused",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "project",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "WithdrawalsUnpaused",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "project",
-            "type": "pubkey"
           }
         ]
       }

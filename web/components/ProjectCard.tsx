@@ -184,15 +184,52 @@ export default function PoolCard(props: PoolCardProps) {
     const fetchReflectionBalance = async () => {
       setReflectionLoading(true);
       try {
-        // Get user's pending reflections from their stake account
-        if (stakeData && stakeData.reflectionsPending) {
-          const pendingReflections = Number(stakeData.reflectionsPending) / DECIMALS_MULTIPLIER;
-          setReflectionBalance(pendingReflections);
-          console.log(`✨ [${name}] User's Pending Reflections:`, pendingReflections);
-        } else {
+        // Get fresh project and stake data
+        const project = await getProjectInfo(effectiveMintAddress, poolId);
+        const userStake = await getUserStake(effectiveMintAddress, poolId);
+        
+        if (!project || !userStake || !project.reflectionVault) {
+          console.log(`⚠️ [${name}] No reflection data available`);
           setReflectionBalance(0);
+          return;
         }
-      } catch (error) {
+
+        // Get user's staked amount (in lamports)
+        const userStakedAmountLamports = userStake.amount.toNumber();
+        
+        if (userStakedAmountLamports === 0) {
+          console.log(`⚠️ [${name}] User has no stake`);
+          setReflectionBalance(0);
+          return;
+        }
+
+        // Get reflection rates
+        const userReflectionPerTokenPaid = userStake.reflectionPerTokenPaid 
+          ? userStake.reflectionPerTokenPaid.toNumber() 
+          : 0;
+        
+        const currentReflectionPerToken = project.reflectionPerTokenStored 
+          ? project.reflectionPerTokenStored.toNumber() 
+          : 0;
+
+        // Calculate pending reflections
+        const rateDifference = currentReflectionPerToken - userReflectionPerTokenPaid;
+        const pendingReflectionsLamports = (rateDifference * userStakedAmountLamports) / DECIMALS_MULTIPLIER;
+        const pendingReflections = pendingReflectionsLamports / DECIMALS_MULTIPLIER;
+        
+        console.log(`🔍 [${name}] Reflection Calculation:`, {
+          userStakedLamports: userStakedAmountLamports,
+          userStakedTokens: userStakedAmountLamports / DECIMALS_MULTIPLIER,
+          userRate: userReflectionPerTokenPaid,
+          currentRate: currentReflectionPerToken,
+          rateDiff: rateDifference,
+          pendingLamports: pendingReflectionsLamports,
+          pendingTokens: pendingReflections
+        });
+        
+        setReflectionBalance(Math.max(0, pendingReflections));
+        
+      } catch (error: any) {
         console.error(`❌ [${name}] Error fetching reflection balance:`, error);
         setReflectionBalance(0);
       } finally {
@@ -205,7 +242,7 @@ export default function PoolCard(props: PoolCardProps) {
     // Refresh reflection balance every 10 seconds (same as rewards)
     const interval = setInterval(fetchReflectionBalance, 10000);
     return () => clearInterval(interval);
-  }, [connected, reflectionTokenAccount, publicKey, name, stakeData]);
+  }, [connected, publicKey, effectiveMintAddress, poolId, name, stakeData]);
 
   const lockupInfo = useMemo(() => {
     if (!lockPeriod || type !== "locked" || !userStakeTimestamp) {
