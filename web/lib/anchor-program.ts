@@ -4,7 +4,7 @@ import { AnchorWallet } from "@solana/wallet-adapter-react";
 import idlJson from "./staking_program.json";
 
 // ✅ CRITICAL FIX: Define Program ID as PublicKey directly
-export const PROGRAM_ID = new PublicKey("47Z3KVcvmjNUBFroCkSKbNinzbsxhKpsLoUMVGpfrxCm");
+export const PROGRAM_ID = new PublicKey("afkrGbxfK9GVPDxPY9t1GMVD4hKwj4gitBcbBUe5o3N");
 console.log("Program ID:", PROGRAM_ID.toString());
 
 // Network RPC endpoint

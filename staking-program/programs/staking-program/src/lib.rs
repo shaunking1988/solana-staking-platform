@@ -10,7 +10,7 @@ use anchor_spl::token_interface::{
     TransferChecked,
 };
 
-declare_id!("47Z3KVcvmjNUBFroCkSKbNinzbsxhKpsLoUMVGpfrxCm");
+declare_id!("afkrGbxfK9GVPDxPY9t1GMVD4hKwj4gitBcbBUe5o3N");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
 
@@ -457,173 +457,169 @@ pub mod staking_program {
         pool_id: u64,
         amount: u64
     ) -> Result<()> {
-    require!(amount > 0, ErrorCode::InvalidAmount);
-    require!(ctx.accounts.stake.amount >= amount, ErrorCode::InsufficientBalance);
-    
-    let platform_token_fee_bps = ctx.accounts.platform.platform_token_fee_bps;
-    let platform_sol_fee = ctx.accounts.platform.platform_sol_fee;
-    let fee_collector = ctx.accounts.platform.fee_collector;
-    
-    let project_is_initialized = ctx.accounts.project.is_initialized;
-    let project_is_paused = ctx.accounts.project.is_paused;
-    let project_withdraw_paused = ctx.accounts.project.withdraw_paused;
-    let project_lockup_seconds = ctx.accounts.project.lockup_seconds;
-    let project_reflection_vault = ctx.accounts.project.reflection_vault;
-    let project_token_mint = ctx.accounts.project.token_mint;
-    let project_pool_id = ctx.accounts.project.pool_id;
-    let project_bump = ctx.accounts.project.bump;
-    let project_key = ctx.accounts.project.key();
-    let project_total_staked = ctx.accounts.project.total_staked;
-    let project_referrer = ctx.accounts.project.referrer;
-    let project_referrer_split_bps = ctx.accounts.project.referrer_split_bps;
-    
-    require!(project_is_initialized, ErrorCode::NotInitialized);
-    require!(!project_is_paused, ErrorCode::ProjectPaused);
-    require!(!project_withdraw_paused, ErrorCode::WithdrawalsPaused);
-    
-    // Check user has enough SOL for fee
-    let rent_minimum = 890880u64;
-    require!(
-        ctx.accounts.user.lamports() >= platform_sol_fee.saturating_add(rent_minimum),
-        ErrorCode::InsufficientSolForFee
-    );
-    
-    // Calculate token fee
-    let token_fee = amount
-        .checked_mul(platform_token_fee_bps)
-        .ok_or(ErrorCode::MathOverflow)?
-        .checked_div(10000)
-        .ok_or(ErrorCode::MathOverflow)?;
-    
-    let amount_after_fee = amount
-        .checked_sub(token_fee)
-        .ok_or(ErrorCode::MathOverflow)?;
-    
-    require!(
-        ctx.accounts.staking_vault.amount >= amount,
-        ErrorCode::InsufficientVaultBalance
-    );
-    
-    update_reward(&mut ctx.accounts.project, &mut ctx.accounts.stake)?;
-    
-    if project_reflection_vault.is_some() {
-        let reflection_vault_opt = ctx.accounts.reflection_vault.as_ref();
-        if let Some(vault) = reflection_vault_opt {
-            require!(
-                Some(vault.key()) == project_reflection_vault,
-                ErrorCode::InvalidReflectionVault
-            );
-            update_reflection(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(vault))?;
+        require!(amount > 0, ErrorCode::InvalidAmount);
+        require!(ctx.accounts.stake.amount >= amount, ErrorCode::InsufficientBalance);
+        
+        // ✅ Access directly - no local variable copies
+        require!(ctx.accounts.project.is_initialized, ErrorCode::NotInitialized);
+        require!(!ctx.accounts.project.is_paused, ErrorCode::ProjectPaused);
+        require!(!ctx.accounts.project.withdraw_paused, ErrorCode::WithdrawalsPaused);
+        
+        let rent_minimum = 890880u64;
+        require!(
+            ctx.accounts.user.lamports() >= ctx.accounts.platform.platform_sol_fee.saturating_add(rent_minimum),
+            ErrorCode::InsufficientSolForFee
+        );
+        
+        let token_fee = amount
+            .checked_mul(ctx.accounts.platform.platform_token_fee_bps)
+            .ok_or(ErrorCode::MathOverflow)?
+            .checked_div(10000)
+            .ok_or(ErrorCode::MathOverflow)?;
+        
+        let amount_after_fee = amount
+            .checked_sub(token_fee)
+            .ok_or(ErrorCode::MathOverflow)?;
+        
+        require!(
+            ctx.accounts.staking_vault.amount >= amount,
+            ErrorCode::InsufficientVaultBalance
+        );
+        
+        // ✅ Call updates early
+        update_reward(&mut ctx.accounts.project, &mut ctx.accounts.stake)?;
+        
+        if ctx.accounts.project.reflection_vault.is_some() {
+            let reflection_vault_opt = ctx.accounts.reflection_vault.as_ref();
+            if let Some(vault) = reflection_vault_opt {
+                require!(
+                    Some(vault.key()) == ctx.accounts.project.reflection_vault,
+                    ErrorCode::InvalidReflectionVault
+                );
+                update_reflection(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(vault))?;
+            }
         }
-    }
-    
-    let current_time = Clock::get()?.unix_timestamp;
-    let last_stake_time = ctx.accounts.stake.last_stake_timestamp;
-    let time_staked = current_time
-        .checked_sub(last_stake_time)
-        .ok_or(ErrorCode::MathOverflow)?;
-    
-    require!(time_staked >= 0, ErrorCode::InvalidTimestamp);
-    
-    if time_staked < project_lockup_seconds as i64 {
-        return Err(ErrorCode::LockupNotExpired.into());
-    }
-    
-    let stake_mut = &mut ctx.accounts.stake;
-    stake_mut.amount = stake_mut.amount
-        .checked_sub(amount)
-        .ok_or(ErrorCode::MathOverflow)?;
-    
-    let project_mut = &mut ctx.accounts.project;
-    require!(
-        project_total_staked >= amount,
-        ErrorCode::InconsistentTotalStaked
-    );
-    project_mut.total_staked = project_total_staked
-        .checked_sub(amount)
-        .ok_or(ErrorCode::MathOverflow)?;
-    
-    let seeds = &[
-        b"project",
-        project_token_mint.as_ref(),
-        &project_pool_id.to_le_bytes(),
-        &[project_bump],
-    ];
-    let signer = &[&seeds[..]];
-    
-    token_interface::transfer_checked(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            TransferChecked {
-                from: ctx.accounts.staking_vault.to_account_info(),
-                to: ctx.accounts.withdrawal_token_account.to_account_info(),
-                authority: ctx.accounts.project.to_account_info(),
-                mint: ctx.accounts.token_mint_account.to_account_info(),
-            },
-            signer,
-        ),
-        amount_after_fee,
-        ctx.accounts.token_mint_account.decimals,
-    )?;
-    
-    // Transfer token fee to fee collector
-    if token_fee > 0 {
+        
+        let current_time = Clock::get()?.unix_timestamp;
+        let time_staked = current_time
+            .checked_sub(ctx.accounts.stake.last_stake_timestamp)
+            .ok_or(ErrorCode::MathOverflow)?;
+        
+        require!(time_staked >= 0, ErrorCode::InvalidTimestamp);
+        
+        if time_staked < ctx.accounts.project.lockup_seconds as i64 {
+            return Err(ErrorCode::LockupNotExpired.into());
+        }
+        
+        // Update stake amount
+        ctx.accounts.stake.amount = ctx.accounts.stake.amount
+            .checked_sub(amount)
+            .ok_or(ErrorCode::MathOverflow)?;
+        
+        // Update total staked
+        require!(
+            ctx.accounts.project.total_staked >= amount,
+            ErrorCode::InconsistentTotalStaked
+        );
+        ctx.accounts.project.total_staked = ctx.accounts.project.total_staked
+            .checked_sub(amount)
+            .ok_or(ErrorCode::MathOverflow)?;
+        
+        // ✅ Only create seeds when needed
+        let seeds = &[
+            b"project",
+            ctx.accounts.project.token_mint.as_ref(),
+            &ctx.accounts.project.pool_id.to_le_bytes(),
+            &[ctx.accounts.project.bump],
+        ];
+        let signer = &[&seeds[..]];
+        
+        // Transfer tokens to user
         token_interface::transfer_checked(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 TransferChecked {
                     from: ctx.accounts.staking_vault.to_account_info(),
-                    to: ctx.accounts.fee_collector_token_account.to_account_info(),
+                    to: ctx.accounts.withdrawal_token_account.to_account_info(),
                     authority: ctx.accounts.project.to_account_info(),
                     mint: ctx.accounts.token_mint_account.to_account_info(),
                 },
                 signer,
             ),
-            token_fee,
+            amount_after_fee,
             ctx.accounts.token_mint_account.decimals,
         )?;
-    }
-    
-    // Collect SOL fee (with referral split if applicable)
-    if platform_sol_fee > 0 {
-        if let Some(referrer_key) = project_referrer {
-            if let Some(ref referrer_account) = ctx.accounts.referrer {
-                require!(
-                    referrer_account.key() == referrer_key,
-                    ErrorCode::InvalidReferrer
-                );
-                
-                let referrer_amount = platform_sol_fee
-                    .checked_mul(project_referrer_split_bps)
-                    .ok_or(ErrorCode::MathOverflow)?
-                    .checked_div(10000)
-                    .ok_or(ErrorCode::MathOverflow)?;
-                
-                let admin_amount = platform_sol_fee
-                    .checked_sub(referrer_amount)
-                    .ok_or(ErrorCode::MathOverflow)?;
-                
-                system_program::transfer(
-                    CpiContext::new(
-                        ctx.accounts.system_program.to_account_info(),
-                        system_program::Transfer {
-                            from: ctx.accounts.user.to_account_info(),
-                            to: ctx.accounts.fee_collector.to_account_info(),
-                        },
-                    ),
-                    admin_amount,
-                )?;
-                
-                if referrer_amount > 0 {
+        
+        // Transfer token fee
+        if token_fee > 0 {
+            token_interface::transfer_checked(
+                CpiContext::new_with_signer(
+                    ctx.accounts.token_program.to_account_info(),
+                    TransferChecked {
+                        from: ctx.accounts.staking_vault.to_account_info(),
+                        to: ctx.accounts.fee_collector_token_account.to_account_info(),
+                        authority: ctx.accounts.project.to_account_info(),
+                        mint: ctx.accounts.token_mint_account.to_account_info(),
+                    },
+                    signer,
+                ),
+                token_fee,
+                ctx.accounts.token_mint_account.decimals,
+            )?;
+        }
+        
+        // Collect SOL fee
+        if ctx.accounts.platform.platform_sol_fee > 0 {
+            if let Some(referrer_key) = ctx.accounts.project.referrer {
+                if let Some(ref referrer_account) = ctx.accounts.referrer {
+                    require!(
+                        referrer_account.key() == referrer_key,
+                        ErrorCode::InvalidReferrer
+                    );
+                    
+                    let referrer_amount = ctx.accounts.platform.platform_sol_fee
+                        .checked_mul(ctx.accounts.project.referrer_split_bps)
+                        .ok_or(ErrorCode::MathOverflow)?
+                        .checked_div(10000)
+                        .ok_or(ErrorCode::MathOverflow)?;
+                    
+                    let admin_amount = ctx.accounts.platform.platform_sol_fee
+                        .checked_sub(referrer_amount)
+                        .ok_or(ErrorCode::MathOverflow)?;
+                    
                     system_program::transfer(
                         CpiContext::new(
                             ctx.accounts.system_program.to_account_info(),
                             system_program::Transfer {
                                 from: ctx.accounts.user.to_account_info(),
-                                to: referrer_account.to_account_info(),
+                                to: ctx.accounts.fee_collector.to_account_info(),
                             },
                         ),
-                        referrer_amount,
+                        admin_amount,
+                    )?;
+                    
+                    if referrer_amount > 0 {
+                        system_program::transfer(
+                            CpiContext::new(
+                                ctx.accounts.system_program.to_account_info(),
+                                system_program::Transfer {
+                                    from: ctx.accounts.user.to_account_info(),
+                                    to: referrer_account.to_account_info(),
+                                },
+                            ),
+                            referrer_amount,
+                        )?;
+                    }
+                } else {
+                    system_program::transfer(
+                        CpiContext::new(
+                            ctx.accounts.system_program.to_account_info(),
+                            system_program::Transfer {
+                                from: ctx.accounts.user.to_account_info(),
+                                to: ctx.accounts.fee_collector.to_account_info(),
+                            },
+                        ),
+                        ctx.accounts.platform.platform_sol_fee,
                     )?;
                 }
             } else {
@@ -635,32 +631,20 @@ pub mod staking_program {
                             to: ctx.accounts.fee_collector.to_account_info(),
                         },
                     ),
-                    platform_sol_fee,
+                    ctx.accounts.platform.platform_sol_fee,
                 )?;
             }
-        } else {
-            system_program::transfer(
-                CpiContext::new(
-                    ctx.accounts.system_program.to_account_info(),
-                    system_program::Transfer {
-                        from: ctx.accounts.user.to_account_info(),
-                        to: ctx.accounts.fee_collector.to_account_info(),
-                    },
-                ),
-                platform_sol_fee,
-            )?;
         }
+        
+        emit!(TokensWithdrawn {
+            user: ctx.accounts.user.key(),
+            project: ctx.accounts.project.key(),
+            amount: amount_after_fee,
+            remaining: ctx.accounts.stake.amount,
+        });
+        
+        Ok(())
     }
-    
-    emit!(TokensWithdrawn {
-        user: ctx.accounts.user.key(),
-        project: project_key,
-        amount: amount_after_fee,
-        remaining: stake_mut.amount,
-    });
-    
-    Ok(())
-}
     pub fn claim(
         ctx: Context<Claim>,
         token_mint: Pubkey,
@@ -1519,6 +1503,14 @@ fn update_reward(project: &mut Account<Project>, stake: &mut Account<Stake>) -> 
     Ok(())
 }
 
+// Helper struct to reduce stack usage in reflection calculations
+struct ReflectionCalc {
+    current_balance: u64,
+    last_balance: u64,
+    new_tokens: u64,
+    total_staked: u64,
+}
+
 fn update_reflection(
     project: &mut Account<Project>,
     stake: &mut Account<Stake>,
@@ -1529,99 +1521,95 @@ fn update_reflection(
     }
     
     let vault = reflection_vault.ok_or(ErrorCode::ReflectionVaultRequired)?;
-let current_time = Clock::get()?.unix_timestamp;
-let current_balance = vault.amount;
-let last_balance = project.last_reflection_balance;
+    let current_time = Clock::get()?.unix_timestamp;
+    
+    // ✅ BOX: Move calculation data to heap (not stack)
+    let calc = Box::new(ReflectionCalc {
+        current_balance: vault.amount,
+        last_balance: project.last_reflection_balance,
+        new_tokens: vault.amount.saturating_sub(project.last_reflection_balance),
+        total_staked: project.total_staked,
+    });
 
-// ✅ CRITICAL FIX: Detect when vault balance DECREASED (claim detected)
-// Reset the tracker so new deposits will be recognized
-if current_balance < last_balance {
-    msg!("📉 Vault balance decreased from {} to {} (claim detected)", 
-         last_balance, current_balance);
-    msg!("🔄 Resetting reflection tracker to current balance");
-    
-    project.last_reflection_balance = current_balance;
-    project.last_reflection_update_time = current_time;
-    
-    // Don't process any "new" tokens yet - just reset and exit
-    return Ok(());
-}
+    // Detect vault balance decrease (claim detected)
+    if calc.current_balance < calc.last_balance {
+        msg!("📉 Vault balance decreased from {} to {} (claim detected)", 
+             calc.last_balance, calc.current_balance);
+        msg!("🔄 Resetting reflection tracker to current balance");
+        
+        project.last_reflection_balance = calc.current_balance;
+        project.last_reflection_update_time = current_time;
+        return Ok(());
+    }
 
-// ✅ DELTA-BASED: Calculate NEW tokens since last check
-let new_tokens = current_balance.saturating_sub(last_balance);
-    
     msg!("🔍 Reflection State:");
-    msg!("  Current balance: {}", current_balance);
-    msg!("  Last processed: {}", last_balance);
-    msg!("  New tokens: {}", new_tokens);
-    msg!("  Total staked: {}", project.total_staked);
-    msg!("  Total debt: {}", project.total_reflection_debt);
-    
-    // ✅ If there are NEW tokens AND stakers, process them
-    if new_tokens > 0 && project.total_staked > 0 {
-        // Calculate per-token rate from NEW tokens only
-        let per_token_u128 = (new_tokens as u128)
-            .checked_mul(1_000_000_000u128)  // Scale by 1e9
-            .ok_or(ErrorCode::MathOverflow)?
-            .checked_div(project.total_staked as u128)
-            .ok_or(ErrorCode::DivisionByZero)?;
+    msg!("  Current balance: {}", calc.current_balance);
+    msg!("  Last processed: {}", calc.last_balance);
+    msg!("  New tokens: {}", calc.new_tokens);
+    msg!("  Total staked: {}", calc.total_staked);
         
-        require!(per_token_u128 <= u64::MAX as u128, ErrorCode::MathOverflow);
-        let per_token_rate = per_token_u128 as u64;
+    // Process new tokens
+    if calc.new_tokens > 0 && calc.total_staked > 0 {
+        // ✅ BOX: u128 calculation on heap
+        let per_token_rate = Box::new({
+            let per_token_u128 = (calc.new_tokens as u128)
+                .checked_mul(1_000_000_000u128)
+                .ok_or(ErrorCode::MathOverflow)?
+                .checked_div(calc.total_staked as u128)
+                .ok_or(ErrorCode::DivisionByZero)?;
+            
+            require!(per_token_u128 <= u64::MAX as u128, ErrorCode::MathOverflow);
+            per_token_u128 as u64
+        });
         
-        // ✅ Update GLOBAL reflection rate
         project.reflection_per_token_stored = project.reflection_per_token_stored
-            .checked_add(per_token_rate)
+            .checked_add(*per_token_rate)
             .ok_or(ErrorCode::MathOverflow)?;
         
-        msg!("  Per-token rate: {}", per_token_rate);
+        msg!("  Per-token rate: {}", *per_token_rate);
         msg!("  New global stored: {}", project.reflection_per_token_stored);
         
-        // ✅ Update what we've processed
-        project.last_reflection_balance = current_balance;
+        project.last_reflection_balance = calc.current_balance;
         project.last_reflection_update_time = current_time;
     }
     
-    // ✅ Calculate THIS STAKE's pending reflections
+    // Calculate user's pending reflections
     if stake.amount > 0 {
-        // Calculate rate difference since user's last update
         let rate_diff = project.reflection_per_token_stored
             .saturating_sub(stake.reflection_per_token_paid);
         
         if rate_diff > 0 {
-            // Calculate earned reflections (with 1e9 precision)
-            let earned_u128 = (rate_diff as u128)
-                .checked_mul(stake.amount as u128)
-                .ok_or(ErrorCode::MathOverflow)?
-                .checked_div(1_000_000_000u128)
-                .ok_or(ErrorCode::DivisionByZero)?;
+            // ✅ BOX: u128 calculation on heap
+            let earned = Box::new({
+                let earned_u128 = (rate_diff as u128)
+                    .checked_mul(stake.amount as u128)
+                    .ok_or(ErrorCode::MathOverflow)?
+                    .checked_div(1_000_000_000u128)
+                    .ok_or(ErrorCode::DivisionByZero)?;
+                
+                require!(earned_u128 <= u64::MAX as u128, ErrorCode::MathOverflow);
+                earned_u128 as u64
+            });
             
-            require!(earned_u128 <= u64::MAX as u128, ErrorCode::MathOverflow);
-            let earned = earned_u128 as u64;
-            
-            // ✅ Subtract user's debt from their earned amount
-            let net_earned = earned.saturating_sub(stake.reflection_debt);
+            let net_earned = (*earned).saturating_sub(stake.reflection_debt);
             
             msg!("👤 User Calculation:");
             msg!("  Stake amount: {}", stake.amount);
             msg!("  Rate paid: {}", stake.reflection_per_token_paid);
             msg!("  Rate diff: {}", rate_diff);
-            msg!("  Gross earned: {}", earned);
+            msg!("  Gross earned: {}", *earned);
             msg!("  User debt: {}", stake.reflection_debt);
             msg!("  Net earned: {}", net_earned);
             
-            // Add net earned to pending
             stake.reflections_pending = stake.reflections_pending
                 .checked_add(net_earned)
                 .ok_or(ErrorCode::MathOverflow)?;
             
-            // ✅ Clear user's debt (it's been subtracted above)
             stake.reflection_debt = 0;
             
             msg!("  Final pending: {}", stake.reflections_pending);
         }
         
-        // ✅ Update user's last paid rate
         stake.reflection_per_token_paid = project.reflection_per_token_stored;
     }
     
