@@ -5,7 +5,7 @@ const fs = require('fs');
 async function check() {
   const conn = new Connection('https://api.mainnet-beta.solana.com');
   const mint = new PublicKey('9VxExA1iRPbuLLdSJ2rB3nyBxsyLReT4aqzZBMaBaY1p');
-  const programId = new PublicKey('7VNRLzRrMfigrFdpBDKCyKPkWkauz538TEE9kgDfRdq1');
+  const programId = new PublicKey('F4kziAmJLVt3GNarV7GCFns2qTLg6S8Tg6Cu2egdXUvy');
   
   // Load IDL
   const idl = JSON.parse(fs.readFileSync('./lib/staking_program.json', 'utf8'));

@@ -1,5 +1,5 @@
 {
-  "address": "7VNRLzRrMfigrFdpBDKCyKPkWkauz538TEE9kgDfRdq1",
+  "address": "F4kziAmJLVt3GNarV7GCFns2qTLg6S8Tg6Cu2egdXUvy",
   "metadata": {
     "name": "staking_program",
     "version": "0.1.0",
@@ -357,6 +357,10 @@
         },
         {
           "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
@@ -756,6 +760,10 @@
         },
         {
           "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": [

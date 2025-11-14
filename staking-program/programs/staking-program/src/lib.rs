@@ -10,7 +10,7 @@ use anchor_spl::token_interface::{
     TransferChecked,
 };
 
-declare_id!("7VNRLzRrMfigrFdpBDKCyKPkWkauz538TEE9kgDfRdq1");
+declare_id!("F4kziAmJLVt3GNarV7GCFns2qTLg6S8Tg6Cu2egdXUvy");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
 
@@ -880,8 +880,21 @@ pub mod staking_program {
         
         let reflections = ctx.accounts.stake.reflections_pending;
         require!(reflections > 0, ErrorCode::NoReflections);
+        
+        // Check vault balance - handle Native SOL differently
+        let is_native = is_native_sol(&ctx.accounts.reflection_token_mint.key());
+        let vault_balance = if is_native {
+            // For Native SOL, get lamports and subtract rent-exempt minimum
+            let total_lamports = ctx.accounts.reflection_vault.to_account_info().lamports();
+            let rent = Rent::get()?;
+            let rent_exempt_minimum = rent.minimum_balance(ctx.accounts.reflection_vault.to_account_info().data_len());
+            total_lamports.saturating_sub(rent_exempt_minimum)
+        } else {
+            ctx.accounts.reflection_vault.amount
+        };
+        
         require!(
-            ctx.accounts.reflection_vault.amount >= reflections,
+            vault_balance >= reflections,
             ErrorCode::InsufficientReflectionVault
         );
         
@@ -953,18 +966,16 @@ pub mod staking_program {
     
     let project_key = ctx.accounts.project.key();
     
-    token_interface::transfer_checked(
-        CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            TransferChecked {
-                from: ctx.accounts.admin_token_account.to_account_info(),
-                to: ctx.accounts.reward_vault.to_account_info(),
-                authority: ctx.accounts.admin.to_account_info(),
-                mint: ctx.accounts.token_mint_account.to_account_info(),
-            },
-        ),
+    // ✅ Transfer rewards to vault (supports SPL, Token-2022, Native SOL)
+    transfer_tokens(
+        ctx.accounts.admin_token_account.to_account_info(),
+        ctx.accounts.reward_vault.to_account_info(),
+        ctx.accounts.admin.to_account_info(),
+        &ctx.accounts.token_mint_account,
+        ctx.accounts.token_program.to_account_info(),
+        ctx.accounts.system_program.to_account_info(),
         amount,
-        ctx.accounts.token_mint_account.decimals,
+        None,
     )?;
     
     let project_mut = &mut ctx.accounts.project;
@@ -1180,19 +1191,16 @@ pub mod staking_program {
         ];
         let signer = &[&seeds[..]];
         
-        token_interface::transfer_checked(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                TransferChecked {
-                    from: ctx.accounts.vault.to_account_info(),
-                    to: ctx.accounts.admin_token_account.to_account_info(),
-                    authority: ctx.accounts.project.to_account_info(),
-                    mint: ctx.accounts.token_mint_account.to_account_info(),
-                },
-                signer,
-            ),
+        // ✅ Transfer tokens to admin (supports SPL, Token-2022, Native SOL)
+        transfer_tokens(
+            ctx.accounts.vault.to_account_info(),
+            ctx.accounts.admin_token_account.to_account_info(),
+            ctx.accounts.project.to_account_info(),
+            &ctx.accounts.token_mint_account,
+            ctx.accounts.token_program.to_account_info(),
+            ctx.accounts.system_program.to_account_info(),
             amount,
-            ctx.accounts.token_mint_account.decimals,
+            Some(signer),
         )?;
         
         Ok(())
@@ -1798,6 +1806,7 @@ pub struct DepositRewards<'info> {
     pub admin: Signer<'info>,
     
     pub token_program: Interface<'info, TokenInterface>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -1947,6 +1956,8 @@ pub struct ClaimUnclaimedTokens<'info> {
     pub admin: Signer<'info>,
     
     pub token_program: Interface<'info, TokenInterface>,
+    pub system_program: Program<'info, System>,
+
 }
 
 #[derive(Accounts)]
