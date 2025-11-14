@@ -10,7 +10,7 @@ use anchor_spl::token_interface::{
     TransferChecked,
 };
 
-declare_id!("F4kziAmJLVt3GNarV7GCFns2qTLg6S8Tg6Cu2egdXUvy");
+declare_id!("4zqJTEGr5Q6pU7Uq311idgt4uaAEqKx5WiK737RXjSEs");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
 
@@ -378,7 +378,7 @@ pub mod staking_program {
     stake.reflections_pending = 0;
     stake.total_reflections_claimed = 0;
     stake.reflection_debt = 0;
-    stake.reward_rate_snapshot = ctx.accounts.project.reward_rate_per_second;  // ✅ ADD THIS LINE
+    stake.reward_rate_snapshot = ctx.accounts.project.reward_rate_per_second;
     stake.bump = ctx.bumps.stake;
     
     // ✅ ADD: Update project.total_staked for initial stake
@@ -1348,7 +1348,11 @@ fn update_reflection_internal(
         .unwrap_or(false);
     
     let current_balance = if is_native_sol {
-        vault.to_account_info().lamports()
+        // ✅ FIX: Exclude rent-exempt minimum from reflection calculations
+        let total_lamports = vault.to_account_info().lamports();
+        let rent = Rent::get()?;
+        let rent_exempt_minimum = rent.minimum_balance(vault.to_account_info().data_len());
+        total_lamports.saturating_sub(rent_exempt_minimum)
     } else {
         vault.amount
     };
@@ -1749,7 +1753,7 @@ pub struct ClaimReflections<'info> {
     pub user: Signer<'info>,
     
     pub token_program: Interface<'info, TokenInterface>,
-    pub system_program: Program<'info, System>,  // ✅ ADD THIS LINE
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
