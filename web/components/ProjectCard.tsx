@@ -215,8 +215,8 @@ export default function PoolCard(props: PoolCardProps) {
         // Calculate pending reflections
         const rateDifference = currentReflectionPerToken - userReflectionPerTokenPaid;
         const pendingReflectionsLamports = (rateDifference * userStakedAmountLamports) / DECIMALS_MULTIPLIER;
-        const pendingReflections = pendingReflectionsLamports / DECIMALS_MULTIPLIER;
-        
+        const pendingReflections = pendingReflectionsLamports / LAMPORTS_PER_SOL;
+
         console.log(`🔍 [${name}] Reflection Calculation:`, {
           userStakedLamports: userStakedAmountLamports,
           userStakedTokens: userStakedAmountLamports / DECIMALS_MULTIPLIER,
@@ -224,20 +224,22 @@ export default function PoolCard(props: PoolCardProps) {
           currentRate: currentReflectionPerToken,
           rateDiff: rateDifference,
           pendingLamports: pendingReflectionsLamports,
-          pendingTokens: pendingReflections
+          pendingTokens: pendingReflections,
+          reflectionToken: project.reflectionToken?.toString(),
+          isNativeSOL: project.reflectionToken?.toString() === "So11111111111111111111111111111111111111112"
         });
-        
-        setReflectionBalance(Math.max(0, pendingReflections));
-        
-      } catch (error: any) {
-        console.error(`❌ [${name}] Error fetching reflection balance:`, error);
-        setReflectionBalance(0);
-      } finally {
-        setReflectionLoading(false);
-      }
-    };
 
-    fetchReflectionBalance();
+        setReflectionBalance(Math.max(0, pendingReflections));
+
+        } catch (error: any) {
+          console.error(`❌ [${name}] Error fetching reflection balance:`, error);
+          setReflectionBalance(0);
+        } finally {
+          setReflectionLoading(false);
+        }
+        };
+
+        fetchReflectionBalance();
     
     // Refresh reflection balance every 10 seconds (same as rewards)
     const interval = setInterval(fetchReflectionBalance, 10000);
