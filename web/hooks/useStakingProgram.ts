@@ -764,13 +764,25 @@ try {
     const userStake = await program.account.stake.fetch(userStakePDA, "confirmed");
     const withdrawalWallet = userStake.withdrawalWallet || publicKey;
 
-    // ✅ FIX 2: Get withdrawal wallet's token account for the REFLECTION TOKEN (not staking token!)
-    const userReflectionAccount = await getAssociatedTokenAddress(
-      reflectionTokenMint,  // ✅ Use reflection token mint
-      withdrawalWallet,
-      false, // allowOwnerOffCurve
-      reflectionTokenProgramId  // ✅ Use reflection token's program
-    );
+    // ✅ Check if reflection token is Native SOL
+    const isNativeSOL = reflectionTokenMint.toString() === "So11111111111111111111111111111111111111112";
+
+    let userReflectionAccount: PublicKey;
+
+    if (isNativeSOL) {
+      // For Native SOL, use the user's wallet directly (no ATA needed)
+      userReflectionAccount = withdrawalWallet;
+      console.log("✅ Using wallet directly for Native SOL reflections:", withdrawalWallet.toString());
+    } else {
+      // For SPL tokens, get the ATA
+      userReflectionAccount = await getAssociatedTokenAddress(
+        reflectionTokenMint,
+        withdrawalWallet,
+        false,
+        reflectionTokenProgramId
+      );
+      console.log("✅ Using ATA for SPL token reflections:", userReflectionAccount.toString());
+    }
 
     console.log("🔍 Claim Reflections Accounts:", {
       project: projectPDA.toString(),
