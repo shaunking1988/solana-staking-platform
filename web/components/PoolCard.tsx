@@ -574,10 +574,9 @@ export default function PoolCard(props: PoolCardProps) {
 
               const isNativeSOL = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
 
-              const pendingReflections = isNativeSOL 
-                ? pendingReflectionsLamports / 1_000_000_000
-                : pendingReflectionsLamports / DECIMALS_MULTIPLIER;
-              
+              // ✅ CORRECTED: Only divide by LAMPORTS_PER_SOL for display (works for both SOL and 9-decimal tokens)
+              const pendingReflections = pendingReflectionsLamports / LAMPORTS_PER_SOL;
+                            
               setReflectionBalance(Math.max(0, pendingReflections));
               
               console.log(`🔍 [POST-ACTION] Reflection balance updated:`, {
@@ -747,10 +746,9 @@ export default function PoolCard(props: PoolCardProps) {
 
           const isNativeSOL = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
 
-          const pendingReflections = isNativeSOL 
-            ? pendingReflectionsLamports / 1_000_000_000
-            : pendingReflectionsLamports / DECIMALS_MULTIPLIER;
-            
+          // ✅ CORRECTED: Only divide by LAMPORTS_PER_SOL for display (works for both SOL and 9-decimal tokens)
+          const pendingReflections = pendingReflectionsLamports / LAMPORTS_PER_SOL;
+                      
           console.log(`🔍 [REVSHARE] Reflection Calculation After Refresh:`, {
             userStakedLamports,
             userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
