@@ -143,7 +143,8 @@ export default function PoolCard(props: PoolCardProps) {
   
   const [reflectionBalance, setReflectionBalance] = useState<number>(0);
   const [reflectionLoading, setReflectionLoading] = useState(false);
-  
+  const [baselineReflectionRate, setBaselineReflectionRate] = useState<number | null>(null);
+
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
   const REFRESH_COOLDOWN = 3000; // 3 seconds between refreshes
   
@@ -167,80 +168,85 @@ export default function PoolCard(props: PoolCardProps) {
       return;
     }
 
-    // ✅ CALCULATE reflections properly from vault balance and stake data
-  const fetchReflectionBalance = async () => {
-    setReflectionLoading(true);
-    try {
-      // Get fresh project and stake data
-      const project = await getProjectInfo(effectiveMintAddress, poolId);
-      const userStake = await getUserStake(effectiveMintAddress, poolId);
-      
-      if (!project || !userStake || !project.reflectionVault) {
-        console.log(`⚠️ [${name}] No reflection data available`);
-        setReflectionBalance(0);
-        setReflectionLoading(false);
-        return;
-      }
-
-      // Get user's staked amount (in lamports)
-      const userStakedLamports = userStake.amount ? userStake.amount.toNumber() : 0;
-      
-      if (userStakedLamports === 0) {
-        console.log(`⚠️ [${name}] User has no stake`);
-        setReflectionBalance(0);
-        setReflectionLoading(false);
-        return;
-      }
-
-      // Get reflection rates
-      const userReflectionPerTokenPaid = userStake.reflectionPerTokenPaid 
-        ? userStake.reflectionPerTokenPaid.toNumber() 
-        : 0;
-      
-      const currentReflectionPerToken = project.reflectionPerTokenStored 
-        ? project.reflectionPerTokenStored.toNumber() 
-        : 0;
-
-      // Calculate pending reflections
-      const rateDifference = currentReflectionPerToken - userReflectionPerTokenPaid;
-      const pendingReflectionsLamports = (rateDifference * userStakedLamports) / DECIMALS_MULTIPLIER;
-
-      // ✅ CHECK IF REFLECTION TOKEN IS NATIVE SOL
-      const isNativeSOL = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
-
-      // ✅ NEW: For Native SOL, divide only once (lamports → SOL)
-      // ✅ For SPL/Token-2022, divide twice (lamports → base units → tokens with decimals)
-      const pendingReflections = isNativeSOL 
-        ? pendingReflectionsLamports / 1_000_000_000  // Single division for SOL
-        : pendingReflectionsLamports / DECIMALS_MULTIPLIER;  // Double division for tokens
+    const fetchReflectionBalance = async () => {
+      setReflectionLoading(true);
+      try {
+        // Get fresh project and stake data
+        const project = await getProjectInfo(effectiveMintAddress, poolId);
+        const userStake = await getUserStake(effectiveMintAddress, poolId);
         
-      console.log(`🔍 [${name}] Reflection Calculation:`, {
-        userStakedLamports: userStakedLamports,
-        userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
-        userRate: userReflectionPerTokenPaid,
-        currentRate: currentReflectionPerToken,
-        rateDiff: rateDifference,
-        pendingLamports: pendingReflectionsLamports,
-        pendingTokens: pendingReflections,
-        isNativeSOL: isNativeSOL,
-        reflectionToken: project.reflectionToken?.toString(),
-      });
-      
-      setReflectionBalance(Math.max(0, pendingReflections));
-      
-    } catch (error: any) {
-      console.error(`❌ [${name}] Error fetching reflection balance:`, error);
-      setReflectionBalance(0);
-    } finally {
-      setReflectionLoading(false);
-    }
-  };
+        if (!project || !userStake || !project.reflectionVault) {
+          console.log(`⚠️ [${name}] No reflection data available`);
+          setReflectionBalance(0);
+          setReflectionLoading(false);
+          return;
+        }
 
-  fetchReflectionBalance();
-  
-  const interval = setInterval(fetchReflectionBalance, 10000);
-  return () => clearInterval(interval);
-}, [connected, reflectionTokenAccount, publicKey, name, stakeData]);
+        // Get user's staked amount (in lamports)
+        const userStakedLamports = userStake.amount ? userStake.amount.toNumber() : 0;
+        
+        if (userStakedLamports === 0) {
+          console.log(`⚠️ [${name}] User has no stake`);
+          setReflectionBalance(0);
+          setReflectionLoading(false);
+          return;
+        }
+
+        // Get reflection rates
+        const userReflectionPerTokenPaid = userStake.reflectionPerTokenPaid 
+          ? userStake.reflectionPerTokenPaid.toNumber() 
+          : 0;
+        
+        const currentReflectionPerToken = project.reflectionPerTokenStored 
+          ? project.reflectionPerTokenStored.toNumber() 
+          : 0;
+
+        // ✅ NEW: Use baseline rate if set, otherwise use blockchain's paid rate
+        const effectiveBaselineRate = baselineReflectionRate !== null 
+          ? baselineReflectionRate 
+          : userReflectionPerTokenPaid;
+
+        // ✅ Calculate from the baseline, not from blockchain's updated rate
+        const rateDifference = currentReflectionPerToken - effectiveBaselineRate;
+        const pendingReflectionsLamports = (rateDifference * userStakedLamports) / DECIMALS_MULTIPLIER;
+
+        // ✅ CHECK IF REFLECTION TOKEN IS NATIVE SOL
+        const isNativeSOL = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
+
+        // ✅ For Native SOL, divide only once (lamports → SOL)
+        // ✅ For SPL/Token-2022, divide twice (lamports → base units → tokens with decimals)
+        const pendingReflections = isNativeSOL 
+          ? pendingReflectionsLamports / 1_000_000_000  // Single division for SOL
+          : pendingReflectionsLamports / DECIMALS_MULTIPLIER;  // Double division for tokens
+          
+        console.log(`🔍 [${name}] Reflection Calculation:`, {
+          userStakedLamports: userStakedLamports,
+          userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
+          baselineRate: effectiveBaselineRate,
+          currentRate: currentReflectionPerToken,
+          rateDiff: rateDifference,
+          pendingLamports: pendingReflectionsLamports,
+          pendingTokens: pendingReflections,
+          isNativeSOL: isNativeSOL,
+          reflectionToken: project.reflectionToken?.toString(),
+          usingCustomBaseline: baselineReflectionRate !== null,
+        });
+        
+        setReflectionBalance(Math.max(0, pendingReflections));
+        
+      } catch (error: any) {
+        console.error(`❌ [${name}] Error fetching reflection balance:`, error);
+        setReflectionBalance(0);
+      } finally {
+        setReflectionLoading(false);
+      }
+    };
+
+    fetchReflectionBalance();
+    
+    const interval = setInterval(fetchReflectionBalance, 10000);
+    return () => clearInterval(interval);
+  }, [connected, reflectionTokenAccount, publicKey, name, stakeData, baselineReflectionRate]);
 
   const lockupInfo = useMemo(() => {
     if (!lockPeriod || type !== "locked" || !userStakeTimestamp) {
@@ -551,6 +557,9 @@ export default function PoolCard(props: PoolCardProps) {
           }
           txSignature = await blockchainClaimReflections(effectiveMintAddress!, poolId);
           
+          setBaselineReflectionRate(null);
+          console.log("🔄 Baseline reset after claim");
+          
           try {
             await refreshReflections(effectiveMintAddress!, poolId);
           } catch (refreshErr) {
@@ -570,6 +579,9 @@ export default function PoolCard(props: PoolCardProps) {
             return;
           }
           txSignature = await blockchainClaimReflections(effectiveMintAddress!, poolId);
+
+          setBaselineReflectionRate(null);
+          console.log("🔄 Baseline reset after claim");
           
           try {
             await refreshReflections(effectiveMintAddress!, poolId);
@@ -584,22 +596,58 @@ export default function PoolCard(props: PoolCardProps) {
           throw new Error("Unknown action");
       }
 
+      // ✅ ADD THIS: After the switch statement, refetch data and recalculate reflections
       setTimeout(async () => {
         try {
           const userStake = await getUserStake(effectiveMintAddress!, poolId);
+          const project = await getProjectInfo(effectiveMintAddress!, poolId);
+          
           if (userStake) {
             setUserStakedAmount(userStake.amount.toNumber() / DECIMALS_MULTIPLIER);
             setUserStakeTimestamp(userStake.lastStakeTimestamp?.toNumber() || 0);
             setStakeData(userStake);
           }
-          const project = await getProjectInfo(effectiveMintAddress!, poolId);
+          
           setProjectData(project);
+          
+          // ✅ Recalculate reflection balance with fresh data
+          if (userStake && project && project.reflectionVault) {
+            const userStakedLamports = userStake.amount ? userStake.amount.toNumber() : 0;
+            
+            if (userStakedLamports > 0) {
+              const userReflectionPerTokenPaid = userStake.reflectionPerTokenPaid 
+                ? userStake.reflectionPerTokenPaid.toNumber() 
+                : 0;
+              
+              const currentReflectionPerToken = project.reflectionPerTokenStored 
+                ? project.reflectionPerTokenStored.toNumber() 
+                : 0;
+
+              const rateDifference = currentReflectionPerToken - userReflectionPerTokenPaid;
+              const pendingReflectionsLamports = (rateDifference * userStakedLamports) / DECIMALS_MULTIPLIER;
+
+              const isNativeSOL = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
+
+              const pendingReflections = isNativeSOL 
+                ? pendingReflectionsLamports / 1_000_000_000
+                : pendingReflectionsLamports / DECIMALS_MULTIPLIER;
+              
+              setReflectionBalance(Math.max(0, pendingReflections));
+              
+              console.log(`🔍 [POST-ACTION] Reflection balance updated:`, {
+                action: openModal,
+                pendingReflections,
+                rateDiff: rateDifference,
+              });
+            }
+          }
         } catch (error) {
-          // Silent fail
+          console.error("Error updating balances after action:", error);
         }
       }, 2000);
 
       closeModal();
+
     } catch (error: any) {
       // Handle "already processed" as success
       if (error.message?.includes("may have succeeded") || 
@@ -719,19 +767,72 @@ export default function PoolCard(props: PoolCardProps) {
     try {
       showWarning("🔄 Refreshing reflections...");
       
+      // ✅ Set baseline BEFORE calling refresh (if not already set)
+      if (baselineReflectionRate === null && stakeData) {
+        const userRate = stakeData.reflectionPerTokenPaid 
+          ? stakeData.reflectionPerTokenPaid.toNumber() 
+          : 0;
+        setBaselineReflectionRate(userRate);
+        console.log("📌 Set baseline reflection rate:", userRate);
+      }
+      
       await refreshReflections(effectiveMintAddress, poolId);
       
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       const userStake = await getUserStake(effectiveMintAddress, poolId);
+      const project = await getProjectInfo(effectiveMintAddress, poolId);
+      
       if (userStake) {
         setUserStakedAmount(userStake.amount.toNumber() / DECIMALS_MULTIPLIER);
         setUserStakeTimestamp(userStake.lastStakeTimestamp?.toNumber() || 0);
         setStakeData(userStake);
       }
       
-      const project = await getProjectInfo(effectiveMintAddress, poolId);
       setProjectData(project);
+      
+      // ✅ Manually recalculate reflection balance with fresh data
+      if (userStake && project && project.reflectionVault) {
+        const userStakedLamports = userStake.amount ? userStake.amount.toNumber() : 0;
+        
+        if (userStakedLamports > 0) {
+          const userReflectionPerTokenPaid = userStake.reflectionPerTokenPaid 
+            ? userStake.reflectionPerTokenPaid.toNumber() 
+            : 0;
+          
+          const currentReflectionPerToken = project.reflectionPerTokenStored 
+            ? project.reflectionPerTokenStored.toNumber() 
+            : 0;
+
+          // ✅ Use baseline rate if set, otherwise use blockchain's paid rate
+          const effectiveBaselineRate = baselineReflectionRate !== null 
+            ? baselineReflectionRate 
+            : userReflectionPerTokenPaid;
+
+          const rateDifference = currentReflectionPerToken - effectiveBaselineRate;
+          const pendingReflectionsLamports = (rateDifference * userStakedLamports) / DECIMALS_MULTIPLIER;
+
+          const isNativeSOL = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
+
+          const pendingReflections = isNativeSOL 
+            ? pendingReflectionsLamports / 1_000_000_000
+            : pendingReflectionsLamports / DECIMALS_MULTIPLIER;
+            
+          console.log(`🔍 [REVSHARE] Reflection Calculation After Refresh:`, {
+            userStakedLamports,
+            userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
+            baselineRate: effectiveBaselineRate,
+            currentRate: currentReflectionPerToken,
+            rateDiff: rateDifference,
+            pendingLamports: pendingReflectionsLamports,
+            pendingTokens: pendingReflections,
+            isNativeSOL,
+            reflectionToken: project.reflectionToken?.toString(),
+          });
+          
+          setReflectionBalance(Math.max(0, pendingReflections));
+        }
+      }
       
       showSuccess("✅ Reflections refreshed!");
       
