@@ -20,7 +20,7 @@ export function SolanaWalletProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const network = WalletAdapterNetwork.Devnet;
+  const network = WalletAdapterNetwork.Mainnet;
 
   const endpoint = useMemo(() => {
     if (process.env.NEXT_PUBLIC_RPC_ENDPOINT) {
