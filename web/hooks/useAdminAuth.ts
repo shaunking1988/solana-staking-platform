@@ -105,18 +105,18 @@ export function useAdminAuth() {
       // Get latest blockhash
       const { blockhash } = await connection.getLatestBlockhash();
       
-      // Create transaction with memo instruction (for Ledger compatibility)
+      // Create transaction with simple transfer (better Ledger support)
       const transaction = new Transaction({
         recentBlockhash: blockhash,
         feePayer: publicKey,
       });
 
-      // Add memo instruction with our auth message
+      // Add tiny transfer to self (1 lamport = 0.000000001 SOL)
       transaction.add(
-        new TransactionInstruction({
-          programId: MEMO_PROGRAM_ID,
-          keys: [],
-          data: Buffer.from(message, "utf8"),
+        SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: publicKey,
+          lamports: 1,
         })
       );
 
