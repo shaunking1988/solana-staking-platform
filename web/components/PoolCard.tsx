@@ -143,7 +143,6 @@ export default function PoolCard(props: PoolCardProps) {
   
   const [reflectionBalance, setReflectionBalance] = useState<number>(0);
   const [reflectionLoading, setReflectionLoading] = useState(false);
-  const [baselineReflectionRate, setBaselineReflectionRate] = useState<number | null>(null);
 
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
   const REFRESH_COOLDOWN = 3000; // 3 seconds between refreshes
@@ -201,13 +200,8 @@ export default function PoolCard(props: PoolCardProps) {
           ? project.reflectionPerTokenStored.toNumber() 
           : 0;
 
-        // ✅ NEW: Use baseline rate if set, otherwise use blockchain's paid rate
-        const effectiveBaselineRate = baselineReflectionRate !== null 
-          ? baselineReflectionRate 
-          : userReflectionPerTokenPaid;
-
-        // ✅ Calculate from the baseline, not from blockchain's updated rate
-        const rateDifference = currentReflectionPerToken - effectiveBaselineRate;
+        // Use blockchain's paid rate directly
+        const rateDifference = currentReflectionPerToken - userReflectionPerTokenPaid;
         const pendingReflectionsLamports = (rateDifference * userStakedLamports) / DECIMALS_MULTIPLIER;
 
         // ✅ CHECK IF REFLECTION TOKEN IS NATIVE SOL
@@ -222,14 +216,12 @@ export default function PoolCard(props: PoolCardProps) {
         console.log(`🔍 [${name}] Reflection Calculation:`, {
           userStakedLamports: userStakedLamports,
           userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
-          baselineRate: effectiveBaselineRate,
           currentRate: currentReflectionPerToken,
           rateDiff: rateDifference,
           pendingLamports: pendingReflectionsLamports,
           pendingTokens: pendingReflections,
           isNativeSOL: isNativeSOL,
           reflectionToken: project.reflectionToken?.toString(),
-          usingCustomBaseline: baselineReflectionRate !== null,
         });
         
         setReflectionBalance(Math.max(0, pendingReflections));
@@ -246,7 +238,7 @@ export default function PoolCard(props: PoolCardProps) {
     
     const interval = setInterval(fetchReflectionBalance, 10000);
     return () => clearInterval(interval);
-  }, [connected, reflectionTokenAccount, publicKey, name, stakeData, baselineReflectionRate]);
+  }, [connected, reflectionTokenAccount, publicKey, name, stakeData]);
 
   const lockupInfo = useMemo(() => {
     if (!lockPeriod || type !== "locked" || !userStakeTimestamp) {
@@ -557,9 +549,6 @@ export default function PoolCard(props: PoolCardProps) {
           }
           txSignature = await blockchainClaimReflections(effectiveMintAddress!, poolId);
           
-          setBaselineReflectionRate(null);
-          console.log("🔄 Baseline reset after claim");
-          
           try {
             await refreshReflections(effectiveMintAddress!, poolId);
           } catch (refreshErr) {
@@ -580,9 +569,6 @@ export default function PoolCard(props: PoolCardProps) {
           }
           txSignature = await blockchainClaimReflections(effectiveMintAddress!, poolId);
 
-          setBaselineReflectionRate(null);
-          console.log("🔄 Baseline reset after claim");
-          
           try {
             await refreshReflections(effectiveMintAddress!, poolId);
           } catch (refreshErr) {
@@ -767,15 +753,6 @@ export default function PoolCard(props: PoolCardProps) {
     try {
       showWarning("🔄 Refreshing reflections...");
       
-      // ✅ Set baseline BEFORE calling refresh (if not already set)
-      if (baselineReflectionRate === null && stakeData) {
-        const userRate = stakeData.reflectionPerTokenPaid 
-          ? stakeData.reflectionPerTokenPaid.toNumber() 
-          : 0;
-        setBaselineReflectionRate(userRate);
-        console.log("📌 Set baseline reflection rate:", userRate);
-      }
-      
       await refreshReflections(effectiveMintAddress, poolId);
       
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -804,12 +781,8 @@ export default function PoolCard(props: PoolCardProps) {
             ? project.reflectionPerTokenStored.toNumber() 
             : 0;
 
-          // ✅ Use baseline rate if set, otherwise use blockchain's paid rate
-          const effectiveBaselineRate = baselineReflectionRate !== null 
-            ? baselineReflectionRate 
-            : userReflectionPerTokenPaid;
-
-          const rateDifference = currentReflectionPerToken - effectiveBaselineRate;
+          // Use blockchain's paid rate directly
+          const rateDifference = currentReflectionPerToken - userReflectionPerTokenPaid;
           const pendingReflectionsLamports = (rateDifference * userStakedLamports) / DECIMALS_MULTIPLIER;
 
           const isNativeSOL = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
@@ -821,7 +794,6 @@ export default function PoolCard(props: PoolCardProps) {
           console.log(`🔍 [REVSHARE] Reflection Calculation After Refresh:`, {
             userStakedLamports,
             userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
-            baselineRate: effectiveBaselineRate,
             currentRate: currentReflectionPerToken,
             rateDiff: rateDifference,
             pendingLamports: pendingReflectionsLamports,

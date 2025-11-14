@@ -1,5 +1,5 @@
 {
-  "address": "Es7JZM42QxG7qvxr7CFp6YtNtwN4kwwfQCAnTz5cjDLv",
+  "address": "7VNRLzRrMfigrFdpBDKCyKPkWkauz538TEE9kgDfRdq1",
   "metadata": {
     "name": "staking_program",
     "version": "0.1.0",
@@ -135,6 +135,10 @@
         },
         {
           "name": "referrer",
+          "optional": true
+        },
+        {
+          "name": "reflection_vault",
           "optional": true
         },
         {
