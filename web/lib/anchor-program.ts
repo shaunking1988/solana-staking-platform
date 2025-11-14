@@ -217,4 +217,4 @@ export async function verifyProgramDeployed(connection: Connection): Promise<boo
     console.error("Error verifying program:", error);
     return false;
   }
-}
+}// Cache bust Fri Nov 14 03:01:04 GMT 2025
