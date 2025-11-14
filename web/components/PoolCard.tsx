@@ -502,14 +502,6 @@ export default function PoolCard(props: PoolCardProps) {
           const stakeAmount = Math.floor(amount * DECIMALS_MULTIPLIER);
           txSignature = await blockchainStake(effectiveMintAddress!, stakeAmount, poolId);
           
-          try {
-            await refreshReflections(effectiveMintAddress!, poolId);
-          } catch (refreshErr: any) {
-            if (!refreshErr.message?.includes("already been processed")) {
-              // Silent fail for non-critical refresh
-            }
-          }
-          
           showSuccess(`✅ Staked ${amount.toFixed(4)} ${symbol}! TX: ${txSignature.slice(0, 8)}...`);
           break;
 
@@ -517,27 +509,11 @@ export default function PoolCard(props: PoolCardProps) {
           const unstakeAmount = Math.floor(amount * DECIMALS_MULTIPLIER);
           txSignature = await blockchainUnstake(effectiveMintAddress!, poolId, unstakeAmount);
           
-          try {
-            await refreshReflections(effectiveMintAddress!, poolId);
-          } catch (refreshErr: any) {
-            if (!refreshErr.message?.includes("already been processed")) {
-              // Silent fail for non-critical refresh
-            }
-          }
-          
           showSuccess(`✅ Unstaked ${amount.toFixed(4)} ${symbol}! TX: ${txSignature.slice(0, 8)}...`);
           break;
 
         case "claimRewards":
           txSignature = await blockchainClaimRewards(effectiveMintAddress!, poolId);
-          
-          try {
-            await refreshReflections(effectiveMintAddress!, poolId);
-          } catch (refreshErr: any) {
-            if (!refreshErr.message?.includes("already been processed")) {
-              // Silent fail for non-critical refresh
-            }
-          }
           
           showSuccess(`✅ Claimed rewards! TX: ${txSignature.slice(0, 8)}...`);
           break;
@@ -548,12 +524,6 @@ export default function PoolCard(props: PoolCardProps) {
             return;
           }
           txSignature = await blockchainClaimReflections(effectiveMintAddress!, poolId);
-          
-          try {
-            await refreshReflections(effectiveMintAddress!, poolId);
-          } catch (refreshErr) {
-            // Silent fail for non-critical refresh
-          }
           
           showSuccess(`✅ Claimed reflections! TX: ${txSignature.slice(0, 8)}...`);
           break;
@@ -569,12 +539,6 @@ export default function PoolCard(props: PoolCardProps) {
           }
           txSignature = await blockchainClaimReflections(effectiveMintAddress!, poolId);
 
-          try {
-            await refreshReflections(effectiveMintAddress!, poolId);
-          } catch (refreshErr) {
-            // Silent fail for non-critical refresh
-          }
-          
           showSuccess(`✅ Claimed external reflections! TX: ${txSignature.slice(0, 8)}...`);
           break;
 
