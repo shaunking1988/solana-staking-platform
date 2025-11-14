@@ -10,7 +10,7 @@ use anchor_spl::token_interface::{
     TransferChecked,
 };
 
-declare_id!("Es7JZM42QxG7qvxr7CFp6YtNtwN4kwwfQCAnTz5cjDLv");
+declare_id!("7VNRLzRrMfigrFdpBDKCyKPkWkauz538TEE9kgDfRdq1");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
 
@@ -729,6 +729,13 @@ pub mod staking_program {
     
     update_reward(&mut ctx.accounts.project, &mut ctx.accounts.stake)?;
     
+    if ctx.accounts.project.reflection_vault.is_some() {
+        if let Some(ref vault) = ctx.accounts.reflection_vault {
+            require!(Some(vault.key()) == ctx.accounts.project.reflection_vault, ErrorCode::InvalidReflectionVault);
+            update_reflection(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(vault))?;
+        }
+    }
+
     let rewards = ctx.accounts.stake.rewards_pending;
     require!(rewards > 0, ErrorCode::NoRewards);
     require!(
@@ -868,15 +875,8 @@ pub mod staking_program {
             ErrorCode::InvalidReflectionVault
         );
         
-        // ✅ CHECK: If vault has new tokens that haven't been processed, require refresh first
-        let current_vault_balance = ctx.accounts.reflection_vault.amount;
-        let last_processed_balance = ctx.accounts.project.last_reflection_balance;
-        
-        if current_vault_balance > last_processed_balance {
-            return err!(ErrorCode::RefreshRequired);
-        }
-        
-        update_reflection(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(&ctx.accounts.reflection_vault))?;
+        // Update reflections - this will automatically process any new tokens
+        update_reflection_internal(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(&ctx.accounts.reflection_vault), true)?;
         
         let reflections = ctx.accounts.stake.reflections_pending;
         require!(reflections > 0, ErrorCode::NoReflections);
@@ -934,8 +934,8 @@ pub mod staking_program {
         );
         
         // Update reflection calculations
-        update_reflection(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(&ctx.accounts.reflection_vault))?;
-        
+        update_reflection_internal(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(&ctx.accounts.reflection_vault), false)?;
+
         msg!("Reflections refreshed. Pending: {}", ctx.accounts.stake.reflections_pending);
         
         Ok(())
@@ -1322,10 +1322,11 @@ struct ReflectionCalc {
     total_staked: u64,
 }
 
-fn update_reflection(
+fn update_reflection_internal(
     project: &mut Account<Project>,
     stake: &mut Account<Stake>,
     reflection_vault: Option<&InterfaceAccount<TokenAccount>>,
+    update_user_paid_marker: bool,
 ) -> Result<()> {
     if project.reflection_vault.is_none() {
         return Ok(());
@@ -1334,12 +1335,10 @@ fn update_reflection(
     let vault = reflection_vault.ok_or(ErrorCode::ReflectionVaultRequired)?;
     let current_time = Clock::get()?.unix_timestamp;
     
-    // ✅ Check if reflection token is Native SOL
     let is_native_sol = project.reflection_token
         .map(|mint| is_native_sol(&mint))
         .unwrap_or(false);
     
-    // ✅ Read balance from correct field (lamports for SOL, amount for tokens)
     let current_balance = if is_native_sol {
         vault.to_account_info().lamports()
     } else {
@@ -1347,9 +1346,7 @@ fn update_reflection(
     };
     
     msg!("🔍 Reflection Type: {}", if is_native_sol { "Native SOL" } else { "SPL/Token-2022" });
-    msg!("🔍 Reading balance from: {}", if is_native_sol { "lamports" } else { "amount field" });
     
-    // ✅ BOX: Move calculation data to heap (not stack)
     let calc = Box::new(ReflectionCalc {
         current_balance,
         last_balance: project.last_reflection_balance,
@@ -1357,26 +1354,16 @@ fn update_reflection(
         total_staked: project.total_staked,
     });
 
-    // Detect vault balance decrease (claim detected)
     if calc.current_balance < calc.last_balance {
-        msg!("📉 Vault balance decreased from {} to {} (claim detected)", 
-             calc.last_balance, calc.current_balance);
-        msg!("🔄 Resetting reflection tracker to current balance");
-        
+        msg!("📉 Vault decreased - claim detected");
         project.last_reflection_balance = calc.current_balance;
         project.last_reflection_update_time = current_time;
         return Ok(());
     }
 
-    msg!("🔍 Reflection State:");
-    msg!("  Current balance: {}", calc.current_balance);
-    msg!("  Last processed: {}", calc.last_balance);
-    msg!("  New tokens: {}", calc.new_tokens);
-    msg!("  Total staked: {}", calc.total_staked);
+    msg!("🔍 New tokens: {}", calc.new_tokens);
         
-    // Process new tokens
     if calc.new_tokens > 0 && calc.total_staked > 0 {
-        // ✅ BOX: u128 calculation on heap
         let per_token_rate = Box::new({
             let per_token_u128 = (calc.new_tokens as u128)
                 .checked_mul(1_000_000_000u128)
@@ -1392,20 +1379,15 @@ fn update_reflection(
             .checked_add(*per_token_rate)
             .ok_or(ErrorCode::MathOverflow)?;
         
-        msg!("  Per-token rate: {}", *per_token_rate);
-        msg!("  New global stored: {}", project.reflection_per_token_stored);
-        
         project.last_reflection_balance = calc.current_balance;
         project.last_reflection_update_time = current_time;
     }
     
-    // Calculate user's pending reflections
     if stake.amount > 0 {
         let rate_diff = project.reflection_per_token_stored
             .saturating_sub(stake.reflection_per_token_paid);
         
         if rate_diff > 0 {
-            // ✅ BOX: u128 calculation on heap
             let earned = Box::new({
                 let earned_u128 = (rate_diff as u128)
                     .checked_mul(stake.amount as u128)
@@ -1419,27 +1401,27 @@ fn update_reflection(
             
             let net_earned = (*earned).saturating_sub(stake.reflection_debt);
             
-            msg!("👤 User Calculation:");
-            msg!("  Stake amount: {}", stake.amount);
-            msg!("  Rate paid: {}", stake.reflection_per_token_paid);
-            msg!("  Rate diff: {}", rate_diff);
-            msg!("  Gross earned: {}", *earned);
-            msg!("  User debt: {}", stake.reflection_debt);
-            msg!("  Net earned: {}", net_earned);
-            
             stake.reflections_pending = stake.reflections_pending
                 .checked_add(net_earned)
                 .ok_or(ErrorCode::MathOverflow)?;
             
             stake.reflection_debt = 0;
-            
-            msg!("  Final pending: {}", stake.reflections_pending);
         }
         
-        stake.reflection_per_token_paid = project.reflection_per_token_stored;
+        if update_user_paid_marker {
+            stake.reflection_per_token_paid = project.reflection_per_token_stored;
+        }
     }
     
     Ok(())
+}
+
+fn update_reflection(
+    project: &mut Account<Project>,
+    stake: &mut Account<Stake>,
+    reflection_vault: Option<&InterfaceAccount<TokenAccount>>,
+) -> Result<()> {
+    update_reflection_internal(project, stake, reflection_vault, true)
 }
 
 #[derive(Accounts)]
@@ -1709,6 +1691,9 @@ pub struct Claim<'info> {
     
     /// CHECK: Referrer account (optional)
     pub referrer: Option<AccountInfo<'info>>,
+
+    /// CHECK: Optional reflection vault
+    pub reflection_vault: Option<InterfaceAccount<'info, TokenAccount>>,
     
     pub token_mint_account: InterfaceAccount<'info, Mint>,
     
