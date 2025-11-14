@@ -805,16 +805,16 @@ try {
         
         const claimIx = await program.methods
           .claimReflections(tokenMintPubkey, new BN(poolId))
-          .accounts({
+          .accountsPartial({
             project: projectPDA,
             stake: userStakePDA,
             stakingVault: stakingVaultPDA,
             reflectionVault: reflectionVaultPubkey,
             userReflectionAccount: userReflectionAccount,
-            reflectionTokenMint: reflectionTokenMint,  // ✅ Changed from tokenMintAccount
+            reflectionTokenMint: reflectionTokenMint,
             user: publicKey,
             tokenProgram: reflectionTokenProgramId,
-            systemProgram: SystemProgram.programId,  // ✅ ADD THIS LINE
+            systemProgram: SystemProgram.programId,
           })
           .instruction();
         
@@ -830,16 +830,16 @@ try {
       } else {
         const tx = await program.methods
           .claimReflections(tokenMintPubkey, new BN(poolId))
-          .accounts({
+          .accountsPartial({
             project: projectPDA,
             stake: userStakePDA,
             stakingVault: stakingVaultPDA,
             reflectionVault: reflectionVaultPubkey,
             userReflectionAccount: userReflectionAccount,
-            reflectionTokenMint: reflectionTokenMint,  // ✅ Changed from tokenMintAccount
+            reflectionTokenMint: reflectionTokenMint,
             user: publicKey,
             tokenProgram: reflectionTokenProgramId,
-            systemProgram: SystemProgram.programId,  // ✅ ADD THIS LINE
+            systemProgram: SystemProgram.programId,
           })
           .rpc({ skipPreflight: false, commitment: 'confirmed' });
 
