@@ -204,15 +204,11 @@ export default function PoolCard(props: PoolCardProps) {
         const rateDifference = currentReflectionPerToken - userReflectionPerTokenPaid;
         const pendingReflectionsLamports = (rateDifference * userStakedLamports) / DECIMALS_MULTIPLIER;
 
-        // ✅ CHECK IF REFLECTION TOKEN IS NATIVE SOL
         const isNativeSOL = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
 
-        // ✅ For Native SOL, divide only once (lamports → SOL)
-        // ✅ For SPL/Token-2022, divide twice (lamports → base units → tokens with decimals)
-        const pendingReflections = isNativeSOL 
-          ? pendingReflectionsLamports / 1_000_000_000  // Single division for SOL
-          : pendingReflectionsLamports / DECIMALS_MULTIPLIER;  // Double division for tokens
-          
+        // ✅ CORRECTED: Only divide by LAMPORTS_PER_SOL for display (works for both SOL and 9-decimal tokens)
+        const pendingReflections = pendingReflectionsLamports / LAMPORTS_PER_SOL;
+                  
         console.log(`🔍 [${name}] Reflection Calculation:`, {
           userStakedLamports: userStakedLamports,
           userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
