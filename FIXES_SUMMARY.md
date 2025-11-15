@@ -47,7 +47,7 @@ These Box allocations were causing **stack overflow errors** during unstake oper
 
 **Error:**
 ```
-Program Co23x1nyxUapqbdwpvhrAsUpuRFMU14jiogxjwjMAJxa failed: Access violation in stack frame 5 at address 0x200005fe8 of size 8
+Program 2uyyshjWoWab7ECpbwv8dSTQJpbPNBubyD4eGK1JsSGQ failed: Access violation in stack frame 5 at address 0x200005fe8 of size 8
 ```
 
 ### Fix Applied
