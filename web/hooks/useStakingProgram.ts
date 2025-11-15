@@ -935,7 +935,7 @@ try {
 
     // ✅ Fetch the project data to get the EXACT reflection vault address stored on-chain
     const project = await program.account.project.fetch(projectPDA, "confirmed");
-    
+
     if (!project.reflectionVault) {
       throw new Error("Reflections not enabled for this pool");
     }
@@ -947,15 +947,15 @@ try {
     console.log("   Project:", projectPDA.toString());
     console.log("   User Stake:", userStakePDA.toString());
     console.log("   Reflection Vault (from blockchain):", reflectionVaultPubkey.toString());
-    
+
     // Add random padding to compute units to make transaction unique
     const timestamp = Date.now();
     const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
       units: 200_000 + (timestamp % 10_000),
     });
-    
+
     console.log("🎲 Unique compute units:", 200_000 + (timestamp % 10_000));
-    
+
     const tx = await program.methods
       .refreshReflections(tokenMintPubkey, new BN(poolId))
       .accounts({
@@ -965,23 +965,29 @@ try {
         user: publicKey,
       })
       .preInstructions([computeBudgetIx])
-      .rpc({ 
+      .rpc({
         skipPreflight: true,
         commitment: 'confirmed',
       });
 
     console.log("✅ Refresh reflections transaction signature:", tx);
     console.log("⏳ Confirming transaction...");
-    
+
     const confirmation = await connection.confirmTransaction(tx, 'confirmed');
-    
+
     if (confirmation.value.err) {
       throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
     }
-    
+
     console.log("✅ Transaction confirmed successfully!");
 
-    return tx;
+    // ✅ FIX: Fetch and return the updated stake account
+    console.log("📥 Fetching updated stake account...");
+    const updatedStake = await program.account.stake.fetch(userStakePDA, "confirmed");
+    console.log("✅ Updated reflections_pending:", updatedStake.reflectionsPending.toNumber());
+
+    // Return the reflections balance in lamports
+    return updatedStake.reflectionsPending.toNumber();
   };
 
   /**
