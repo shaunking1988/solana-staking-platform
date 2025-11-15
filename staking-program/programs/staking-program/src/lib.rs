@@ -10,7 +10,7 @@ use anchor_spl::token_interface::{
     TransferChecked,
 };
 
-declare_id!("4zqJTEGr5Q6pU7Uq311idgt4uaAEqKx5WiK737RXjSEs");
+declare_id!("Hsigi6xWQ4PACWRndBmfp4C4JZzszRnPCKfTVS3TFxAF");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
 
@@ -547,17 +547,6 @@ pub mod staking_program {
         
         // ✅ Call updates early
         update_reward(&mut ctx.accounts.project, &mut ctx.accounts.stake)?;
-        
-        if ctx.accounts.project.reflection_vault.is_some() {
-            let reflection_vault_opt = ctx.accounts.reflection_vault.as_ref();
-            if let Some(vault) = reflection_vault_opt {
-                require!(
-                    Some(vault.key()) == ctx.accounts.project.reflection_vault,
-                    ErrorCode::InvalidReflectionVault
-                );
-                update_reflection(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(vault))?;
-            }
-        }
         
         let current_time = Clock::get()?.unix_timestamp;
         let time_staked = current_time
@@ -1744,8 +1733,9 @@ pub struct ClaimReflections<'info> {
     #[account(mut)]
     pub reflection_vault: InterfaceAccount<'info, TokenAccount>,
     
+    /// CHECK: Can be either TokenAccount (for SPL) or wallet (for Native SOL)
     #[account(mut)]
-    pub user_reflection_account: InterfaceAccount<'info, TokenAccount>,
+    pub user_reflection_account: AccountInfo<'info>,
     
     pub reflection_token_mint: InterfaceAccount<'info, Mint>,
     
