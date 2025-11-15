@@ -10,7 +10,7 @@ use anchor_spl::token_interface::{
     TransferChecked,
 };
 
-declare_id!("BURhYk8eb8392c4rNAWTXpg2pK3H5KynWXn4ybDVsky7");
+declare_id!("Co23x1nyxUapqbdwpvhrAsUpuRFMU14jiogxjwjMAJxa");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
 
@@ -549,6 +549,7 @@ pub mod staking_program {
         
         // ✅ Call updates early
         update_reward(&mut ctx.accounts.project, &mut ctx.accounts.stake)?;
+        update_reflection(&mut ctx.accounts.project, &mut ctx.accounts.stake, ctx.accounts.reflection_vault.as_ref())?;
         
         let current_time = Clock::get()?.unix_timestamp;
         let time_staked = current_time
