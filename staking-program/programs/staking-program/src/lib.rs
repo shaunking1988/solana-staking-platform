@@ -938,8 +938,8 @@ pub mod staking_program {
             ErrorCode::InvalidReflectionVault
         );
         
-        // Update reflection calculations
-        update_reflection_internal(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(&ctx.accounts.reflection_vault), false)?;
+        // Update reflection calculations - MUST update user paid marker to prevent double-counting
+        update_reflection_internal(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(&ctx.accounts.reflection_vault), true)?;
 
         msg!("Reflections refreshed. Pending: {}", ctx.accounts.stake.reflections_pending);
         
@@ -1314,14 +1314,6 @@ fn update_reward(project: &mut Account<Project>, stake: &mut Account<Stake>) -> 
     Ok(())
 }
 
-// Helper struct to reduce stack usage in reflection calculations
-struct ReflectionCalc {
-    current_balance: u64,
-    last_balance: u64,
-    new_tokens: u64,
-    total_staked: u64,
-}
-
 fn update_reflection_internal(
     project: &mut Account<Project>,
     stake: &mut Account<Stake>,
@@ -1351,39 +1343,37 @@ fn update_reflection_internal(
     
     msg!("🔍 Reflection Type: {}", if is_native_sol { "Native SOL" } else { "SPL/Token-2022" });
     
-    let calc = Box::new(ReflectionCalc {
-        current_balance,
-        last_balance: project.last_reflection_balance,
-        new_tokens: current_balance.saturating_sub(project.last_reflection_balance),
-        total_staked: project.total_staked,
-    });
+    // ✅ No Box allocation - use stack variables to avoid stack overflow
+    let calc_current_balance = current_balance;
+    let calc_last_balance = project.last_reflection_balance;
+    let calc_new_tokens = current_balance.saturating_sub(project.last_reflection_balance);
+    let calc_total_staked = project.total_staked;
 
-    if calc.current_balance < calc.last_balance {
+    if calc_current_balance < calc_last_balance {
         msg!("📉 Vault decreased - claim detected");
-        project.last_reflection_balance = calc.current_balance;
+        project.last_reflection_balance = calc_current_balance;
         project.last_reflection_update_time = current_time;
         return Ok(());
     }
 
-    msg!("🔍 New tokens: {}", calc.new_tokens);
+    msg!("🔍 New tokens: {}", calc_new_tokens);
         
-    if calc.new_tokens > 0 && calc.total_staked > 0 {
-        let per_token_rate = Box::new({
-            let per_token_u128 = (calc.new_tokens as u128)
-                .checked_mul(1_000_000_000u128)
-                .ok_or(ErrorCode::MathOverflow)?
-                .checked_div(calc.total_staked as u128)
-                .ok_or(ErrorCode::DivisionByZero)?;
-            
-            require!(per_token_u128 <= u64::MAX as u128, ErrorCode::MathOverflow);
-            per_token_u128 as u64
-        });
+    if calc_new_tokens > 0 && calc_total_staked > 0 {
+        // ✅ No Box allocation - compute inline
+        let per_token_u128 = (calc_new_tokens as u128)
+            .checked_mul(1_000_000_000u128)
+            .ok_or(ErrorCode::MathOverflow)?
+            .checked_div(calc_total_staked as u128)
+            .ok_or(ErrorCode::DivisionByZero)?;
+        
+        require!(per_token_u128 <= u64::MAX as u128, ErrorCode::MathOverflow);
+        let per_token_rate = per_token_u128 as u64;
         
         project.reflection_per_token_stored = project.reflection_per_token_stored
-            .checked_add(*per_token_rate)
+            .checked_add(per_token_rate)
             .ok_or(ErrorCode::MathOverflow)?;
         
-        project.last_reflection_balance = calc.current_balance;
+        project.last_reflection_balance = calc_current_balance;
         project.last_reflection_update_time = current_time;
     }
     
@@ -1392,18 +1382,17 @@ fn update_reflection_internal(
             .saturating_sub(stake.reflection_per_token_paid);
         
         if rate_diff > 0 {
-            let earned = Box::new({
-                let earned_u128 = (rate_diff as u128)
-                    .checked_mul(stake.amount as u128)
-                    .ok_or(ErrorCode::MathOverflow)?
-                    .checked_div(1_000_000_000u128)
-                    .ok_or(ErrorCode::DivisionByZero)?;
-                
-                require!(earned_u128 <= u64::MAX as u128, ErrorCode::MathOverflow);
-                earned_u128 as u64
-            });
+            // ✅ No Box allocation - compute inline
+            let earned_u128 = (rate_diff as u128)
+                .checked_mul(stake.amount as u128)
+                .ok_or(ErrorCode::MathOverflow)?
+                .checked_div(1_000_000_000u128)
+                .ok_or(ErrorCode::DivisionByZero)?;
             
-            let net_earned = (*earned).saturating_sub(stake.reflection_debt);
+            require!(earned_u128 <= u64::MAX as u128, ErrorCode::MathOverflow);
+            let earned = earned_u128 as u64;
+            
+            let net_earned = earned.saturating_sub(stake.reflection_debt);
             
             stake.reflections_pending = stake.reflections_pending
                 .checked_add(net_earned)

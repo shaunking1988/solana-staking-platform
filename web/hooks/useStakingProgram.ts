@@ -622,7 +622,7 @@ try {
     const projectReferrer = project.referrer;
     const reflectionVault = project.reflectionVault;
 
-    const accounts = {
+    const accounts: any = {
       platform: platformConfigPDA,
       project: projectPDA,
       stake: userStakePDA,
@@ -635,6 +635,12 @@ try {
       tokenProgram: tokenProgramId,  // ✅ Use detected token program
       systemProgram: SystemProgram.programId,
     };
+
+    // ✅ Include reflection vault if reflections are enabled for this project
+    if (reflectionVault) {
+      accounts.reflectionVault = reflectionVault;
+      console.log("✅ Including reflection vault in claim accounts:", reflectionVault.toString());
+    }
 
     try {
       // Check if withdrawal token account exists; create if it doesn't

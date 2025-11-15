@@ -60,3 +60,4 @@ export default async function LockDetailPage({ params }: Props) {
   );
 }
 
+
