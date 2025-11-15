@@ -452,7 +452,7 @@ try {
       transaction.add(withdrawIx);
       
       // Send as a single transaction
-      const tx = await wallet.signAndSendTransaction(transaction);
+      const tx = await sendTransaction(transaction, connection);
       console.log("✅ Transaction signature (with ATA creation):", tx);
       
       await connection.confirmTransaction(tx, 'confirmed');
@@ -659,15 +659,15 @@ try {
           .instruction();
         
         transaction.add(claimIx);
-        
-        const tx = await wallet.signAndSendTransaction(transaction);
+
+        const tx = await sendTransaction(transaction, connection);
         console.log("✅ Claim transaction signature (with ATA creation):", tx);
-        
+
         await connection.confirmTransaction(tx, 'confirmed');
         console.log("✅ Transaction confirmed!");
-        
+
         return tx;
-      } else {
+        } else {
        const tx = await program.methods
           .claim(tokenMintPubkey, new BN(poolId))
           .accountsPartial(accounts)
@@ -831,7 +831,18 @@ try {
           .instruction();
         
         transaction.add(claimIx);
-        
+        transaction.feePayer = publicKey;
+
+        console.log("🧪 Simulating claim reflections transaction...");
+        const simulation = await connection.simulateTransaction(transaction);
+        console.log("🧪 Simulation result:", JSON.stringify(simulation, null, 2));
+
+        if (simulation.value.err) {
+          console.error("❌ SIMULATION ERROR:", simulation.value.err);
+          console.error("📋 SIMULATION LOGS:", simulation.value.logs);
+          throw new Error(`Simulation failed: ${JSON.stringify(simulation.value.err)}`);
+        }
+                
         const signature = await sendTransaction(transaction, connection);
         console.log("✅ Claim reflections signature (with ATA creation):", signature);
         
@@ -840,32 +851,49 @@ try {
         
         return signature;
       } else {
-        const tx = await program.methods
-          .claimReflections(tokenMintPubkey, new BN(poolId))
-          .accountsPartial({
-            project: projectPDA,
-            stake: userStakePDA,
-            stakingVault: stakingVaultPDA,
-            reflectionVault: reflectionVaultPubkey,
-            userReflectionAccount: userReflectionAccount,
-            reflectionTokenMint: reflectionTokenMint,
-            user: publicKey,
-            tokenProgram: reflectionTokenProgramId,
-            systemProgram: SystemProgram.programId,
-          })
-          .rpc({ skipPreflight: false, commitment: 'confirmed' });
-
-        console.log("✅ Claim reflections transaction signature:", tx);
-        
-        const confirmation = await connection.confirmTransaction(tx, 'confirmed');
-        
-        if (confirmation.value.err) {
-          throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
-        }
-
-        console.log("✅ Transaction confirmed!");
-        return tx;
+      // Build transaction manually so we can simulate
+      const transaction = new Transaction();
+      const claimIx = await program.methods
+        .claimReflections(tokenMintPubkey, new BN(poolId))
+        .accountsPartial({
+          project: projectPDA,
+          stake: userStakePDA,
+          stakingVault: stakingVaultPDA,
+          reflectionVault: reflectionVaultPubkey,
+          userReflectionAccount: userReflectionAccount,
+          reflectionTokenMint: reflectionTokenMint,
+          user: publicKey,
+          tokenProgram: reflectionTokenProgramId,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+      
+      transaction.add(claimIx);
+      transaction.feePayer = publicKey;
+      
+      console.log("🧪 Simulating claim reflections transaction (no ATA path)...");
+      const simulation = await connection.simulateTransaction(transaction);
+      console.log("🧪 Simulation result:", JSON.stringify(simulation, null, 2));
+      
+      if (simulation.value.err) {
+        console.error("❌ SIMULATION ERROR:", simulation.value.err);
+        console.error("📋 SIMULATION LOGS:", simulation.value.logs);
+        throw new Error(`Simulation failed: ${JSON.stringify(simulation.value.err)}`);
       }
+      
+      const tx = await sendTransaction(transaction, connection);
+      
+      console.log("✅ Claim reflections transaction signature:", tx);
+      
+      const confirmation = await connection.confirmTransaction(tx, 'confirmed');
+      
+      if (confirmation.value.err) {
+        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      }
+
+      console.log("✅ Transaction confirmed!");
+      return tx;
+    }
     } catch (error: any) {
       console.error("Claim reflections error:", error);
       
