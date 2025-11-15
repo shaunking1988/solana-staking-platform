@@ -200,15 +200,15 @@ export default function PoolCard(props: PoolCardProps) {
           ? project.reflectionPerTokenStored.toNumber() 
           : 0;
 
-        // Use blockchain's paid rate directly
-        const rateDifference = currentReflectionPerToken - userReflectionPerTokenPaid;
-        const pendingReflectionsLamports = (rateDifference * userStakedLamports) / DECIMALS_MULTIPLIER;
+        // ✅ FIX: Read reflections_pending directly from blockchain
+        const pendingReflectionsLamports = userStake.reflectionsPending 
+          ? userStake.reflectionsPending.toNumber() 
+          : 0;
 
         const isNativeSOL = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
 
-        // ✅ CORRECTED: Only divide by LAMPORTS_PER_SOL for display (works for both SOL and 9-decimal tokens)
         const pendingReflections = pendingReflectionsLamports / LAMPORTS_PER_SOL;
-                  
+                          
         console.log(`🔍 [${name}] Reflection Calculation:`, {
           userStakedLamports: userStakedLamports,
           userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
@@ -569,14 +569,15 @@ export default function PoolCard(props: PoolCardProps) {
                 ? project.reflectionPerTokenStored.toNumber() 
                 : 0;
 
-              const rateDifference = currentReflectionPerToken - userReflectionPerTokenPaid;
-              const pendingReflectionsLamports = (rateDifference * userStakedLamports) / DECIMALS_MULTIPLIER;
+              // ✅ FIX: Read reflections_pending directly from blockchain
+              const pendingReflectionsLamports = userStake.reflectionsPending 
+                ? userStake.reflectionsPending.toNumber() 
+                : 0;
 
               const isNativeSOL = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
 
-              // ✅ CORRECTED: Only divide by LAMPORTS_PER_SOL for display (works for both SOL and 9-decimal tokens)
               const pendingReflections = pendingReflectionsLamports / LAMPORTS_PER_SOL;
-                            
+                                          
               setReflectionBalance(Math.max(0, pendingReflections));
               
               console.log(`🔍 [POST-ACTION] Reflection balance updated:`, {
@@ -740,15 +741,15 @@ export default function PoolCard(props: PoolCardProps) {
             ? project.reflectionPerTokenStored.toNumber() 
             : 0;
 
-          // Use blockchain's paid rate directly
-          const rateDifference = currentReflectionPerToken - userReflectionPerTokenPaid;
-          const pendingReflectionsLamports = (rateDifference * userStakedLamports) / DECIMALS_MULTIPLIER;
+          // ✅ FIX: Read reflections_pending directly from blockchain
+          const pendingReflectionsLamports = userStake.reflectionsPending 
+            ? userStake.reflectionsPending.toNumber() 
+            : 0;
 
           const isNativeSOL = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
 
-          // ✅ CORRECTED: Only divide by LAMPORTS_PER_SOL for display (works for both SOL and 9-decimal tokens)
           const pendingReflections = pendingReflectionsLamports / LAMPORTS_PER_SOL;
-                      
+                                
           console.log(`🔍 [REVSHARE] Reflection Calculation After Refresh:`, {
             userStakedLamports,
             userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
