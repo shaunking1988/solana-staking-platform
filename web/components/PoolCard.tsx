@@ -213,7 +213,6 @@ export default function PoolCard(props: PoolCardProps) {
           userStakedLamports: userStakedLamports,
           userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
           currentRate: currentReflectionPerToken,
-          rateDiff: rateDifference,
           pendingLamports: pendingReflectionsLamports,
           pendingTokens: pendingReflections,
           isNativeSOL: isNativeSOL,
@@ -583,7 +582,6 @@ export default function PoolCard(props: PoolCardProps) {
               console.log(`🔍 [POST-ACTION] Reflection balance updated:`, {
                 action: openModal,
                 pendingReflections,
-                rateDiff: rateDifference,
               });
             }
           }
@@ -754,7 +752,6 @@ export default function PoolCard(props: PoolCardProps) {
             userStakedLamports,
             userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
             currentRate: currentReflectionPerToken,
-            rateDiff: rateDifference,
             pendingLamports: pendingReflectionsLamports,
             pendingTokens: pendingReflections,
             isNativeSOL,
