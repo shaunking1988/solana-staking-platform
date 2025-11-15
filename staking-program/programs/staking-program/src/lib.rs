@@ -10,7 +10,7 @@ use anchor_spl::token_interface::{
     TransferChecked,
 };
 
-declare_id!("Hsigi6xWQ4PACWRndBmfp4C4JZzszRnPCKfTVS3TFxAF");
+declare_id!("BURhYk8eb8392c4rNAWTXpg2pK3H5KynWXn4ybDVsky7");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
 
@@ -291,7 +291,9 @@ pub mod staking_program {
         // ✅ Store both the token mint AND the ATA address
         project.reflection_token = Some(reflection_mint_info.key());
         project.reflection_vault = Some(expected_ata);
-        
+        project.last_reflection_balance = 0;
+        project.last_reflection_update_time = current_time;
+
         msg!("Reflections enabled with token: {}", reflection_mint_info.key());
         msg!("Reflection ATA: {}", expected_ata);
     }

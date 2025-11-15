@@ -403,7 +403,7 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
     
     try {
       const tokenMintPubkey = new PublicKey(tokenMint);
-      const programId = new PublicKey("Hsigi6xWQ4PACWRndBmfp4C4JZzszRnPCKfTVS3TFxAF");
+      const programId = new PublicKey("BURhYk8eb8392c4rNAWTXpg2pK3H5KynWXn4ybDVsky7");
       const TOKEN_PROGRAM = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
       
       // Derive PDAs
