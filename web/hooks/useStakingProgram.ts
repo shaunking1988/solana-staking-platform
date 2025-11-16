@@ -837,17 +837,17 @@ try {
         
         const claimIx = await program.methods
           .claimReflections(tokenMintPubkey, new BN(poolId))
-          .accountsPartial({
-            project: projectPDA,
-            stake: userStakePDA,
-            stakingVault: stakingVaultPDA,
-            reflectionVault: actualReflectionVault,
-            userReflectionAccount: userReflectionAccount,
-            reflectionTokenMint: reflectionTokenMint,
-            user: publicKey,
-            tokenProgram: reflectionTokenProgramId,
-            systemProgram: SystemProgram.programId,
-          })
+          .accounts({
+          project: projectPDA,
+          stake: userStakePDA,
+          stakingVault: stakingVaultPDA,
+          reflectionVault: actualReflectionVault,
+          userReflectionAccount: userReflectionAccount,
+          reflectionTokenMint: reflectionTokenMint,
+          user: publicKey,
+          tokenProgram: reflectionTokenProgramId,
+          systemProgram: SystemProgram.programId,
+        })
           .instruction();
         
         transaction.add(claimIx);
@@ -875,16 +875,17 @@ try {
       const transaction = new Transaction();
       const claimIx = await program.methods
         .claimReflections(tokenMintPubkey, new BN(poolId))
-        .accountsPartial({
-          project: projectPDA,
-          stake: userStakePDA,
-          stakingVault: stakingVaultPDA,
-          reflectionVault: actualReflectionVault,
-          reflectionTokenMint: reflectionTokenMint,
-          user: publicKey,
-          tokenProgram: reflectionTokenProgramId,
-          systemProgram: SystemProgram.programId,
-        })
+        .accounts({
+        project: projectPDA,
+        stake: userStakePDA,
+        stakingVault: stakingVaultPDA,
+        reflectionVault: actualReflectionVault,
+        userReflectionAccount: userReflectionAccount,
+        reflectionTokenMint: reflectionTokenMint,
+        user: publicKey,
+        tokenProgram: reflectionTokenProgramId,
+        systemProgram: SystemProgram.programId,
+      })
         .instruction();
       
       transaction.add(claimIx);
