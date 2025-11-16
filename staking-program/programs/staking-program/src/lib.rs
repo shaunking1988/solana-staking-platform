@@ -364,13 +364,38 @@ pub mod staking_program {
             .checked_sub(token_fee)
             .ok_or(ErrorCode::MathOverflow)?;
         
+        // ✅ Get vault balance BEFORE transfer to detect transfer tax
+        let vault_balance_before = ctx.accounts.staking_vault.amount;
+        
+        // ✅ Transfer tokens to staking vault (supports SPL, Token-2022, Native SOL)
+        // Tax will be applied automatically by token program if token has transfer tax
+        transfer_tokens(
+            ctx.accounts.user_token_account.to_account_info(),
+            ctx.accounts.staking_vault.to_account_info(),
+            ctx.accounts.user.to_account_info(),
+            &ctx.accounts.token_mint_account,
+            ctx.accounts.token_program.to_account_info(),
+            ctx.accounts.system_program.to_account_info(),
+            amount_after_fee,
+            None,
+        )?;
+        
+        // ✅ Reload vault to get ACTUAL amount received (accounts for transfer tax)
+        ctx.accounts.staking_vault.reload()?;
+        let vault_balance_after = ctx.accounts.staking_vault.amount;
+        let actual_received = vault_balance_after
+            .checked_sub(vault_balance_before)
+            .ok_or(ErrorCode::MathOverflow)?;
+        
+        msg!("💰 Deposited {} tokens, vault received {} (after any transfer tax)", amount_after_fee, actual_received);
+        
         let stake = &mut ctx.accounts.stake;
         let is_initialized = stake.bump != 0;
         
         if !is_initialized {
     stake.user = ctx.accounts.user.key();
     stake.project = project_key;
-    stake.amount = amount_after_fee;
+    stake.amount = actual_received;  // ✅ Use actual amount received!
     stake.last_stake_timestamp = current_time;
     stake.withdrawal_wallet = ctx.accounts.user.key();
     stake.reward_per_token_paid = project_reward_per_token_stored;
@@ -383,10 +408,10 @@ pub mod staking_program {
     stake.reward_rate_snapshot = ctx.accounts.project.reward_rate_per_second;
     stake.bump = ctx.bumps.stake;
     
-    // ✅ ADD: Update project.total_staked for initial stake
+    // ✅ Update project.total_staked with actual received amount
     let project_mut = &mut ctx.accounts.project;
     project_mut.total_staked = project_mut.total_staked
-        .checked_add(amount_after_fee)
+        .checked_add(actual_received)  // ✅ Use actual_received!
         .ok_or(ErrorCode::MathOverflow)?;
 } else {
     require!(stake.user == ctx.accounts.user.key(), ErrorCode::Unauthorized);
@@ -396,28 +421,16 @@ pub mod staking_program {
     update_reflection(&mut ctx.accounts.project, stake, ctx.accounts.reflection_vault.as_ref().map(|v| v.to_account_info()).as_ref())?;
 
     stake.amount = stake.amount
-        .checked_add(amount_after_fee)
+        .checked_add(actual_received)  // ✅ Use actual_received!
         .ok_or(ErrorCode::MathOverflow)?;
     
     let project_mut = &mut ctx.accounts.project;
     project_mut.total_staked = project_mut.total_staked
-        .checked_add(amount_after_fee)
+        .checked_add(actual_received)  // ✅ Use actual_received!
         .ok_or(ErrorCode::MathOverflow)?;
     
     stake.last_stake_timestamp = current_time;
 }
-                       
-        // ✅ Transfer tokens to staking vault (supports SPL, Token-2022, Native SOL)
-        transfer_tokens(
-            ctx.accounts.user_token_account.to_account_info(),
-            ctx.accounts.staking_vault.to_account_info(),
-            ctx.accounts.user.to_account_info(),
-            &ctx.accounts.token_mint_account,
-            ctx.accounts.token_program.to_account_info(),
-            ctx.accounts.system_program.to_account_info(),
-            amount_after_fee,
-            None,
-        )?;
         
         // ✅ Transfer token fee to fee collector
         if token_fee > 0 {
@@ -503,7 +516,7 @@ pub mod staking_program {
         emit!(TokensDeposited {
             user: ctx.accounts.user.key(),
             project: project_key,
-            amount: amount_after_fee,
+            amount: actual_received,  // ✅ Emit actual received amount
             token_fee,
             sol_fee: platform_sol_fee,
             new_total: stake.amount,
@@ -887,7 +900,6 @@ pub mod staking_program {
         require!(reflections > 0, ErrorCode::NoReflections);
         
         // Check vault balance - handle Native SOL differently
-        let is_native = is_native_sol(&ctx.accounts.reflection_token_mint.key());
         let vault_balance = if is_native {
             // For Native SOL, get lamports and subtract rent-exempt minimum
             let total_lamports = ctx.accounts.reflection_vault.to_account_info().lamports();
@@ -895,14 +907,8 @@ pub mod staking_program {
             let rent_exempt_minimum = rent.minimum_balance(ctx.accounts.reflection_vault.to_account_info().data_len());
             total_lamports.saturating_sub(rent_exempt_minimum)
         } else {
-            // For SPL tokens, deserialize the token account data
-            let vault_info = &ctx.accounts.reflection_vault;
-            let vault_data = vault_info.try_borrow_data()?;
-            if vault_data.len() >= 72 {
-                u64::from_le_bytes(vault_data[64..72].try_into().unwrap())
-            } else {
-                0
-            }
+            // ✅ For SPL/Token-2022, use the amount field directly
+            ctx.accounts.reflection_vault.amount
         };
         
         require!(
@@ -979,7 +985,11 @@ pub mod staking_program {
     
     let project_key = ctx.accounts.project.key();
     
+    // ✅ Get vault balance BEFORE transfer to detect transfer tax
+    let reward_vault_balance_before = ctx.accounts.reward_vault.amount;
+    
     // ✅ Transfer rewards to vault (supports SPL, Token-2022, Native SOL)
+    // Tax will be applied automatically by token program if token has transfer tax
     transfer_tokens(
         ctx.accounts.admin_token_account.to_account_info(),
         ctx.accounts.reward_vault.to_account_info(),
@@ -991,9 +1001,18 @@ pub mod staking_program {
         None,
     )?;
     
+    // ✅ Reload vault to get ACTUAL amount received (accounts for transfer tax)
+    ctx.accounts.reward_vault.reload()?;
+    let reward_vault_balance_after = ctx.accounts.reward_vault.amount;
+    let actual_received = reward_vault_balance_after
+        .checked_sub(reward_vault_balance_before)
+        .ok_or(ErrorCode::MathOverflow)?;
+    
+    msg!("💰 Admin deposited {} rewards, vault received {} (after any transfer tax)", amount, actual_received);
+    
     let project_mut = &mut ctx.accounts.project;
     project_mut.total_rewards_deposited = project_mut.total_rewards_deposited
-        .checked_add(amount)
+        .checked_add(actual_received)  // ✅ Use actual_received!
         .ok_or(ErrorCode::MathOverflow)?;
     
     // For fixed APY pools (rate_mode = 0), rate was already set in initialize_pool
@@ -1028,7 +1047,7 @@ pub mod staking_program {
     
     emit!(RewardsDeposited {
         project: project_key,
-        amount,
+        amount: actual_received,  // ✅ Emit actual received amount
         total_rewards: project_mut.total_rewards_deposited,
         reward_rate: project_mut.reward_rate_per_second,
     });
