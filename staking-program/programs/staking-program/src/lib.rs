@@ -10,7 +10,7 @@ use anchor_spl::token_interface::{
     TransferChecked,
 };
 
-declare_id!("2uyyshjWoWab7ECpbwv8dSTQJpbPNBubyD4eGK1JsSGQ");
+declare_id!("F1GKXvAENDwYVW2U7PCaAydiJUqa2Lo27vUn25sZdh9D");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
 
@@ -393,8 +393,8 @@ pub mod staking_program {
     require!(stake.project == project_key, ErrorCode::InvalidProject);
     
     update_reward(&mut ctx.accounts.project, stake)?;
-    update_reflection(&mut ctx.accounts.project, stake, ctx.accounts.reflection_vault.as_ref())?;
-    
+    update_reflection(&mut ctx.accounts.project, stake, ctx.accounts.reflection_vault.as_ref().map(|v| v.to_account_info()).as_ref())?;
+
     stake.amount = stake.amount
         .checked_add(amount_after_fee)
         .ok_or(ErrorCode::MathOverflow)?;
@@ -724,7 +724,7 @@ pub mod staking_program {
     if ctx.accounts.project.reflection_vault.is_some() {
         if let Some(ref vault) = ctx.accounts.reflection_vault {
             require!(Some(vault.key()) == ctx.accounts.project.reflection_vault, ErrorCode::InvalidReflectionVault);
-            update_reflection(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(vault))?;
+            update_reflection(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(&vault.to_account_info()))?;
         }
     }
 
@@ -862,13 +862,26 @@ pub mod staking_program {
         require!(project_is_initialized, ErrorCode::NotInitialized);
         require!(!project_is_paused, ErrorCode::ProjectPaused);
         require!(project_reflection_vault.is_some(), ErrorCode::ReflectionsNotEnabled);
-        require!(
-            Some(ctx.accounts.reflection_vault.key()) == project_reflection_vault,
-            ErrorCode::InvalidReflectionVault
-        );
+        
+        // ✅ Check if reflection_vault is the staking_vault (Native SOL case)
+        let is_native = is_native_sol(&ctx.accounts.reflection_token_mint.key());
+        
+        if is_native {
+            // For Native SOL, reflection_vault should be staking_vault
+            require!(
+                ctx.accounts.reflection_vault.key() == ctx.accounts.staking_vault.key(),
+                ErrorCode::InvalidReflectionVault
+            );
+        } else {
+            // For SPL tokens, use the stored vault address
+            require!(
+                Some(ctx.accounts.reflection_vault.key()) == project_reflection_vault,
+                ErrorCode::InvalidReflectionVault
+            );
+        }
         
         // Update reflections - this will automatically process any new tokens
-        update_reflection_internal(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(&ctx.accounts.reflection_vault), true)?;
+        update_reflection_internal(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(&ctx.accounts.reflection_vault.to_account_info()), true)?;
         
         let reflections = ctx.accounts.stake.reflections_pending;
         require!(reflections > 0, ErrorCode::NoReflections);
@@ -882,7 +895,14 @@ pub mod staking_program {
             let rent_exempt_minimum = rent.minimum_balance(ctx.accounts.reflection_vault.to_account_info().data_len());
             total_lamports.saturating_sub(rent_exempt_minimum)
         } else {
-            ctx.accounts.reflection_vault.amount
+            // For SPL tokens, deserialize the token account data
+            let vault_info = &ctx.accounts.reflection_vault;
+            let vault_data = vault_info.try_borrow_data()?;
+            if vault_data.len() >= 72 {
+                u64::from_le_bytes(vault_data[64..72].try_into().unwrap())
+            } else {
+                0
+            }
         };
         
         require!(
@@ -939,7 +959,8 @@ pub mod staking_program {
         );
         
         // Update reflection calculations - MUST update user paid marker to prevent double-counting
-        update_reflection_internal(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(&ctx.accounts.reflection_vault), true)?;
+        update_reflection_internal(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(&ctx.accounts.reflection_vault.to_account_info()), true)?;
+
 
         msg!("Reflections refreshed. Pending: {}", ctx.accounts.stake.reflections_pending);
         
@@ -1317,7 +1338,7 @@ fn update_reward(project: &mut Account<Project>, stake: &mut Account<Stake>) -> 
 fn update_reflection_internal(
     project: &mut Account<Project>,
     stake: &mut Account<Stake>,
-    reflection_vault: Option<&InterfaceAccount<TokenAccount>>,
+    reflection_vault: Option<&AccountInfo>,
     update_user_paid_marker: bool,
 ) -> Result<()> {
     if project.reflection_vault.is_none() {
@@ -1332,34 +1353,30 @@ fn update_reflection_internal(
         .unwrap_or(false);
     
     let current_balance = if is_native_sol {
-        // ✅ FIX: Exclude rent-exempt minimum from reflection calculations
-        let total_lamports = vault.to_account_info().lamports();
+        let total_lamports = vault.lamports();
         let rent = Rent::get()?;
-        let rent_exempt_minimum = rent.minimum_balance(vault.to_account_info().data_len());
+        let rent_exempt_minimum = rent.minimum_balance(vault.data_len());
         total_lamports.saturating_sub(rent_exempt_minimum)
     } else {
-        vault.amount
+        let vault_data = vault.try_borrow_data()?;
+        if vault_data.len() < 72 {
+            return Err(ErrorCode::InvalidReflectionVault.into());
+        }
+        u64::from_le_bytes(vault_data[64..72].try_into().unwrap())
     };
     
-    msg!("🔍 Reflection Type: {}", if is_native_sol { "Native SOL" } else { "SPL/Token-2022" });
-    
-    // ✅ No Box allocation - use stack variables to avoid stack overflow
     let calc_current_balance = current_balance;
     let calc_last_balance = project.last_reflection_balance;
     let calc_new_tokens = current_balance.saturating_sub(project.last_reflection_balance);
     let calc_total_staked = project.total_staked;
 
     if calc_current_balance < calc_last_balance {
-        msg!("📉 Vault decreased - claim detected");
         project.last_reflection_balance = calc_current_balance;
         project.last_reflection_update_time = current_time;
         return Ok(());
     }
-
-    msg!("🔍 New tokens: {}", calc_new_tokens);
         
     if calc_new_tokens > 0 && calc_total_staked > 0 {
-        // ✅ No Box allocation - compute inline
         let per_token_u128 = (calc_new_tokens as u128)
             .checked_mul(1_000_000_000u128)
             .ok_or(ErrorCode::MathOverflow)?
@@ -1382,7 +1399,6 @@ fn update_reflection_internal(
             .saturating_sub(stake.reflection_per_token_paid);
         
         if rate_diff > 0 {
-            // ✅ No Box allocation - compute inline
             let earned_u128 = (rate_diff as u128)
                 .checked_mul(stake.amount as u128)
                 .ok_or(ErrorCode::MathOverflow)?
@@ -1412,7 +1428,7 @@ fn update_reflection_internal(
 fn update_reflection(
     project: &mut Account<Project>,
     stake: &mut Account<Stake>,
-    reflection_vault: Option<&InterfaceAccount<TokenAccount>>,
+    reflection_vault: Option<&AccountInfo>,
 ) -> Result<()> {
     update_reflection_internal(project, stake, reflection_vault, true)
 }
@@ -1629,8 +1645,8 @@ pub struct Withdraw<'info> {
     /// CHECK: Referrer account (optional)
     pub referrer: Option<AccountInfo<'info>>,
     
-    /// CHECK: Optional reflection vault
-    pub reflection_vault: Option<InterfaceAccount<'info, TokenAccount>>,
+    /// CHECK: Optional reflection vault - can be staking_vault for Native SOL or ATA for SPL tokens
+    pub reflection_vault: Option<AccountInfo<'info>>,
     
     pub token_mint_account: InterfaceAccount<'info, Mint>,
     
@@ -1717,13 +1733,15 @@ pub struct ClaimReflections<'info> {
     pub stake: Account<'info, Stake>,
     
     #[account(
+        mut,
         seeds = [b"staking_vault", project.key().as_ref()],
         bump,
     )]
     pub staking_vault: InterfaceAccount<'info, TokenAccount>,
-    
+
+    /// CHECK: For Native SOL, this is staking_vault. For SPL tokens, this is an ATA. Validated against project.reflection_vault
     #[account(mut)]
-    pub reflection_vault: InterfaceAccount<'info, TokenAccount>,
+    pub reflection_vault: AccountInfo<'info>,
     
     /// CHECK: Can be either TokenAccount (for SPL) or wallet (for Native SOL)
     #[account(mut)]
