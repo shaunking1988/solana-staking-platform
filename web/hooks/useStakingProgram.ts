@@ -790,11 +790,25 @@ try {
       console.log("✅ Using ATA for SPL token reflections:", userReflectionAccount.toString());
     }
 
+    // ✅ FIX: Determine which vault to pass based on Native SOL vs SPL token
+    const isNativeSOLReflections = reflectionTokenMint.toString() === "So11111111111111111111111111111111111111112";
+    
+    let actualReflectionVault: PublicKey;
+    if (isNativeSOLReflections) {
+      // For Native SOL, use the staking vault (not an ATA)
+      actualReflectionVault = stakingVaultPDA;
+      console.log("✅ Using staking vault for Native SOL reflections:", actualReflectionVault.toString());
+    } else {
+      // For SPL tokens, use the stored reflection vault ATA
+      actualReflectionVault = reflectionVaultPubkey;
+      console.log("✅ Using reflection vault ATA for SPL reflections:", actualReflectionVault.toString());
+    }
+
     console.log("🔍 Claim Reflections Accounts:", {
       project: projectPDA.toString(),
       stake: userStakePDA.toString(),
       stakingVault: stakingVaultPDA.toString(),
-      reflectionVault: reflectionVaultPubkey.toString(),
+      reflectionVault: actualReflectionVault.toString(),
       reflectionTokenMint: reflectionTokenMint.toString(),
       userReflectionAccount: userReflectionAccount.toString(),
       withdrawalWallet: withdrawalWallet.toString(),
@@ -827,7 +841,7 @@ try {
             project: projectPDA,
             stake: userStakePDA,
             stakingVault: stakingVaultPDA,
-            reflectionVault: reflectionVaultPubkey,
+            reflectionVault: actualReflectionVault,
             userReflectionAccount: userReflectionAccount,
             reflectionTokenMint: reflectionTokenMint,
             user: publicKey,
@@ -865,8 +879,7 @@ try {
           project: projectPDA,
           stake: userStakePDA,
           stakingVault: stakingVaultPDA,
-          reflectionVault: reflectionVaultPubkey,
-          userReflectionAccount: userReflectionAccount,
+          reflectionVault: actualReflectionVault,
           reflectionTokenMint: reflectionTokenMint,
           user: publicKey,
           tokenProgram: reflectionTokenProgramId,
