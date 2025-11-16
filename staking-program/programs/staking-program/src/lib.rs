@@ -10,7 +10,7 @@ use anchor_spl::token_interface::{
     TransferChecked,
 };
 
-declare_id!("F1GKXvAENDwYVW2U7PCaAydiJUqa2Lo27vUn25sZdh9D");
+declare_id!("J2gTXc3qWXBhwtPE4b6HiYq2X6e5vjzjzmTYLZxKxW2z");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
 
