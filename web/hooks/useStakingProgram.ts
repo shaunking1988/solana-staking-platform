@@ -361,9 +361,33 @@ const unstake = async (tokenMint: string, poolId: number = 0, amount?: number) =
   console.log("   - projectReferrer:", projectReferrer?.toBase58() || "null");
   console.log("   - reflectionVault:", reflectionVault?.toBase58() || "null");
 
-  // If amount not specified, unstake all
-  const amountBN = amount ? new BN(amount) : userStake.amount;
-  console.log("✅ Amount to withdraw:", amountBN.toString());
+  // ✅ REPLACE THESE 2 LINES WITH THE SECTION BELOW
+  // If amount not specified, unstake all - with 99% buffer for Native SOL
+  const isNativeSOL = tokenMint === "So11111111111111111111111111111111111111112";
+  
+  let amountBN: BN;
+  if (amount) {
+    // Partial unstake - apply 99% buffer for Native SOL only
+    const adjustedAmount = isNativeSOL ? Math.floor(amount * 0.99) : amount;
+    amountBN = new BN(adjustedAmount);
+    console.log("✅ Partial unstake amount:", {
+      original: amount,
+      adjusted: adjustedAmount,
+      isNativeSOL,
+      buffer: isNativeSOL ? "99%" : "100%"
+    });
+  } else {
+    // Full unstake - apply 99% buffer for Native SOL only
+    const fullAmount = userStake.amount.toNumber();
+    const adjustedAmount = isNativeSOL ? Math.floor(fullAmount * 0.99) : fullAmount;
+    amountBN = new BN(adjustedAmount);
+    console.log("✅ Full unstake amount:", {
+      original: fullAmount,
+      adjusted: adjustedAmount,
+      isNativeSOL,
+      buffer: isNativeSOL ? "99%" : "100%"
+    });
+  }
 
   console.log("🔍 ACCOUNT CHECK:");
 console.log("  User wallet:", wallet.publicKey.toString());
@@ -772,6 +796,12 @@ try {
 
     // ✅ Check if reflection token is Native SOL
     const isNativeSOL = reflectionTokenMint.toString() === "So11111111111111111111111111111111111111112";
+
+    console.log("✅ Reflection claim details:", {
+      reflectionTokenMint: reflectionTokenMint.toString(),
+      isNativeSOL,
+      buffer: isNativeSOL ? "99% (rent-exempt protection)" : "100%"
+    });
 
     let userReflectionAccount: PublicKey;
 

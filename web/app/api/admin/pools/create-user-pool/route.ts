@@ -19,6 +19,7 @@ export async function POST(req: Request) {
       symbol: body.symbol,
       creator: body.creatorWallet,
       paymentTx: body.paymentTxSignature,
+      transferTaxBps: body.transferTaxBps, // ✅ NEW: Log tax field
     });
     
     // 1. Verify payment transaction on-chain
@@ -69,6 +70,15 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
     
+    // ✅ NEW: Validate transferTaxBps (must be 0-10000)
+    const transferTaxBps = body.transferTaxBps 
+      ? Math.min(10000, Math.max(0, parseInt(body.transferTaxBps))) 
+      : 0;
+    
+    if (transferTaxBps > 0) {
+      console.log(`⚠️ Token has ${transferTaxBps / 100}% transfer tax - vault will receive less than deposited amount`);
+    }
+    
     // 3. Create pool in database
     const pool = await prisma.pool.create({
       data: {
@@ -86,9 +96,12 @@ export async function POST(req: Request) {
         hasSelfReflections: body.hasSelfReflections || false,
         hasExternalReflections: body.hasExternalReflections || false,
         externalReflectionMint: body.externalReflectionMint || null,
+        reflectionTokenAccount: body.reflectionTokenAccount || null, // ✅ Added for completeness
+        reflectionTokenSymbol: body.reflectionTokenSymbol || null,   // ✅ Added for completeness
         isInitialized: body.isInitialized || false,
         isPaused: body.isPaused !== undefined ? body.isPaused : true, // Start paused by default
         poolAddress: body.projectPda || null,
+        transferTaxBps: transferTaxBps, // ✅ NEW: Save transfer tax to database
         // User creation metadata
         // creatorWallet: body.creatorWallet, // TODO: Re-enable after running database migration
         featured: false, // User pools not featured by default
@@ -100,12 +113,16 @@ export async function POST(req: Request) {
       id: pool.id,
       symbol: pool.symbol,
       tokenMint: pool.tokenMint,
+      transferTaxBps: pool.transferTaxBps, // ✅ NEW: Log tax field
+      taxPercentage: pool.transferTaxBps / 100, // ✅ NEW: Show as percentage
     });
     
     return NextResponse.json({
       success: true,
       pool,
-      message: "Pool created successfully! You can now deposit rewards to activate it.",
+      message: transferTaxBps > 0 
+        ? `Pool created successfully! Note: ${transferTaxBps / 100}% transfer tax will be deducted during deposits.`
+        : "Pool created successfully! You can now deposit rewards to activate it.",
     });
     
   } catch (err: any) {
@@ -123,4 +140,3 @@ export async function POST(req: Request) {
     }, { status: 500 });
   }
 }
-

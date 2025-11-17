@@ -21,10 +21,58 @@ export async function GET() {
         { featured: 'desc' },  // Featured pools first
         { tokenMint: 'asc' },  // Then group by token
         { poolId: 'asc' }      // Then by pool number
-      ]
+      ],
+      // ✅ NEW: Explicitly select fields including transferTaxBps
+      select: {
+        id: true,
+        poolId: true,
+        tokenMint: true,
+        name: true,
+        symbol: true,
+        apr: true,
+        apy: true,
+        type: true,
+        lockPeriod: true,
+        totalStaked: true,
+        rewards: true,
+        logo: true,
+        pairAddress: true,
+        hidden: true,
+        featured: true,
+        views: true,
+        createdAt: true,
+        hasSelfReflections: true,
+        hasExternalReflections: true,
+        externalReflectionMint: true,
+        reflectionTokenAccount: true,
+        reflectionTokenSymbol: true,
+        reflectionTokenDecimals: true,
+        isInitialized: true,
+        poolAddress: true,
+        isPaused: true,
+        isEmergencyUnlocked: true,
+        platformFeePercent: true,
+        flatSolFee: true,
+        referralEnabled: true,
+        referralWallet: true,
+        referralSplitPercent: true,
+        transferTaxBps: true, // ✅ NEW: Include transfer tax field
+      }
     })
     
     console.log('✅ Found pools:', pools.length)
+    
+    // ✅ NEW: Log pools with transfer tax for debugging
+    const poolsWithTax = pools.filter(p => p.transferTaxBps > 0)
+    if (poolsWithTax.length > 0) {
+      console.log(`⚠️ ${poolsWithTax.length} pool(s) have transfer tax:`, 
+        poolsWithTax.map(p => ({ 
+          symbol: p.symbol, 
+          taxBps: p.transferTaxBps,
+          taxPercent: `${p.transferTaxBps / 100}%`
+        }))
+      )
+    }
     
     return NextResponse.json(pools)
   } catch (error: any) {
@@ -58,6 +106,7 @@ export async function POST(request: Request) {
       pairAddress,
       featured = false,
       hidden = false,
+      transferTaxBps = 0, // ✅ NEW: Default to 0 (no tax)
       ...rest
     } = body
     
@@ -83,7 +132,14 @@ export async function POST(request: Request) {
       )
     }
     
-    console.log('🆕 Creating pool:', { tokenMint, poolId, name, type })
+    // ✅ NEW: Validate transfer tax (0-10000)
+    const validatedTaxBps = Math.min(10000, Math.max(0, parseInt(String(transferTaxBps)))) || 0
+    
+    if (validatedTaxBps > 0) {
+      console.log(`⚠️ Pool ${symbol} has ${validatedTaxBps / 100}% transfer tax`)
+    }
+    
+    console.log('🆕 Creating pool:', { tokenMint, poolId, name, type, transferTaxBps: validatedTaxBps })
     
     // ✅ Create pool with composite key
     const pool = await prisma.pool.create({
@@ -100,6 +156,7 @@ export async function POST(request: Request) {
         pairAddress,
         featured,
         hidden,
+        transferTaxBps: validatedTaxBps, // ✅ NEW: Include transfer tax
         ...rest
       }
     })
@@ -153,6 +210,16 @@ export async function PATCH(request: Request) {
         ? 'unlocked' 
         : 'locked'
       console.log(`🔧 Auto-setting type to "${updateData.type}" based on lockPeriod:`, lockPeriod)
+    }
+    
+    // ✅ NEW: Validate transfer tax if being updated
+    if ('transferTaxBps' in updateData) {
+      const validatedTaxBps = Math.min(10000, Math.max(0, parseInt(String(updateData.transferTaxBps)))) || 0
+      updateData.transferTaxBps = validatedTaxBps
+      
+      if (validatedTaxBps > 0) {
+        console.log(`⚠️ Updating pool to have ${validatedTaxBps / 100}% transfer tax`)
+      }
     }
     
     console.log('🔄 Updating pool:', id || `${tokenMint}:${poolId}`)

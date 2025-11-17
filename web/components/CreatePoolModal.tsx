@@ -53,6 +53,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
     enableReflections: false,
     reflectionType: "self" as "self" | "external",
     externalReflectionMint: "",
+    transferTaxBps: "0",
   });
 
   // Fetch user's tokens
@@ -532,6 +533,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
         lockPeriod: poolConfig.lockPeriod,
         rewards: selectedToken.symbol,
         poolId: poolId,
+        transferTaxBps: parseInt(poolConfig.transferTaxBps),
         hasSelfReflections: poolConfig.enableReflections && poolConfig.reflectionType === "self",
         hasExternalReflections: poolConfig.enableReflections && poolConfig.reflectionType === "external",
         externalReflectionMint: actualReflectionMint,
@@ -797,6 +799,70 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
                 <p className="text-xs text-gray-500 mt-1">
                   How long stakers must wait before they can unstake. Set to 0 for flexible staking (no lock).
                 </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Minimum Lock Period for Stakers (days)</label>
+                <input
+                  type="number"
+                  value={poolConfig.lockPeriod}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const duration = parseInt(poolConfig.duration);
+                    const lockPeriod = parseInt(value);
+                    
+                    // Prevent lock period from exceeding pool duration
+                    if (lockPeriod > duration) {
+                      setPoolConfig({ ...poolConfig, lockPeriod: poolConfig.duration });
+                    } else {
+                      setPoolConfig({ ...poolConfig, lockPeriod: value });
+                    }
+                  }}
+                  className="w-full p-3 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white focus:outline-none transition-colors"
+                  onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.5)'}
+                  onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
+                  placeholder="30"
+                  min="0"
+                  max={poolConfig.duration}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  How long stakers must wait before they can unstake. Set to 0 for flexible staking (no lock).
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Transfer Tax (if applicable)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={poolConfig.transferTaxBps}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 0;
+                      const clampedValue = Math.min(10000, Math.max(0, value));
+                      setPoolConfig({ ...poolConfig, transferTaxBps: clampedValue.toString() });
+                    }}
+                    className="flex-1 p-3 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white focus:outline-none transition-colors"
+                    onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.5)'}
+                    onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
+                    placeholder="0"
+                    min="0"
+                    max="10000"
+                  />
+                  <span className="text-gray-400 text-sm">bps</span>
+                  <span className="text-white font-semibold min-w-[60px]">
+                    ({(parseInt(poolConfig.transferTaxBps) / 100).toFixed(1)}%)
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  If your token has a transfer tax (like 10%), enter it in basis points (1000 = 10%). Leave at 0 if no tax.
+                </p>
+                {parseInt(poolConfig.transferTaxBps) > 0 && (
+                  <div className="mt-2 p-2 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
+                    <p className="text-xs text-yellow-300">
+                      ⚠️ With {(parseInt(poolConfig.transferTaxBps) / 100).toFixed(1)}% tax, depositing {poolConfig.rewardAmount} {selectedToken.symbol} will result in {(parseFloat(poolConfig.rewardAmount) * (1 - parseInt(poolConfig.transferTaxBps) / 10000)).toFixed(2)} {selectedToken.symbol} in the vault.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Reflection Configuration */}

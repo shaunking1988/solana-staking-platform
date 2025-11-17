@@ -41,12 +41,15 @@ model Pool {
   referralEnabled        Boolean    @default(false) @map("referral_enabled")
   referralWallet         String?    @map("referral_wallet")
   referralSplitPercent   Float?     @map("referral_split_percent")
+  transferTaxBps         Int        @default(0) @map("transfer_tax_bps")
   Activity               Activity[]
   stakes                 Stake[]
 
   @@unique([tokenMint, poolId], name: "pool_token_pool_id_unique")
   @@index([tokenMint, poolId], map: "pool_token_pool_id_idx")
   @@index([tokenMint], map: "pool_token_mint_idx")
+  @@index([transferTaxBps], map: "pool_transfer_tax_idx")
+
   @@map("pools")
 }
 

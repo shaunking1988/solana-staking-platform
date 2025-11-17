@@ -16,6 +16,7 @@ export async function calculateRealAPY(
   totalRewardsDeposited: number;
   totalRewardsClaimed: number;
   availableRewards: number;
+  vaultBalance: number; // ✅ ADD THIS LINE
   totalStaked: number;
   rewardRate: number;
 }> {
@@ -31,6 +32,19 @@ export async function calculateRealAPY(
     const program = getProgram(wallet, connection);
     const projectData = await program.account.project.fetch(projectPDA);
     
+    // ✅ ADD THIS ENTIRE SECTION - Fetch ACTUAL vault balance from blockchain
+    const [rewardVaultPDA] = getPDAs.rewardVault(tokenMintPubkey, poolId);
+    let vaultBalance = 0;
+
+    try {
+      const vaultAccountInfo = await connection.getTokenAccountBalance(rewardVaultPDA);
+      vaultBalance = parseFloat(vaultAccountInfo.value.amount) / Math.pow(10, vaultAccountInfo.value.decimals);
+      console.log("✅ Fetched actual vault balance:", vaultBalance);
+    } catch (error) {
+      console.error("⚠️ Could not fetch vault balance, using calculated value:", error);
+      // Fallback to calculated if fetch fails
+    }
+    
     // ✅ FIX: Get token decimals to convert raw amounts to UI amounts
     const mintInfo = await connection.getParsedAccountInfo(tokenMintPubkey);
     const decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals || 9;
@@ -43,8 +57,18 @@ export async function calculateRealAPY(
     const poolDurationSeconds = projectData.poolDurationSeconds.toNumber();
     const rewardRate = (projectData.rewardRatePerSecond?.toNumber() || 0) / divisor;
     
-    // Calculate available rewards
-    const availableRewards = totalRewardsDeposited - totalRewardsClaimed;
+    // ✅ CHANGED - Use actual vault balance (accounts for transfer tax)
+    // Fallback to calculated value if vault fetch failed
+    const availableRewards = vaultBalance > 0 ? vaultBalance : (totalRewardsDeposited - totalRewardsClaimed);
+    
+    console.log("📊 APY Calculation (using actual vault balance):", {
+      vaultBalance,
+      totalRewardsDeposited,
+      totalRewardsClaimed,
+      calculatedAvailable: totalRewardsDeposited - totalRewardsClaimed,
+      actualAvailable: availableRewards,
+      difference: vaultBalance - (totalRewardsDeposited - totalRewardsClaimed)
+    });
     
     // If no staking yet or no rewards, APY is 0
     if (totalStaked === 0 || availableRewards === 0) {
@@ -53,6 +77,7 @@ export async function calculateRealAPY(
         totalRewardsDeposited,
         totalRewardsClaimed,
         availableRewards,
+        vaultBalance, // ✅ ADDED
         totalStaked,
         rewardRate,
       };
@@ -67,6 +92,8 @@ export async function calculateRealAPY(
       totalRewardsDeposited,
       totalRewardsClaimed,
       availableRewards,
+      vaultBalance: 0,
+
       totalStaked,
       rewardRate,
     };

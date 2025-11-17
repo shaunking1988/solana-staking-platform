@@ -48,8 +48,8 @@ const DECIMALS_MULTIPLIER = Math.pow(10, TOKEN_DECIMALS);
 
 interface PoolCardProps {
   id: string;
-  poolId?: number;
-  tokenMint?: string;
+  poolId?: number; // ✅ NEW: Pool number (0, 1, 2...)
+  tokenMint?: string; // ✅ NEW: Token mint address
   name: string;
   symbol: string;
   apr?: string;
@@ -72,15 +72,16 @@ interface PoolCardProps {
   flatSolFee?: number;
   reflectionTokenAccount?: string;
   reflectionTokenSymbol?: string;
-  showPoolNumber?: boolean;
-  totalPoolsForToken?: number;
+  showPoolNumber?: boolean; // ✅ NEW
+  totalPoolsForToken?: number; // ✅ NEW
+  transferTaxBps?: number; // ✅ ADD THIS LINE - Transfer tax in basis points (0-10000)
 }
 
 export default function PoolCard(props: PoolCardProps) {
   const { 
     id, 
-    poolId = 0,
-    tokenMint,
+    poolId = 0, // ✅ NEW: Default to 0
+    tokenMint, // ✅ NEW
     name, 
     symbol, 
     apr, 
@@ -105,9 +106,18 @@ export default function PoolCard(props: PoolCardProps) {
     reflectionTokenSymbol,
     showPoolNumber = false,
     totalPoolsForToken = 1,
+    transferTaxBps = 0,
   } = props;
 
   const effectiveMintAddress = tokenMint || mintAddress;
+  
+  const taxMultiplier = 1 - (transferTaxBps / 10000);
+  const displayStakedAmount = userStakedAmount * taxMultiplier;
+  
+  console.log('🔍 PoolCard Debug:', { 
+    name, 
+    symbol,
+
 
   const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
@@ -918,12 +928,16 @@ export default function PoolCard(props: PoolCardProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm relative z-10">
           <div className="bg-white/[0.02] p-2 rounded-lg border border-white/[0.05]">
             <p className="text-gray-500 text-[9px] sm:text-[10px] md:text-xs mb-0.5 leading-tight">Your Stake</p>
             <p className="text-white font-semibold text-[11px] sm:text-xs md:text-sm leading-tight truncate">
-              {connected ? `${userStakedAmount.toFixed(2)}` : "-"}
+              {connected ? `${displayStakedAmount.toFixed(2)} ${symbol}` : "-"}
             </p>
+            {transferTaxBps > 0 && connected && userStakedAmount > 0 && (
+              <p className="text-gray-500 text-[8px] mt-0.5">
+                (Raw: {userStakedAmount.toFixed(2)})
+              </p>
+            )}
           </div>
           
           <div className="bg-white/[0.02] p-2 rounded-lg border border-white/[0.05]">
