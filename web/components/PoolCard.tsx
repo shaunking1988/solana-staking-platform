@@ -113,11 +113,6 @@ export default function PoolCard(props: PoolCardProps) {
   
   const taxMultiplier = 1 - (transferTaxBps / 10000);
   const displayStakedAmount = userStakedAmount * taxMultiplier;
-  
-  console.log('🔍 PoolCard Debug:', { 
-    name, 
-    symbol,
-
 
   const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
