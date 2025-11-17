@@ -923,6 +923,7 @@ export default function PoolCard(props: PoolCardProps) {
           </div>
         </div>
 
+        <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm relative z-10">
           <div className="bg-white/[0.02] p-2 rounded-lg border border-white/[0.05]">
             <p className="text-gray-500 text-[9px] sm:text-[10px] md:text-xs mb-0.5 leading-tight">Your Stake</p>
             <p className="text-white font-semibold text-[11px] sm:text-xs md:text-sm leading-tight truncate">
@@ -1376,4 +1377,4 @@ export default function PoolCard(props: PoolCardProps) {
     </>
   );
 }
-// Force rebuild Fri Nov 14 05:44:49 GMT 2025
+
