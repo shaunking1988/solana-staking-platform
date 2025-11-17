@@ -111,9 +111,6 @@ export default function PoolCard(props: PoolCardProps) {
 
   const effectiveMintAddress = tokenMint || mintAddress;
   
-  const taxMultiplier = 1 - (transferTaxBps / 10000);
-  const displayStakedAmount = userStakedAmount * taxMultiplier;
-
   const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
   const { showSuccess, showError, showWarning } = useToast();
@@ -142,6 +139,9 @@ export default function PoolCard(props: PoolCardProps) {
   const [userStakeTimestamp, setUserStakeTimestamp] = useState<number>(0);
   const [solBalance, setSolBalance] = useState<number>(0);
   const [dynamicRate, setDynamicRate] = useState<number | null>(null);
+
+  const taxMultiplier = 1 - (transferTaxBps / 10000);
+  const displayStakedAmount = userStakedAmount * taxMultiplier;
 
   const [projectData, setProjectData] = useState<any>(null);
   const [stakeData, setStakeData] = useState<any>(null);
