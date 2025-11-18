@@ -742,11 +742,6 @@ export default function PoolCard(props: PoolCardProps) {
       return;
     }
 
-    if (!reflectionTokenAccount) {
-      showError("❌ Reflection token account not found");
-      return;
-    }
-
     setIsProcessing(true);
     setLastRefreshTime(now);
     
