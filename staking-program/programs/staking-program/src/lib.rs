@@ -210,79 +210,95 @@ pub mod staking_program {
     }
     
     if params.enable_reflections {
-        // ✅ NEW: Validate that reflection_token param is provided
         require!(
             params.reflection_token.is_some(),
             ErrorCode::ReflectionTokenRequired
         );
-        require!(
-            ctx.accounts.reflection_token_mint.is_some(),
-            ErrorCode::ReflectionTokenRequired
-        );
-        require!(
-            ctx.accounts.reflection_token_account.is_some(),
-            ErrorCode::ReflectionVaultRequired
-        );
-        require!(
-            ctx.accounts.associated_token_program.is_some(),
-            ErrorCode::MissingAssociatedTokenProgram
-        );
         
-        let reflection_mint_info = ctx.accounts.reflection_token_mint.as_ref().unwrap();
-        let reflection_account_info = ctx.accounts.reflection_token_account.as_ref().unwrap();
-        let ata_program = ctx.accounts.associated_token_program.as_ref().unwrap();
+        let reflection_token = params.reflection_token.unwrap();
+        project.reflection_token = Some(reflection_token);
         
-        // ✅ NEW: Verify the provided reflection_token matches the account
-        require!(
-            reflection_mint_info.key() == params.reflection_token.unwrap(),
-            ErrorCode::InvalidReflectionVault
-        );
-        
-        // ✅ Manually validate or create the ATA
-        let expected_ata = anchor_spl::associated_token::get_associated_token_address(
-            &ctx.accounts.staking_vault.key(),
-            &reflection_mint_info.key()
-        );
-        
-        require!(
-            reflection_account_info.key() == expected_ata,
-            ErrorCode::InvalidReflectionVault
-        );
-        
-        // ✅ If ATA doesn't exist, create it
-        if reflection_account_info.data_is_empty() {
-            msg!("Creating reflection token ATA...");
-            
-            // ✅ Get the correct token program for reflections
-            let reflection_token_program = if let Some(ref prog) = ctx.accounts.reflection_token_program {
-                prog.clone()
-            } else {
-                ctx.accounts.token_program.to_account_info()
-            };
-            
-            let cpi_accounts = anchor_spl::associated_token::Create {
-                payer: ctx.accounts.admin.to_account_info(),
-                associated_token: reflection_account_info.clone(),
-                authority: ctx.accounts.staking_vault.to_account_info(),
-                mint: reflection_mint_info.clone(),
-                system_program: ctx.accounts.system_program.to_account_info(),
-                token_program: reflection_token_program.clone(),  // ← CHANGED: Use reflection token program
-            };
-            
-            let cpi_ctx = CpiContext::new(ata_program.clone(), cpi_accounts);
-            anchor_spl::associated_token::create(cpi_ctx)?;
-            
-            msg!("Reflection token ATA created: {}", expected_ata);
+        // ✅ CHECK 1: Is it Native SOL?
+        if is_native_sol(&reflection_token) {
+            msg!("🔵 Native SOL reflections - using staking vault lamports");
+            project.reflection_vault = Some(ctx.accounts.staking_vault.key());
+            project.last_reflection_balance = ctx.accounts.staking_vault.to_account_info().lamports();
+            project.last_reflection_update_time = current_time;
         }
-        
-        // ✅ Store both the token mint AND the ATA address
-        project.reflection_token = Some(reflection_mint_info.key());
-        project.reflection_vault = Some(expected_ata);
-        project.last_reflection_balance = 0;
-        project.last_reflection_update_time = current_time;
+        // ✅ CHECK 2: Is it the same token as staking token?
+        else if reflection_token == project.token_mint {
+            msg!("🟢 Self-reflections - using staking vault token balance");
+            project.reflection_vault = Some(ctx.accounts.staking_vault.key());
+            project.last_reflection_balance = ctx.accounts.staking_vault.amount;
+            project.last_reflection_update_time = current_time;
+        }
+        // ✅ CHECK 3: Different SPL/Token-2022 token
+        else {
+            msg!("🟡 External token reflections - creating separate ATA");
+            
+            require!(
+                ctx.accounts.reflection_token_mint.is_some(),
+                ErrorCode::ReflectionTokenRequired
+            );
+            require!(
+                ctx.accounts.reflection_token_account.is_some(),
+                ErrorCode::ReflectionVaultRequired
+            );
+            require!(
+                ctx.accounts.associated_token_program.is_some(),
+                ErrorCode::MissingAssociatedTokenProgram
+            );
+            
+            let reflection_mint_info = ctx.accounts.reflection_token_mint.as_ref().unwrap();
+            let reflection_account_info = ctx.accounts.reflection_token_account.as_ref().unwrap();
+            let ata_program = ctx.accounts.associated_token_program.as_ref().unwrap();
+            
+            require!(
+                reflection_mint_info.key() == reflection_token,
+                ErrorCode::InvalidReflectionVault
+            );
+            
+            let expected_ata = anchor_spl::associated_token::get_associated_token_address(
+                &ctx.accounts.staking_vault.key(),
+                &reflection_mint_info.key()
+            );
+            
+            require!(
+                reflection_account_info.key() == expected_ata,
+                ErrorCode::InvalidReflectionVault
+            );
+            
+            if reflection_account_info.data_is_empty() {
+                msg!("Creating reflection token ATA...");
+                
+                let reflection_token_program = if let Some(ref prog) = ctx.accounts.reflection_token_program {
+                    prog.clone()
+                } else {
+                    ctx.accounts.token_program.to_account_info()
+                };
+                
+                let cpi_accounts = anchor_spl::associated_token::Create {
+                    payer: ctx.accounts.admin.to_account_info(),
+                    associated_token: reflection_account_info.clone(),
+                    authority: ctx.accounts.staking_vault.to_account_info(),
+                    mint: reflection_mint_info.clone(),
+                    system_program: ctx.accounts.system_program.to_account_info(),
+                    token_program: reflection_token_program.clone(),
+                };
+                
+                let cpi_ctx = CpiContext::new(ata_program.clone(), cpi_accounts);
+                anchor_spl::associated_token::create(cpi_ctx)?;
+                
+                msg!("Reflection token ATA created: {}", expected_ata);
+            }
+            
+            project.reflection_vault = Some(expected_ata);
+            project.last_reflection_balance = 0;
+            project.last_reflection_update_time = current_time;
 
-        msg!("Reflections enabled with token: {}", reflection_mint_info.key());
-        msg!("Reflection ATA: {}", expected_ata);
+            msg!("External reflections enabled with token: {}", reflection_mint_info.key());
+            msg!("Reflection ATA: {}", expected_ata);
+        }
     }
     
     project.is_initialized = true;
@@ -877,17 +893,28 @@ pub mod staking_program {
         let reflections = ctx.accounts.stake.reflections_pending;
         require!(reflections > 0, ErrorCode::NoReflections);
 
-        // Check vault balance - handle Native SOL differently
+        // Check vault balance
+        let is_same_token = ctx.accounts.reflection_token_mint.key() == ctx.accounts.project.token_mint;
+
         let vault_balance = if is_native {
             let total_lamports = ctx.accounts.reflection_vault.to_account_info().lamports();
             let rent = Rent::get()?;
             let rent_exempt_minimum = rent.minimum_balance(ctx.accounts.reflection_vault.to_account_info().data_len());
             
-            // ✅ Fixed buffer: rent-exempt + 0.001 SOL safety = ~0.003 SOL total
-            let fixed_buffer = rent_exempt_minimum.saturating_add(1_000_000); // Add 0.001 SOL
+            let fixed_buffer = rent_exempt_minimum.saturating_add(1_000_000);
             total_lamports.saturating_sub(fixed_buffer)
+        } else if is_same_token {
+            // Same token - must keep staked tokens in vault
+            let vault_data = ctx.accounts.reflection_vault.try_borrow_data()?;
+            if vault_data.len() < 72 {
+                return Err(ErrorCode::InvalidReflectionVault.into());
+            }
+            let total_balance = u64::from_le_bytes(vault_data[64..72].try_into().unwrap());
+            
+            // Available = total balance - staked tokens
+            total_balance.saturating_sub(ctx.accounts.project.total_staked)
         } else {
-            // ✅ For SPL/Token-2022, read the amount from token account data
+            // Different token - read from reflection ATA
             let vault_data = ctx.accounts.reflection_vault.try_borrow_data()?;
             if vault_data.len() < 72 {
                 return Err(ErrorCode::InvalidReflectionVault.into());
@@ -1355,12 +1382,25 @@ fn update_reflection_internal(
         .map(|mint| is_native_sol(&mint))
         .unwrap_or(false);
     
+    let is_same_token = project.reflection_token
+    .map(|mint| mint == project.token_mint)
+    .unwrap_or(false);
+
     let current_balance = if is_native_sol {
         let total_lamports = vault.lamports();
         let rent = Rent::get()?;
         let rent_exempt_minimum = rent.minimum_balance(vault.data_len());
-        total_lamports.saturating_sub(rent_exempt_minimum)
+        let fixed_buffer = rent_exempt_minimum.saturating_add(1_000_000); // 0.001 SOL safety buffer
+        total_lamports.saturating_sub(fixed_buffer)
+    } else if is_same_token {
+        // Same token - read from staking vault
+        let vault_data = vault.try_borrow_data()?;
+        if vault_data.len() < 72 {
+            return Err(ErrorCode::InvalidReflectionVault.into());
+        }
+        u64::from_le_bytes(vault_data[64..72].try_into().unwrap())
     } else {
+        // Different token - read from reflection ATA
         let vault_data = vault.try_borrow_data()?;
         if vault_data.len() < 72 {
             return Err(ErrorCode::InvalidReflectionVault.into());
