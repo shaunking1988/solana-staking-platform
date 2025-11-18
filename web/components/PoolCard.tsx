@@ -167,7 +167,7 @@ export default function PoolCard(props: PoolCardProps) {
 
   // Fetch reflection balance - USER'S PENDING REFLECTIONS
   useEffect(() => {
-    if (!connected || !reflectionTokenAccount || !publicKey) {
+    if (!connected || !publicKey || !effectiveMintAddress) {
       setReflectionBalance(0);
       return;
     }
@@ -1344,7 +1344,7 @@ export default function PoolCard(props: PoolCardProps) {
                 </div>
 
                 {/* Reflection Balance */}
-                {reflectionTokenAccount && (
+                {(hasSelfReflections || hasExternalReflections) && (
                   <div className="bg-white/[0.02] border border-white/[0.05] p-4 rounded-lg">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
@@ -1372,7 +1372,7 @@ export default function PoolCard(props: PoolCardProps) {
                 )}
 
                 {/* No Reflections Message */}
-                {!reflectionTokenAccount && (
+                {!hasSelfReflections && !hasExternalReflections && (
                   <div className="bg-white/[0.02] border border-white/[0.05] p-4 rounded-lg text-center">
                     <p className="text-gray-400 text-sm">No reflections available for this pool</p>
                   </div>
