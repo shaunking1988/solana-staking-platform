@@ -10,7 +10,7 @@ use anchor_spl::token_interface::{
     TransferChecked,
 };
 
-declare_id!("J2gTXc3qWXBhwtPE4b6HiYq2X6e5vjzjzmTYLZxKxW2z");
+declare_id!("7GGk6UtZZT4Fnvu2sLGtTgyg3F6YWXTDXAVnbub3e4x5");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
 
@@ -31,24 +31,11 @@ fn transfer_tokens<'info>(
     signer_seeds: Option<&[&[&[u8]]]>,
 ) -> Result<()> {
     if is_native_sol(&mint.key()) {
-        // Native SOL transfer using system program
         msg!("💰 Transferring Native SOL: {} lamports", amount);
-        let transfer_ix = system_program::Transfer {
-            from: from.clone(),
-            to: to.clone(),
-        };
-        
-        if let Some(seeds) = signer_seeds {
-            system_program::transfer(
-                CpiContext::new_with_signer(system_program, transfer_ix, seeds),
-                amount,
-            )?;
-        } else {
-            system_program::transfer(
-                CpiContext::new(system_program, transfer_ix),
-                amount,
-            )?;
-        }
+        // Direct lamport manipulation works for all account types
+        **from.try_borrow_mut_lamports()? -= amount;
+        **to.try_borrow_mut_lamports()? += amount;
+        msg!("✅ Native SOL transfer complete");
     } else {
         // SPL Token or Token-2022 transfer
         msg!("🪙 Transferring SPL/Token-2022: {} units", amount);
@@ -876,41 +863,38 @@ pub mod staking_program {
         require!(!project_is_paused, ErrorCode::ProjectPaused);
         require!(project_reflection_vault.is_some(), ErrorCode::ReflectionsNotEnabled);
         
-        // ✅ Check if reflection_vault is the staking_vault (Native SOL case)
         let is_native = is_native_sol(&ctx.accounts.reflection_token_mint.key());
-        
-        if is_native {
-            // For Native SOL, reflection_vault should be staking_vault
-            require!(
-                ctx.accounts.reflection_vault.key() == ctx.accounts.staking_vault.key(),
-                ErrorCode::InvalidReflectionVault
-            );
-        } else {
-            // For SPL tokens, use the stored vault address
-            require!(
-                Some(ctx.accounts.reflection_vault.key()) == project_reflection_vault,
-                ErrorCode::InvalidReflectionVault
-            );
-        }
+
+        // Validate reflection vault matches project's stored vault
+        require!(
+            Some(ctx.accounts.reflection_vault.key()) == project_reflection_vault,
+            ErrorCode::InvalidReflectionVault
+        );
         
         // Update reflections - this will automatically process any new tokens
         update_reflection_internal(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(&ctx.accounts.reflection_vault.to_account_info()), true)?;
         
         let reflections = ctx.accounts.stake.reflections_pending;
         require!(reflections > 0, ErrorCode::NoReflections);
-        
+
         // Check vault balance - handle Native SOL differently
         let vault_balance = if is_native {
-            // For Native SOL, get lamports and subtract rent-exempt minimum
             let total_lamports = ctx.accounts.reflection_vault.to_account_info().lamports();
             let rent = Rent::get()?;
             let rent_exempt_minimum = rent.minimum_balance(ctx.accounts.reflection_vault.to_account_info().data_len());
-            total_lamports.saturating_sub(rent_exempt_minimum)
+            
+            // ✅ Fixed buffer: rent-exempt + 0.001 SOL safety = ~0.003 SOL total
+            let fixed_buffer = rent_exempt_minimum.saturating_add(1_000_000); // Add 0.001 SOL
+            total_lamports.saturating_sub(fixed_buffer)
         } else {
-            // ✅ For SPL/Token-2022, use the amount field directly
-            ctx.accounts.reflection_vault.amount
+            // ✅ For SPL/Token-2022, read the amount from token account data
+            let vault_data = ctx.accounts.reflection_vault.try_borrow_data()?;
+            if vault_data.len() < 72 {
+                return Err(ErrorCode::InvalidReflectionVault.into());
+            }
+            u64::from_le_bytes(vault_data[64..72].try_into().unwrap())
         };
-        
+
         require!(
             vault_balance >= reflections,
             ErrorCode::InsufficientReflectionVault
