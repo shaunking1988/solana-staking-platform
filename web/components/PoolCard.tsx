@@ -1349,9 +1349,9 @@ export default function PoolCard(props: PoolCardProps) {
                       </div>
                       <button
                         onClick={handleRefreshReflections}
-                        disabled={!connected || !effectiveMintAddress || !isInitialized || isProcessing || !projectData?.reflectionVault}
+                        disabled={!connected || !effectiveMintAddress || !isInitialized || isProcessing || !(hasSelfReflections || hasExternalReflections)}
                         className="p-2 hover:bg-white/[0.05] rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                        title={projectData?.reflectionVault ? "Refresh reflection calculations" : "Reflections not enabled for this pool"}
+                        title={(hasSelfReflections || hasExternalReflections) ? "Refresh reflection calculations" : "Reflections not enabled for this pool"}
                         type="button"
                       >
                         <Repeat className="w-4 h-4 text-gray-400 hover:text-white" />
