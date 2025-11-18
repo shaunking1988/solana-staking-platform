@@ -32,9 +32,33 @@ fn transfer_tokens<'info>(
 ) -> Result<()> {
     if is_native_sol(&mint.key()) {
         msg!("💰 Transferring Native SOL: {} lamports", amount);
-        // Direct lamport manipulation works for all account types
-        **from.try_borrow_mut_lamports()? -= amount;
-        **to.try_borrow_mut_lamports()? += amount;
+        
+        // ✅ Use System Program transfer with proper authority
+        if let Some(seeds) = signer_seeds {
+            anchor_lang::system_program::transfer(
+                CpiContext::new_with_signer(
+                    system_program,
+                    anchor_lang::system_program::Transfer {
+                        from,
+                        to,
+                    },
+                    seeds,
+                ),
+                amount,
+            )?;
+        } else {
+            anchor_lang::system_program::transfer(
+                CpiContext::new(
+                    system_program,
+                    anchor_lang::system_program::Transfer {
+                        from,
+                        to,
+                    },
+                ),
+                amount,
+            )?;
+        }
+        
         msg!("✅ Native SOL transfer complete");
     } else {
         // SPL Token or Token-2022 transfer
