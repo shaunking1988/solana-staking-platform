@@ -213,19 +213,39 @@ export default function PoolCard(props: PoolCardProps) {
         const isNativeSOL = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
 
         const pendingReflections = pendingReflectionsLamports / LAMPORTS_PER_SOL;
-                          
+
+        // ✅ NEW: Account for 0.003 SOL fixed buffer for Native SOL reflections
+        const isNativeSOLReflections = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
+
+        let displayReflections = pendingReflections;
+
+        if (isNativeSOLReflections) {
+          // For Native SOL, check actual vault balance and subtract 0.003 SOL buffer
+          try {
+            const vaultBalance = await connection.getBalance(new PublicKey(project.stakingVault));
+            const FIXED_BUFFER = 0.003; // SOL (rent-exempt ~0.002 + safety 0.001)
+            const availableInVault = Math.max(0, (vaultBalance / LAMPORTS_PER_SOL) - FIXED_BUFFER);
+            
+            // Show the MINIMUM of what user is owed vs what's actually available
+            displayReflections = Math.min(pendingReflections, availableInVault);
+          } catch (error) {
+            console.error('Error fetching vault balance:', error);
+          }
+        }
+                                  
         console.log(`🔍 [${name}] Reflection Calculation:`, {
           userStakedLamports: userStakedLamports,
           userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
           currentRate: currentReflectionPerToken,
           pendingLamports: pendingReflectionsLamports,
           pendingTokens: pendingReflections,
-          isNativeSOL: isNativeSOL,
+          displayReflections: displayReflections,
+          isNativeSOL: isNativeSOLReflections,
           reflectionToken: project.reflectionToken?.toString(),
         });
-        
-        setReflectionBalance(Math.max(0, pendingReflections));
-        
+
+        setReflectionBalance(Math.max(0, displayReflections));
+                
       } catch (error: any) {
         console.error(`❌ [${name}] Error fetching reflection balance:`, error);
         setReflectionBalance(0);
@@ -581,12 +601,29 @@ export default function PoolCard(props: PoolCardProps) {
               const isNativeSOL = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
 
               const pendingReflections = pendingReflectionsLamports / LAMPORTS_PER_SOL;
-                                          
-              setReflectionBalance(Math.max(0, pendingReflections));
-              
+
+              // ✅ NEW: Account for 0.003 SOL fixed buffer for Native SOL reflections
+              const isNativeSOLReflections = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
+
+              let displayReflections = pendingReflections;
+
+              if (isNativeSOLReflections) {
+                try {
+                  const vaultBalance = await connection.getBalance(new PublicKey(project.stakingVault));
+                  const FIXED_BUFFER = 0.003;
+                  const availableInVault = Math.max(0, (vaultBalance / LAMPORTS_PER_SOL) - FIXED_BUFFER);
+                  displayReflections = Math.min(pendingReflections, availableInVault);
+                } catch (error) {
+                  console.error('Error fetching vault balance:', error);
+                }
+              }
+                                                        
+              setReflectionBalance(Math.max(0, displayReflections));
+
               console.log(`🔍 [POST-ACTION] Reflection balance updated:`, {
                 action: openModal,
                 pendingReflections,
+                displayReflections,
               });
             }
           }
@@ -752,18 +789,35 @@ export default function PoolCard(props: PoolCardProps) {
           const isNativeSOL = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
 
           const pendingReflections = pendingReflectionsLamports / LAMPORTS_PER_SOL;
-                                
+
+          // ✅ NEW: Account for 0.003 SOL fixed buffer for Native SOL reflections
+          const isNativeSOLReflections = project.reflectionToken?.toString() === 'So11111111111111111111111111111111111111112';
+
+          let displayReflections = pendingReflections;
+
+          if (isNativeSOLReflections) {
+            try {
+              const vaultBalance = await connection.getBalance(new PublicKey(project.stakingVault));
+              const FIXED_BUFFER = 0.003;
+              const availableInVault = Math.max(0, (vaultBalance / LAMPORTS_PER_SOL) - FIXED_BUFFER);
+              displayReflections = Math.min(pendingReflections, availableInVault);
+            } catch (error) {
+              console.error('Error fetching vault balance:', error);
+            }
+          }
+                                          
           console.log(`🔍 [REVSHARE] Reflection Calculation After Refresh:`, {
             userStakedLamports,
             userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
             currentRate: currentReflectionPerToken,
             pendingLamports: pendingReflectionsLamports,
             pendingTokens: pendingReflections,
-            isNativeSOL,
+            displayReflections: displayReflections,
+            isNativeSOL: isNativeSOLReflections,
             reflectionToken: project.reflectionToken?.toString(),
           });
-          
-          setReflectionBalance(Math.max(0, pendingReflections));
+
+          setReflectionBalance(Math.max(0, displayReflections));
         }
       }
       

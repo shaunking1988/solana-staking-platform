@@ -822,7 +822,7 @@ try {
 
     // ✅ FIX: Determine which vault to pass based on Native SOL vs SPL token
     const isNativeSOLReflections = reflectionTokenMint.toString() === "So11111111111111111111111111111111111111112";
-    
+
     let actualReflectionVault: PublicKey;
     if (isNativeSOLReflections) {
       // For Native SOL, use the staking vault (not an ATA)
