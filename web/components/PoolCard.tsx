@@ -258,7 +258,7 @@ export default function PoolCard(props: PoolCardProps) {
     
     const interval = setInterval(fetchReflectionBalance, 10000);
     return () => clearInterval(interval);
-  }, [connected, reflectionTokenAccount, publicKey, name, stakeData]);
+  }, [connected, publicKey, name, stakeData, effectiveMintAddress, poolId]);
 
   const lockupInfo = useMemo(() => {
     if (!lockPeriod || type !== "locked" || !userStakeTimestamp) {

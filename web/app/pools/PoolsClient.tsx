@@ -368,7 +368,6 @@ export default function PoolsClient({ pools }: { pools: Pool[] }) {
                 tokenMint={pool.tokenMint}
                 showPoolNumber={poolCountByToken[pool.tokenMint] > 1}
                 totalPoolsForToken={poolCountByToken[pool.tokenMint]}
-                reflectionTokenAccount={pool.reflectionTokenAccount}
               />
             </div>
           ))}
