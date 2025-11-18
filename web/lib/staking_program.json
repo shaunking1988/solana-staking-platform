@@ -1,5 +1,5 @@
 {
-  "address": "7GGk6UtZZT4Fnvu2sLGtTgyg3F6YWXTDXAVnbub3e4x5",
+  "address": "8PQxN4ArNB8vZUNT8RiuGTGSDMHkPWAHFa75JGZVppij",
   "metadata": {
     "name": "staking_program",
     "version": "0.1.0",
@@ -231,36 +231,6 @@
               {
                 "kind": "account",
                 "path": "user"
-              }
-            ]
-          }
-        },
-        {
-          "name": "staking_vault",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  116,
-                  97,
-                  107,
-                  105,
-                  110,
-                  103,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "project"
               }
             ]
           }
@@ -2248,6 +2218,21 @@
       "code": 6038,
       "name": "RefreshRequired",
       "msg": "Please refresh reflections before claiming - new tokens have arrived in the vault"
+    },
+    {
+      "code": 6039,
+      "name": "InvalidRateBps",
+      "msg": "Invalid rate BPS - must be less than or equal to 1,000,000"
+    },
+    {
+      "code": 6040,
+      "name": "InvalidReferrerSplit",
+      "msg": "Invalid referrer split - must be less than or equal to 10,000 BPS (100%)"
+    },
+    {
+      "code": 6041,
+      "name": "NoReflectionsToClaim",
+      "msg": "No reflections to claim - refresh reflections first"
     }
   ],
   "types": [
@@ -2455,12 +2440,6 @@
             "type": "pubkey"
           },
           {
-            "name": "reflection_vault",
-            "type": {
-              "option": "pubkey"
-            }
-          },
-          {
             "name": "rate_bps_per_year",
             "type": "u64"
           },
@@ -2507,12 +2486,6 @@
           {
             "name": "reward_vault",
             "type": "pubkey"
-          },
-          {
-            "name": "reflection_vault",
-            "type": {
-              "option": "pubkey"
-            }
           },
           {
             "name": "reflection_token",
@@ -2608,6 +2581,10 @@
           },
           {
             "name": "is_initialized",
+            "type": "bool"
+          },
+          {
+            "name": "enable_reflections",
             "type": "bool"
           },
           {

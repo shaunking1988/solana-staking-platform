@@ -90,7 +90,6 @@ const sendTransactionWithFreshBlockhash = async (
     let stakingDecimals = 9;
     try {
       const balance = await connection.getTokenAccountBalance(stakingVaultPDA);
-      // ✅ FIX: Handle null uiAmount
       stakingBalance = balance.value.uiAmount ?? (Number(balance.value.amount) / Math.pow(10, balance.value.decimals));
       stakingDecimals = balance.value.decimals;
       stakingExists = true;
@@ -104,7 +103,6 @@ const sendTransactionWithFreshBlockhash = async (
     let rewardDecimals = 9;
     try {
       const balance = await connection.getTokenAccountBalance(rewardVaultPDA);
-      // ✅ FIX: Handle null uiAmount
       rewardBalance = balance.value.uiAmount ?? (Number(balance.value.amount) / Math.pow(10, balance.value.decimals));
       rewardDecimals = balance.value.decimals;
       rewardExists = true;
@@ -112,44 +110,74 @@ const sendTransactionWithFreshBlockhash = async (
       console.log("Reward vault not initialized");
     }
 
-    // Fetch reflection vault if configured
+    // ✅ FETCH REFLECTION VAULT - CALCULATE ADDRESS, DON'T READ FROM PROJECT
     let reflectionInfo = null;
     if (projectData.reflectionToken) {
       const reflectionTokenMint = projectData.reflectionToken as PublicKey;
-      const reflectionTokenAccount = getAssociatedTokenAddressSync(
-        reflectionTokenMint,
-        stakingVaultPDA,
-        true
-      );
-
+      
+      // ✅ Check if Native SOL
+      const NATIVE_SOL = "So11111111111111111111111111111111111111112";
+      const isNativeSOL = reflectionTokenMint.toString() === NATIVE_SOL;
+      
       let reflectionBalance = 0;
       let reflectionExists = false;
       let reflectionDecimals = 9;
       let reflectionSymbol = null;
+      let reflectionTokenAccount: PublicKey;
 
-      try {
-        // ✅ CHECK IF IT'S NATIVE SOL
-        const isNativeSOL = reflectionTokenMint.toString() === 'So11111111111111111111111111111111111111112';
+      if (isNativeSOL) {
+        // ✅ NATIVE SOL = Project PDA lamports
+        reflectionTokenAccount = projectPDA;
         
-        if (isNativeSOL) {
-          // ✅ FOR WSOL: Use account lamports instead of token amount
-          const accountInfo = await connection.getAccountInfo(reflectionTokenAccount);
+        try {
+          const accountInfo = await connection.getAccountInfo(projectPDA);
           if (accountInfo) {
-            reflectionBalance = accountInfo.lamports / 1_000_000_000;
+            // Get rent-exempt minimum
+            const rent = await connection.getMinimumBalanceForRentExemption(accountInfo.data.length);
+            const buffer = 3_000_000; // 0.003 SOL buffer
+            const distributableLamports = accountInfo.lamports - rent - buffer;
+            
+            reflectionBalance = Math.max(0, distributableLamports) / 1_000_000_000;
             reflectionExists = true;
             reflectionSymbol = 'SOL';
-            console.log('✅ WSOL Account - Using lamports:', accountInfo.lamports);
+            reflectionDecimals = 9;
+            
+            console.log('✅ Native SOL reflections - Project PDA lamports:', {
+              total: accountInfo.lamports,
+              rent,
+              buffer,
+              distributable: distributableLamports,
+            });
           }
-        } else {
-          // ✅ FOR REGULAR TOKENS: Use token amount
+        } catch (e) {
+          console.log("Native SOL reflection vault check failed:", e);
+        }
+      } else {
+        // ✅ SPL/Token-2022 = Project PDA's standard ATA
+        // Detect token program
+        const TOKEN_2022_PROGRAM_ID = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+        const SPL_TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+        
+        const mintInfo = await connection.getAccountInfo(reflectionTokenMint);
+        const tokenProgramId = mintInfo?.owner.equals(TOKEN_2022_PROGRAM_ID) 
+          ? TOKEN_2022_PROGRAM_ID 
+          : SPL_TOKEN_PROGRAM_ID;
+        
+        // Calculate standard ATA owned by Project PDA
+        reflectionTokenAccount = getAssociatedTokenAddressSync(
+          reflectionTokenMint,
+          projectPDA,  // ✅ Owned by Project PDA!
+          true,        // allowOwnerOffCurve
+          tokenProgramId
+        );
+        
+        try {
           const balance = await connection.getTokenAccountBalance(reflectionTokenAccount);
           reflectionBalance = balance.value.uiAmount ?? (Number(balance.value.amount) / Math.pow(10, balance.value.decimals));
           reflectionDecimals = balance.value.decimals;
           reflectionExists = true;
-        }
 
-        // Try to get token symbol from metadata (skip for native SOL)
-        if (!isNativeSOL) {
+          // Try to get token symbol from metadata
           try {
             const metadataPDA = PublicKey.findProgramAddressSync(
               [
@@ -172,10 +200,16 @@ const sendTransactionWithFreshBlockhash = async (
           } catch (metaErr) {
             console.log('Could not fetch reflection token metadata:', metaErr);
           }
+        } catch (e) {
+          console.log("SPL reflection vault not initialized");
         }
-
-      } catch (e) {
-        console.log("Reflection vault not initialized");
+        
+        console.log('✅ SPL reflection vault calculated:', {
+          address: reflectionTokenAccount.toString(),
+          mint: reflectionTokenMint.toString(),
+          owner: 'Project PDA',
+          balance: reflectionBalance,
+        });
       }
 
       reflectionInfo = {
@@ -183,7 +217,7 @@ const sendTransactionWithFreshBlockhash = async (
         tokenAccount: reflectionTokenAccount.toString(),
         balance: reflectionBalance,
         decimals: reflectionDecimals,
-        symbol: reflectionSymbol || (reflectionTokenMint.toString() === 'So11111111111111111111111111111111111111112' ? 'SOL' : null),
+        symbol: reflectionSymbol || (isNativeSOL ? 'SOL' : null),
         exists: reflectionExists,
       };
     }

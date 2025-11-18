@@ -53,7 +53,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
     enableReflections: false,
     reflectionType: "self" as "self" | "external",
     externalReflectionMint: "",
-    transferTaxBps: "0",
+    transferTaxPercent: "0",  // Changed from transferTaxBps
   });
 
   // Fetch user's tokens
@@ -316,15 +316,15 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       setStatusMessage("Step 2/4: Creating pool on-chain...");
       console.log("🏗️ Transaction 2: Create Project");
       const createProjectTx = await program.methods
-        .createProject(tokenMintPubkey, new anchor.BN(poolId)) // Pass tokenMint AND poolId
+        .createProject(tokenMintPubkey, new anchor.BN(poolId))
         .accounts({
           project: projectPDA,
           stakingVault: stakingVaultPDA,
           rewardVault: rewardVaultPDA,
-          tokenMint: tokenMintPubkey, // Use "tokenMint" not "tokenMintAccount"
+          tokenMint: tokenMintPubkey,
           admin: publicKey,
           systemProgram: SystemProgram.programId,
-          tokenProgram: tokenProgramId,  // ✅ Use detected token program
+          tokenProgram: tokenProgramId,
           rent: SYSVAR_RENT_PUBKEY,
         })
         .rpc();
@@ -333,6 +333,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       // Transaction 3: Initialize Pool
       setStatusMessage("Step 3/4: Initializing pool parameters...");
       console.log("⚙️ Transaction 3: Initialize Pool");
+      
       // Determine reflection token mint
       const reflectionTokenMintToUse = poolConfig.enableReflections
         ? (poolConfig.reflectionType === "external" && poolConfig.externalReflectionMint
@@ -343,7 +344,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       const initParams = {
         rateBpsPerYear: new anchor.BN(0),
         rateMode: 1,
-        lockupSeconds: new anchor.BN(parseInt(poolConfig.lockPeriod) * 86400),  // ✅ Use separate lock period
+        lockupSeconds: new anchor.BN(parseInt(poolConfig.lockPeriod) * 86400),
         poolDurationSeconds: new anchor.BN(parseInt(poolConfig.duration) * 86400),
         referrer: null,
         referrerSplitBps: null,
@@ -362,43 +363,58 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
 
       // Only add reflection accounts if reflections are enabled
       if (poolConfig.enableReflections && reflectionTokenMintToUse) {
-        // ✅ Detect the reflection token's program (might be different from staking token!)
-        const reflectionMintInfo = await connection.getAccountInfo(reflectionTokenMintToUse);
-        if (!reflectionMintInfo) {
-          throw new Error("Reflection token mint not found");
-        }
-        const reflectionTokenProgram = reflectionMintInfo.owner.equals(TOKEN_2022_PROGRAM_ID)
-          ? TOKEN_2022_PROGRAM_ID
-          : TOKEN_PROGRAM_ID;
+        // Check if Native SOL
+        const NATIVE_SOL = "So11111111111111111111111111111111111111112";
+        const isNativeSol = reflectionTokenMintToUse.toString() === NATIVE_SOL;
         
-        console.log(`✅ Reflection token program detected: ${reflectionTokenProgram.toString()}`);
+        if (isNativeSol) {
+          // ✅ Native SOL - no ATA needed, just pass Project PDA
+          initPoolAccounts.reflectionTokenMint = reflectionTokenMintToUse;
+          initPoolAccounts.reflectionTokenAccount = projectPDA;  // Project PDA itself
+          initPoolAccounts.associatedTokenProgram = anchor.utils.token.ASSOCIATED_PROGRAM_ID;
+          initPoolAccounts.reflectionTokenProgram = TOKEN_PROGRAM_ID;
+          
+          console.log("✅ Native SOL reflections - using Project PDA");
+        } else {
+          // ✅ SPL/Token-2022 - needs ATA
+          const reflectionMintInfo = await connection.getAccountInfo(reflectionTokenMintToUse);
+          if (!reflectionMintInfo) {
+            throw new Error("Reflection token mint not found");
+          }
+          const reflectionTokenProgram = reflectionMintInfo.owner.equals(TOKEN_2022_PROGRAM_ID)
+            ? TOKEN_2022_PROGRAM_ID
+            : TOKEN_PROGRAM_ID;
+          
+          console.log(`✅ Reflection token program detected: ${reflectionTokenProgram.toString()}`);
 
-        // Calculate the ATA address for the reflection vault
-        const reflectionVaultATA = anchor.utils.token.associatedAddress({
-          mint: reflectionTokenMintToUse,
-          owner: stakingVaultPDA,
-          tokenProgramId: reflectionTokenProgram, // ✅ Use correct token program
-        });
+          // Calculate the ATA address owned by Project PDA
+          const reflectionVaultATA = anchor.utils.token.associatedAddress({
+            mint: reflectionTokenMintToUse,
+            owner: projectPDA,  // ✅ Owned by Project PDA
+            tokenProgramId: reflectionTokenProgram,
+          });
 
-        initPoolAccounts.reflectionTokenMint = reflectionTokenMintToUse;
-        initPoolAccounts.reflectionTokenAccount = reflectionVaultATA;
-        initPoolAccounts.associatedTokenProgram = anchor.utils.token.ASSOCIATED_PROGRAM_ID;
-        initPoolAccounts.reflectionTokenProgram = reflectionTokenProgram;
+          initPoolAccounts.reflectionTokenMint = reflectionTokenMintToUse;
+          initPoolAccounts.reflectionTokenAccount = reflectionVaultATA;
+          initPoolAccounts.associatedTokenProgram = anchor.utils.token.ASSOCIATED_PROGRAM_ID;
+          initPoolAccounts.reflectionTokenProgram = reflectionTokenProgram;
 
-        console.log("✅ Reflection accounts:", {
-          mint: reflectionTokenMintToUse.toString(),
-          ata: reflectionVaultATA.toString(),
-          tokenProgram: reflectionTokenProgram.toString(),
-        });
+          console.log("✅ SPL Reflection accounts:", {
+            mint: reflectionTokenMintToUse.toString(),
+            ata: reflectionVaultATA.toString(),
+            owner: "Project PDA",
+            tokenProgram: reflectionTokenProgram.toString(),
+          });
+        }
       } else {
         // Pass program ID as placeholder for optional accounts
         initPoolAccounts.reflectionTokenMint = program.programId;
         initPoolAccounts.reflectionTokenAccount = program.programId;
         initPoolAccounts.associatedTokenProgram = program.programId;
-         initPoolAccounts.reflectionTokenProgram = program.programId;
+        initPoolAccounts.reflectionTokenProgram = program.programId;
       }
 
-            console.log("🔍 DEBUG - Pool Config:", {
+      console.log("🔍 DEBUG - Pool Config:", {
         enableReflections: poolConfig.enableReflections,
         reflectionType: poolConfig.reflectionType,
         externalReflectionMint: poolConfig.externalReflectionMint,
@@ -433,29 +449,21 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       
       const depositRewardsTx = await program.methods
         .depositRewards(
-          tokenMintPubkey,           // token_mint
-          new anchor.BN(poolId),     // pool_id
-          rewardAmountWithDecimals   // amount
+          tokenMintPubkey,
+          new anchor.BN(poolId),
+          rewardAmountWithDecimals
         )
         .accounts({
           project: projectPDA,
           rewardVault: rewardVaultPDA,
           adminTokenAccount: userTokenAccountPubkey,
-          tokenMintAccount: tokenMintPubkey,  // ✅ Add token mint account
+          tokenMintAccount: tokenMintPubkey,
           admin: publicKey,
-          tokenProgram: tokenProgramId,  // ✅ Use detected token program
+          tokenProgram: tokenProgramId,
+          systemProgram: SystemProgram.programId,
         })
         .rpc();
       console.log("✅ Rewards deposited:", depositRewardsTx);
-
-      // TODO: Admin transfer temporarily disabled due to PDA mismatch
-      // The TransferAdmin struct expects PDA without poolId, but user pools use poolId
-      // This will be fixed in next program update
-      // 
-      // For now, pool creators retain admin rights and can:
-      // - Deposit more rewards
-      // - Claim unclaimed tokens
-      // - Still earn staking rewards as regular users
 
       setStatusMessage("Finalizing pool...");
       console.log("✅ Pool finalized");
@@ -463,22 +471,50 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       // Save to database
       setStatusMessage("Saving pool information...");
       
-      // ✅ FETCH ACTUAL BLOCKCHAIN DATA instead of calculating
+      // ✅ CALCULATE REFLECTION VAULT ADDRESS (not stored in Project anymore)
       let reflectionVaultAddress = null;
       let reflectionSymbol = null;
       let actualReflectionMint = null;
 
       if (poolConfig.enableReflections) {
         try {
-          // Get actual project data from blockchain
-          const projectData = await program.account.project.fetch(projectPDA);
+          // Determine reflection mint
+          const reflectionMint = poolConfig.reflectionType === "external" 
+            ? new PublicKey(poolConfig.externalReflectionMint)
+            : tokenMintPubkey;
           
-          if (projectData.reflectionVault && !projectData.reflectionVault.equals(SystemProgram.programId)) {
-            reflectionVaultAddress = projectData.reflectionVault.toString();
-            actualReflectionMint = projectData.reflectionToken?.toString();
+          actualReflectionMint = reflectionMint.toString();
+          
+          // Check if Native SOL
+          const NATIVE_SOL = "So11111111111111111111111111111111111111112";
+          const isNativeSol = reflectionMint.toString() === NATIVE_SOL;
+          
+          if (isNativeSol) {
+            // ✅ Native SOL = Project PDA lamports
+            reflectionVaultAddress = projectPDA.toString();
+            reflectionSymbol = "SOL";
             
-            // Fetch symbol if external
-            if (poolConfig.reflectionType === "external" && actualReflectionMint) {
+            console.log("✅ Native SOL reflections - using Project PDA:", reflectionVaultAddress);
+          } else {
+            // ✅ SPL/Token-2022 = Project PDA's standard ATA
+            const reflectionMintInfo = await connection.getAccountInfo(reflectionMint);
+            if (!reflectionMintInfo) {
+              throw new Error("Reflection token mint not found");
+            }
+            
+            const reflectionTokenProgram = reflectionMintInfo.owner.equals(TOKEN_2022_PROGRAM_ID)
+              ? TOKEN_2022_PROGRAM_ID
+              : TOKEN_PROGRAM_ID;
+            
+            // Calculate standard ATA owned by Project PDA
+            reflectionVaultAddress = anchor.utils.token.associatedAddress({
+              mint: reflectionMint,
+              owner: projectPDA,  // ✅ Owned by Project PDA, not staking vault!
+              tokenProgramId: reflectionTokenProgram,
+            }).toString();
+            
+            // Get symbol
+            if (poolConfig.reflectionType === "external") {
               try {
                 const response = await fetch(`/api/birdeye/token-info?address=${actualReflectionMint}`);
                 const result = await response.json();
@@ -490,35 +526,16 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
               reflectionSymbol = selectedToken.symbol;
             }
             
-            console.log("✅ Reflection vault synced from blockchain:", {
+            console.log("✅ SPL reflection vault calculated:", {
               vault: reflectionVaultAddress,
               mint: actualReflectionMint,
-              symbol: reflectionSymbol
+              symbol: reflectionSymbol,
+              owner: "Project PDA"
             });
           }
-        } catch (fetchErr) {
-          console.error("⚠️ Could not fetch reflection data, using calculated values:", fetchErr);
-          
-          // Fallback to calculated values
-          const reflectionMint = poolConfig.reflectionType === "external" 
-            ? new PublicKey(poolConfig.externalReflectionMint)
-            : tokenMintPubkey;
-          
-          const reflectionMintInfo = await connection.getAccountInfo(reflectionMint);
-          const reflectionTokenProgram = reflectionMintInfo?.owner.equals(TOKEN_2022_PROGRAM_ID)
-            ? TOKEN_2022_PROGRAM_ID
-            : TOKEN_PROGRAM_ID;
-          
-          reflectionVaultAddress = anchor.utils.token.associatedAddress({
-            mint: reflectionMint,
-            owner: stakingVaultPDA,
-            tokenProgramId: reflectionTokenProgram,
-          }).toString();
-          
-          actualReflectionMint = reflectionMint.toString();
-          reflectionSymbol = poolConfig.reflectionType === "self" 
-            ? selectedToken.symbol 
-            : "REFLECT";
+        } catch (err) {
+          console.error("⚠️ Could not calculate reflection vault:", err);
+          throw new Error("Failed to setup reflection vault");
         }
       }
 
@@ -533,12 +550,12 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
         lockPeriod: poolConfig.lockPeriod,
         rewards: selectedToken.symbol,
         poolId: poolId,
-        transferTaxBps: parseInt(poolConfig.transferTaxBps),
+        transferTaxBps: parseFloat(poolConfig.transferTaxPercent) * 100,  // ✅ Convert % to BPS for storage
         hasSelfReflections: poolConfig.enableReflections && poolConfig.reflectionType === "self",
         hasExternalReflections: poolConfig.enableReflections && poolConfig.reflectionType === "external",
         externalReflectionMint: actualReflectionMint,
-        reflectionTokenAccount: reflectionVaultAddress,
         reflectionTokenSymbol: reflectionSymbol,
+        reflectionVaultAddress: reflectionVaultAddress,  // ✅ Add this for frontend display
         isInitialized: true,
         isPaused: false,
         paymentTxSignature: paymentSignature,
@@ -560,14 +577,13 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       }
 
       const savedPool = await response.json();
-      console.log("✅ Pool saved to database with blockchain-synced reflection data:", savedPool);
+      console.log("✅ Pool saved to database with calculated reflection data:", savedPool);
 
-      // Show success modal with shareable URL - DON'T refresh yet
+      // Show success modal with shareable URL
       setCreatedPoolId(savedPool.pool.id);
       setShowSuccessModal(true);
       setStatusMessage("");
       setLoading(false);
-      // Don't call onSuccess() here - let user see the share URL first!
 
     } catch (error: any) {
       console.error("Error creating pool:", error);
@@ -800,34 +816,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
                   How long stakers must wait before they can unstake. Set to 0 for flexible staking (no lock).
                 </p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Minimum Lock Period for Stakers (days)</label>
-                <input
-                  type="number"
-                  value={poolConfig.lockPeriod}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    const duration = parseInt(poolConfig.duration);
-                    const lockPeriod = parseInt(value);
-                    
-                    // Prevent lock period from exceeding pool duration
-                    if (lockPeriod > duration) {
-                      setPoolConfig({ ...poolConfig, lockPeriod: poolConfig.duration });
-                    } else {
-                      setPoolConfig({ ...poolConfig, lockPeriod: value });
-                    }
-                  }}
-                  className="w-full p-3 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white focus:outline-none transition-colors"
-                  onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.5)'}
-                  onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
-                  placeholder="30"
-                  min="0"
-                  max={poolConfig.duration}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  How long stakers must wait before they can unstake. Set to 0 for flexible staking (no lock).
-                </p>
-              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Transfer Tax (if applicable)
@@ -835,31 +824,29 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
-                    value={poolConfig.transferTaxBps}
+                    step="0.1"
+                    value={poolConfig.transferTaxPercent}
                     onChange={(e) => {
-                      const value = parseInt(e.target.value) || 0;
-                      const clampedValue = Math.min(10000, Math.max(0, value));
-                      setPoolConfig({ ...poolConfig, transferTaxBps: clampedValue.toString() });
+                      const value = parseFloat(e.target.value) || 0;
+                      const clampedValue = Math.min(100, Math.max(0, value));
+                      setPoolConfig({ ...poolConfig, transferTaxPercent: clampedValue.toString() });
                     }}
                     className="flex-1 p-3 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white focus:outline-none transition-colors"
                     onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.5)'}
                     onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
                     placeholder="0"
                     min="0"
-                    max="10000"
+                    max="100"
                   />
-                  <span className="text-gray-400 text-sm">bps</span>
-                  <span className="text-white font-semibold min-w-[60px]">
-                    ({(parseInt(poolConfig.transferTaxBps) / 100).toFixed(1)}%)
-                  </span>
+                  <span className="text-white font-semibold min-w-[30px]">%</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  If your token has a transfer tax (like 10%), enter it in basis points (1000 = 10%). Leave at 0 if no tax.
+                  If your token has a transfer tax (like 10%), enter the percentage. Leave at 0 if no tax.
                 </p>
-                {parseInt(poolConfig.transferTaxBps) > 0 && (
+                {parseFloat(poolConfig.transferTaxPercent) > 0 && (
                   <div className="mt-2 p-2 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
                     <p className="text-xs text-yellow-300">
-                      ⚠️ With {(parseInt(poolConfig.transferTaxBps) / 100).toFixed(1)}% tax, depositing {poolConfig.rewardAmount} {selectedToken.symbol} will result in {(parseFloat(poolConfig.rewardAmount) * (1 - parseInt(poolConfig.transferTaxBps) / 10000)).toFixed(2)} {selectedToken.symbol} in the vault.
+                      ⚠️ With {parseFloat(poolConfig.transferTaxPercent).toFixed(1)}% tax, depositing {poolConfig.rewardAmount} {selectedToken.symbol} will result in {(parseFloat(poolConfig.rewardAmount) * (1 - parseFloat(poolConfig.transferTaxPercent) / 100)).toFixed(2)} {selectedToken.symbol} in the vault.
                     </p>
                   </div>
                 )}
@@ -946,9 +933,10 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
                     <div className="bg-white/[0.02] border border-white/[0.1] rounded-lg p-3">
                       <p className="text-xs text-gray-400 leading-relaxed">
                         <strong className="text-gray-300">💡 How Reflections Work:</strong><br /><br />
-                        When reflections are enabled, a <strong>reflection vault</strong> is automatically initialized and owned by the staking vault. This vault accumulates additional rewards that are distributed proportionally to all stakers.<br /><br />
+                        When reflections are enabled, a <strong>reflection vault</strong> is automatically initialized and owned by the project. This vault accumulates additional rewards that are distributed proportionally to all stakers.<br /><br />
                         <strong>• Self Reflection:</strong> Distributes the same token (e.g., SOL holders earn more SOL)<br />
-                        <strong>• External Token:</strong> Distributes a different token (e.g., SOL holders earn USDC)<br /><br />
+                        <strong>• External Token:</strong> Distributes a different token (e.g., SOL holders earn USDC)<br />
+                        <strong>• Native SOL:</strong> Use mint address So11111111111111111111111111111111111111112<br /><br />
                         <strong className="text-[#fb57ff]">⚠️ Important:</strong> You must specify the exact mint address for reflections. This prevents spam tokens from being counted toward APY calculations and ensures only legitimate rewards are distributed to your stakers.
                       </p>
                     </div>
@@ -1154,8 +1142,8 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
           <div className="flex flex-col gap-3">
             <button
               onClick={() => {
-                setShowSuccessModal(false);  // Hide success modal
-                setShowIntegrateModal(true);  // Show integrate modal
+                setShowSuccessModal(false);
+                setShowIntegrateModal(true);
               }}
               className="w-full px-4 py-3 bg-white/[0.05] hover:bg-white/[0.08] border border-[#fb57ff]/30 rounded-lg font-semibold transition-all hover:border-[#fb57ff] text-white flex items-center justify-center gap-2"
             >
@@ -1174,8 +1162,8 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
               </button>
               <button
                 onClick={() => {
-                  onSuccess(); // Refresh the pools list
-                  onClose();   // Close the modal
+                  onSuccess();
+                  onClose();
                 }}
                 className="flex-1 px-4 py-3 rounded-lg font-semibold transition-all hover:opacity-90"
                 style={{ background: 'linear-gradient(45deg, #fb57ff, black)' }}
@@ -1199,4 +1187,3 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
     </>
   );
 }
-

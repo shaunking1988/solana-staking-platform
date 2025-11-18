@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
-use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::associated_token::{AssociatedToken, Create as CreateAssociatedToken, create as create_ata, get_associated_token_address};
 use anchor_spl::token::{self as token, Token};
 use anchor_spl::token_interface::{
     self as token_interface,
@@ -8,9 +8,13 @@ use anchor_spl::token_interface::{
     TokenAccount,
     TokenInterface,
     TransferChecked,
+    transfer_checked,
 };
+use anchor_lang::solana_program::program::invoke_signed;
+use anchor_lang::solana_program::system_instruction;
+use std::str::FromStr;
 
-declare_id!("7GGk6UtZZT4Fnvu2sLGtTgyg3F6YWXTDXAVnbub3e4x5");
+declare_id!("8PQxN4ArNB8vZUNT8RiuGTGSDMHkPWAHFa75JGZVppij");
 
 const SECONDS_PER_YEAR: u64 = 31_536_000; // 365 days
 
@@ -119,7 +123,6 @@ pub mod staking_program {
         project.pool_id = pool_id;
         project.staking_vault = ctx.accounts.staking_vault.key();
         project.reward_vault = ctx.accounts.reward_vault.key();
-        project.reflection_vault = None;
         project.reflection_token = None;
         
         project.total_staked = 0;
@@ -164,175 +167,187 @@ pub mod staking_program {
     }
 
     pub fn initialize_pool(
-    ctx: Context<InitializePool>,
-    token_mint: Pubkey,              // ← ADD THIS PARAMETER
-    pool_id: u64,                    // ← ADD THIS PARAMETER
-    params: InitializePoolParams,
-) -> Result<()> {
-    let project = &mut ctx.accounts.project;
-    
-    require!(!project.is_initialized, ErrorCode::AlreadyInitialized);
-    require!(params.pool_duration_seconds > 0, ErrorCode::InvalidPoolDuration);
-    
-    // ✅ ADD: Validate that passed parameters match the project
-    require!(
-        project.token_mint == token_mint,
-        ErrorCode::WrongTokenType
-    );
-    require!(
-        project.pool_id == pool_id,
-        ErrorCode::InvalidProject
-    );
-    
-    let current_time = Clock::get()?.unix_timestamp;
-    
-    project.rate_bps_per_year = params.rate_bps_per_year;
-    project.rate_mode = params.rate_mode;
-    project.lockup_seconds = params.lockup_seconds;
-    project.pool_duration_seconds = params.pool_duration_seconds;
-    project.pool_start_time = current_time;
-    project.pool_end_time = current_time
-        .checked_add(params.pool_duration_seconds as i64)
-        .ok_or(ErrorCode::MathOverflow)?;
-    
-    project.last_update_time = current_time;
-    project.last_reflection_update_time = current_time;
-    
-    if params.rate_mode == 0 {
-        // Fixed APY pool - multiply by 1e9 (WORKING FORMULA from Oct 21)
-        // Formula: (rateBpsPerYear × 1e9) / (10000 × 31,536,000)
-        let numerator = (params.rate_bps_per_year as u128)
-            .checked_mul(1_000_000_000u128)  // Single 1e9 multiplication
-            .ok_or(ErrorCode::MathOverflow)?;
+        ctx: Context<InitializePool>,
+        token_mint: Pubkey,
+        pool_id: u64,
+        params: InitializePoolParams,
+    ) -> Result<()> {
+        let project = &mut ctx.accounts.project;
         
-        let denominator = (10_000u128)
-            .checked_mul(31_536_000u128)
-            .ok_or(ErrorCode::MathOverflow)?;
-            
-        let rate_per_second = numerator
-            .checked_div(denominator)
-            .ok_or(ErrorCode::DivisionByZero)?;
-        
-        require!(rate_per_second <= u64::MAX as u128, ErrorCode::AprTooHigh);
-        project.reward_rate_per_second = rate_per_second as u64;
-        
-        msg!("Fixed APY pool rate: {}", project.reward_rate_per_second);
-    }
-    
-    if let Some(referrer) = params.referrer {
-        project.referrer = Some(referrer);
-        project.referrer_split_bps = params.referrer_split_bps.unwrap_or(0);
-    }
-    
-    if params.enable_reflections {
+        require!(!project.is_initialized, ErrorCode::AlreadyInitialized);
         require!(
-            params.reflection_token.is_some(),
-            ErrorCode::ReflectionTokenRequired
+            params.pool_duration_seconds > 0,  // ✅ NO .is_some() or .unwrap()
+            ErrorCode::InvalidPoolDuration
         );
         
-        let reflection_token = params.reflection_token.unwrap();
-        project.reflection_token = Some(reflection_token);
+        // Validate that passed parameters match the project
+        require!(
+            project.token_mint == token_mint,
+            ErrorCode::WrongTokenType
+        );
+        require!(
+            project.pool_id == pool_id,
+            ErrorCode::InvalidProject
+        );
         
-        // ✅ CHECK 1: Is it Native SOL?
-        if is_native_sol(&reflection_token) {
-            msg!("🔵 Native SOL reflections - using staking vault lamports");
-            project.reflection_vault = Some(ctx.accounts.staking_vault.key());
-            project.last_reflection_balance = ctx.accounts.staking_vault.to_account_info().lamports();
-            project.last_reflection_update_time = current_time;
-        }
-        // ✅ CHECK 2: Is it the same token as staking token?
-        else if reflection_token == project.token_mint {
-            msg!("🟢 Self-reflections - using staking vault token balance");
-            project.reflection_vault = Some(ctx.accounts.staking_vault.key());
-            project.last_reflection_balance = ctx.accounts.staking_vault.amount;
-            project.last_reflection_update_time = current_time;
-        }
-        // ✅ CHECK 3: Different SPL/Token-2022 token
-        else {
-            msg!("🟡 External token reflections - creating separate ATA");
-            
+        // Basic validation
+        require!(
+            params.rate_bps_per_year <= 1_000_000,
+            ErrorCode::InvalidRateBps
+        );
+
+        if params.referrer_split_bps.is_some() {
             require!(
-                ctx.accounts.reflection_token_mint.is_some(),
+                params.referrer_split_bps.unwrap() <= 10000,
+                ErrorCode::InvalidReferrerSplit
+            );
+        }
+        
+        let current_time = Clock::get()?.unix_timestamp;
+        
+        // Set pool configuration
+        project.rate_mode = params.rate_mode;
+        project.rate_bps_per_year = params.rate_bps_per_year;
+        project.lockup_seconds = params.lockup_seconds;
+        project.pool_duration_seconds = params.pool_duration_seconds;  // ✅ Direct assignment
+        project.pool_start_time = current_time;
+        project.pool_end_time = current_time
+            .checked_add(params.pool_duration_seconds as i64)  // ✅ NO .unwrap()
+            .ok_or(ErrorCode::MathOverflow)?;
+        
+        project.last_update_time = current_time;
+        project.last_reflection_update_time = current_time;
+        
+        // Calculate reward rate for fixed APY pools
+        if params.rate_mode == 0 {
+            // Fixed APY pool - multiply by 1e9
+            let numerator = (params.rate_bps_per_year as u128)
+                .checked_mul(1_000_000_000u128)
+                .ok_or(ErrorCode::MathOverflow)?;
+            
+            let denominator = (10_000u128)
+                .checked_mul(31_536_000u128)
+                .ok_or(ErrorCode::MathOverflow)?;
+                
+            let rate_per_second = numerator
+                .checked_div(denominator)
+                .ok_or(ErrorCode::DivisionByZero)?;
+            
+            require!(rate_per_second <= u64::MAX as u128, ErrorCode::AprTooHigh);
+            project.reward_rate_per_second = rate_per_second as u64;
+            
+            msg!("Fixed APY pool rate: {}", project.reward_rate_per_second);
+        }
+        
+        // Set referrer if provided
+        if let Some(referrer) = params.referrer {
+            project.referrer = Some(referrer);
+            project.referrer_split_bps = params.referrer_split_bps.unwrap_or(0);
+        }
+        
+        // ✅ HANDLE REFLECTIONS - ALL THREE TYPES (Native SOL, SPL, Self)
+        project.enable_reflections = params.enable_reflections;
+        
+        if params.enable_reflections {
+            require!(
+                params.reflection_token.is_some(),
                 ErrorCode::ReflectionTokenRequired
             );
-            require!(
-                ctx.accounts.reflection_token_account.is_some(),
-                ErrorCode::ReflectionVaultRequired
-            );
-            require!(
-                ctx.accounts.associated_token_program.is_some(),
-                ErrorCode::MissingAssociatedTokenProgram
-            );
             
-            let reflection_mint_info = ctx.accounts.reflection_token_mint.as_ref().unwrap();
-            let reflection_account_info = ctx.accounts.reflection_token_account.as_ref().unwrap();
-            let ata_program = ctx.accounts.associated_token_program.as_ref().unwrap();
+            let reflection_token = params.reflection_token.unwrap();
+            project.reflection_token = Some(reflection_token);
             
-            require!(
-                reflection_mint_info.key() == reflection_token,
-                ErrorCode::InvalidReflectionVault
-            );
+            // Check reflection type
+            let native_sol = Pubkey::from_str("So11111111111111111111111111111111111111112").unwrap();
+            let is_native_sol = reflection_token == native_sol;
+            let is_same_token = reflection_token == token_mint;
             
-            let expected_ata = anchor_spl::associated_token::get_associated_token_address(
-                &ctx.accounts.staking_vault.key(),
-                &reflection_mint_info.key()
-            );
-            
-            require!(
-                reflection_account_info.key() == expected_ata,
-                ErrorCode::InvalidReflectionVault
-            );
-            
-            if reflection_account_info.data_is_empty() {
-                msg!("Creating reflection token ATA...");
+            if is_native_sol {
+                // ✅ CASE 1: Native SOL reflections → Project PDA lamports
+                msg!("✅ Native SOL reflections enabled");
+                msg!("   Reflections will accumulate in Project PDA lamports");
+                msg!("   Project PDA: {}", project.key());
+                msg!("   No separate account creation needed");
                 
-                let reflection_token_program = if let Some(ref prog) = ctx.accounts.reflection_token_program {
-                    prog.clone()
+            } else {
+                // ✅ CASE 2 & 3: SPL/Token-2022 reflections (external or self)
+                msg!("✅ SPL/Token-2022 reflections enabled");
+                if is_same_token {
+                    msg!("   Type: Self-reflection (same token as staking)");
+                    msg!("   Creating separate standard ATA for reflections");
                 } else {
-                    ctx.accounts.token_program.to_account_info()
-                };
+                    msg!("   Type: External reflection (different token)");
+                }
+                msg!("   Reflection token: {}", reflection_token);
+                msg!("   Owner: Project PDA ({})", project.key());
                 
-                let cpi_accounts = anchor_spl::associated_token::Create {
-                    payer: ctx.accounts.admin.to_account_info(),
-                    associated_token: reflection_account_info.clone(),
-                    authority: ctx.accounts.staking_vault.to_account_info(),
-                    mint: reflection_mint_info.clone(),
-                    system_program: ctx.accounts.system_program.to_account_info(),
-                    token_program: reflection_token_program.clone(),
-                };
+                let project_key = project.key();
+                let bump = project.bump;
+                let pool_id_bytes = pool_id.to_le_bytes();
                 
-                let cpi_ctx = CpiContext::new(ata_program.clone(), cpi_accounts);
-                anchor_spl::associated_token::create(cpi_ctx)?;
+                let seeds = &[
+                    b"project",
+                    token_mint.as_ref(),
+                    pool_id_bytes.as_ref(),
+                    &[bump],
+                ];
+                let signer_seeds = &[&seeds[..]];
                 
-                msg!("Reflection token ATA created: {}", expected_ata);
-            }
-            
-            project.reflection_vault = Some(expected_ata);
-            project.last_reflection_balance = 0;
-            project.last_reflection_update_time = current_time;
+                // ✅ Create standard ATA owned by Project PDA using CPI
+                // Unwrap the optional accounts (they must exist if we're here)
+                let reflection_token_account = ctx.accounts.reflection_token_account.as_ref()
+                    .ok_or(ErrorCode::ReflectionVaultRequired)?;
+                let reflection_token_mint = ctx.accounts.reflection_token_mint.as_ref()
+                    .ok_or(ErrorCode::ReflectionTokenRequired)?;
+                let reflection_token_program = ctx.accounts.reflection_token_program.as_ref()
+                    .ok_or(ErrorCode::ReflectionTokenRequired)?;
+                let associated_token_program = ctx.accounts.associated_token_program.as_ref()
+                    .ok_or(ErrorCode::MissingAssociatedTokenProgram)?;
 
-            msg!("External reflections enabled with token: {}", reflection_mint_info.key());
-            msg!("Reflection ATA: {}", expected_ata);
+                let cpi_accounts = CreateAssociatedToken {
+                    payer: ctx.accounts.admin.to_account_info(),
+                    associated_token: reflection_token_account.to_account_info(),
+                    authority: project.to_account_info(),  // ✅ Use the mutable ref from line 175
+                    mint: reflection_token_mint.to_account_info(),
+                    system_program: ctx.accounts.system_program.to_account_info(),
+                    token_program: reflection_token_program.to_account_info(),
+                };
+
+                let cpi_ctx = CpiContext::new_with_signer(
+                    associated_token_program.to_account_info(),
+                    cpi_accounts,
+                    signer_seeds,
+                );
+
+                create_ata(cpi_ctx)?;
+
+                msg!("✅ Reflection Vault ATA created: {}", reflection_token_account.key());
+            }
+        } else {
+            msg!("ℹ️ Reflections disabled for this pool");
         }
+        
+        project.is_initialized = true;
+        project.total_reflection_debt = 0;
+        
+        emit!(PoolInitialized {
+            project: project.key(),
+            staking_vault: project.staking_vault,
+            reward_vault: project.reward_vault,
+            rate_bps_per_year: params.rate_bps_per_year,
+            rate_mode: params.rate_mode,
+            lockup_seconds: params.lockup_seconds,
+            pool_duration_seconds: params.pool_duration_seconds,  // ✅ NO .unwrap()
+            reflections_enabled: params.enable_reflections,
+        });
+        
+        msg!("✅ Pool initialized successfully");
+        msg!("   Rate mode: {}", project.rate_mode);
+        msg!("   Lock period: {} seconds", project.lockup_seconds);
+        msg!("   Pool duration: {} seconds", params.pool_duration_seconds);  // ✅ NO .unwrap()
+
+        Ok(())
     }
-    
-    project.is_initialized = true;
-    project.total_reflection_debt = 0;
-    
-    emit!(PoolInitialized {
-        project: project.key(),
-        staking_vault: project.staking_vault,
-        reward_vault: project.reward_vault,
-        reflection_vault: project.reflection_vault,
-        rate_bps_per_year: params.rate_bps_per_year,
-        rate_mode: params.rate_mode,
-        lockup_seconds: params.lockup_seconds,
-        pool_duration_seconds: params.pool_duration_seconds,
-        reflections_enabled: params.enable_reflections,
-    });
-    
-    Ok(())
-}
 
     pub fn deposit(
         ctx: Context<Deposit>,
@@ -752,9 +767,8 @@ pub mod staking_program {
     
     update_reward(&mut ctx.accounts.project, &mut ctx.accounts.stake)?;
     
-    if ctx.accounts.project.reflection_vault.is_some() {
+    if ctx.accounts.project.enable_reflections && ctx.accounts.project.reflection_token.is_some() {
         if let Some(ref vault) = ctx.accounts.reflection_vault {
-            require!(Some(vault.key()) == ctx.accounts.project.reflection_vault, ErrorCode::InvalidReflectionVault);
             update_reflection(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(&vault.to_account_info()))?;
         }
     }
@@ -878,124 +892,185 @@ pub mod staking_program {
     pub fn claim_reflections(
         ctx: Context<ClaimReflections>,
         token_mint: Pubkey,
-        pool_id: u64
+        pool_id: u64,
     ) -> Result<()> {
         require!(ctx.accounts.stake.amount > 0, ErrorCode::NoStake);
         
-        let project_is_initialized = ctx.accounts.project.is_initialized;
-        let project_is_paused = ctx.accounts.project.is_paused;
-        let project_reflection_vault = ctx.accounts.project.reflection_vault;
-        let project_token_mint = ctx.accounts.project.token_mint;
-        let project_pool_id = ctx.accounts.project.pool_id;
-        let project_bump = ctx.accounts.project.bump;
-        let project_key = ctx.accounts.project.key();
-        
-        require!(project_is_initialized, ErrorCode::NotInitialized);
-        require!(!project_is_paused, ErrorCode::ProjectPaused);
-        require!(project_reflection_vault.is_some(), ErrorCode::ReflectionsNotEnabled);
-        
-        let is_native = is_native_sol(&ctx.accounts.reflection_token_mint.key());
+        let project = &ctx.accounts.project;
+        let stake = &mut ctx.accounts.stake;
 
-        // Validate reflection vault matches project's stored vault
+        require!(project.is_initialized, ErrorCode::NotInitialized);
+        require!(!project.is_paused, ErrorCode::ProjectPaused);
+        require!(project.enable_reflections, ErrorCode::ReflectionsNotEnabled);
         require!(
-            Some(ctx.accounts.reflection_vault.key()) == project_reflection_vault,
-            ErrorCode::InvalidReflectionVault
+            project.reflection_token.is_some(),
+            ErrorCode::ReflectionTokenRequired
         );
-        
-        // Update reflections - this will automatically process any new tokens
-        update_reflection_internal(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(&ctx.accounts.reflection_vault.to_account_info()), true)?;
-        
-        let reflections = ctx.accounts.stake.reflections_pending;
-        require!(reflections > 0, ErrorCode::NoReflections);
 
-        // Check vault balance
-        let is_same_token = ctx.accounts.reflection_token_mint.key() == ctx.accounts.project.token_mint;
+        let reflection_token_mint = project.reflection_token.unwrap();
+        let amount = stake.reflections_pending;
 
-        let vault_balance = if is_native {
-            let total_lamports = ctx.accounts.reflection_vault.to_account_info().lamports();
-            let rent = Rent::get()?;
-            let rent_exempt_minimum = rent.minimum_balance(ctx.accounts.reflection_vault.to_account_info().data_len());
-            
-            let fixed_buffer = rent_exempt_minimum.saturating_add(1_000_000);
-            total_lamports.saturating_sub(fixed_buffer)
-        } else if is_same_token {
-            // Same token - must keep staked tokens in vault
-            let vault_data = ctx.accounts.reflection_vault.try_borrow_data()?;
-            if vault_data.len() < 72 {
-                return Err(ErrorCode::InvalidReflectionVault.into());
-            }
-            let total_balance = u64::from_le_bytes(vault_data[64..72].try_into().unwrap());
-            
-            // Available = total balance - staked tokens
-            total_balance.saturating_sub(ctx.accounts.project.total_staked)
+        require!(amount > 0, ErrorCode::NoReflectionsToClaim);
+
+        // Check if it's Native SOL
+        let native_sol = Pubkey::from_str("So11111111111111111111111111111111111111112").unwrap();
+        let is_native_sol = reflection_token_mint == native_sol;
+
+        msg!("🎁 Claiming reflections:");
+        msg!("   User: {}", ctx.accounts.user.key());
+        msg!("   Amount: {}", amount);
+        msg!("   Reflection token: {}", reflection_token_mint);
+        msg!("   Type: {}", if is_native_sol { "Native SOL" } else { "SPL Token" });
+
+        // Get decimals for transfer_checked (not needed for Native SOL)
+        let decimals = if !is_native_sol {
+            ctx.accounts.reflection_token_mint.decimals
         } else {
-            // Different token - read from reflection ATA
-            let vault_data = ctx.accounts.reflection_vault.try_borrow_data()?;
-            if vault_data.len() < 72 {
-                return Err(ErrorCode::InvalidReflectionVault.into());
-            }
-            u64::from_le_bytes(vault_data[64..72].try_into().unwrap())
+            9 // Native SOL has 9 decimals
         };
 
-        require!(
-            vault_balance >= reflections,
-            ErrorCode::InsufficientReflectionVault
-        );
-        
-        let stake_mut = &mut ctx.accounts.stake;
-        stake_mut.reflections_pending = 0;
-        stake_mut.total_reflections_claimed = stake_mut.total_reflections_claimed
-            .checked_add(reflections)
-            .ok_or(ErrorCode::MathOverflow)?;
+        // ✅ Apply 99.7% buffer for Native SOL to prevent rent issues
+        let amount_to_transfer = if is_native_sol {
+            amount.saturating_mul(997).saturating_div(1000) // 99.7%
+        } else {
+            amount
+        };
+
+        msg!("   Transfer amount (after buffer): {}", amount_to_transfer);
+
+        // Get PDA seeds for signing
+        let project_key = project.key();
+        let project_bump = project.bump;
+        let project_token_mint = project.token_mint;
+        let project_pool_id = project.pool_id;
         
         let seeds = &[
-            b"staking_vault",
-            project_key.as_ref(),
-            &[ctx.bumps.staking_vault],
+            b"project",
+            project_token_mint.as_ref(),
+            &project_pool_id.to_le_bytes(),
+            &[project_bump],
         ];
-        let signer = &[&seeds[..]];
+        let signer_seeds = &[&seeds[..]];
+
+        // ✅ Transfer based on reflection type
+        if is_native_sol {
+            // ✅ Native SOL - transfer lamports from Project PDA
+            msg!("💰 Transferring Native SOL lamports from Project PDA");
+            
+            let transfer_ix = system_instruction::transfer(
+                &ctx.accounts.reflection_vault.key(),
+                &ctx.accounts.user_reflection_account.key(),
+                amount_to_transfer,
+            );
+
+            let account_infos = [
+                ctx.accounts.reflection_vault.to_account_info(),
+                ctx.accounts.user_reflection_account.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ];
+
+            invoke_signed(&transfer_ix, &account_infos, signer_seeds)?;
+            
+            msg!("✅ Native SOL transferred successfully");
+            
+        } else {
+            // ✅ SPL/Token-2022 - transfer from Project PDA's standard ATA
+            msg!("🪙 Transferring SPL tokens from Project PDA's ATA");
+            
+            transfer_checked(
+                CpiContext::new_with_signer(
+                    ctx.accounts.token_program.to_account_info(),
+                    TransferChecked {
+                        from: ctx.accounts.reflection_vault.to_account_info(),
+                        to: ctx.accounts.user_reflection_account.to_account_info(),
+                        authority: ctx.accounts.project.to_account_info(),
+                        mint: ctx.accounts.reflection_token_mint.to_account_info(),
+                    },
+                    signer_seeds,
+                ),
+                amount_to_transfer,
+                decimals,
+            )?;
+            
+            msg!("✅ SPL tokens transferred successfully");
+        }
+
+        // Reset pending reflections
+        stake.reflections_pending = 0;
+        stake.total_reflections_claimed = stake.total_reflections_claimed
+            .checked_add(amount_to_transfer)
+            .ok_or(ErrorCode::MathOverflow)?;
         
-        // ✅ Transfer reflections (supports SPL, Token-2022, Native SOL)
-        transfer_tokens(
-            ctx.accounts.reflection_vault.to_account_info(),
-            ctx.accounts.user_reflection_account.to_account_info(),
-            ctx.accounts.staking_vault.to_account_info(),
-            &ctx.accounts.reflection_token_mint,
-            ctx.accounts.token_program.to_account_info(),
-            ctx.accounts.system_program.to_account_info(),
-            reflections,
-            Some(signer),
-        )?;
+        // Update last balance to current vault balance
+        let current_vault_balance = if is_native_sol {
+            let total_lamports = ctx.accounts.reflection_vault.lamports();
+            let rent = Rent::get()?;
+            let rent_exempt_minimum = rent.minimum_balance(ctx.accounts.reflection_vault.data_len());
+            let fixed_buffer = rent_exempt_minimum.saturating_add(3_000_000);
+            total_lamports.saturating_sub(fixed_buffer)
+        } else {
+            let vault_data = ctx.accounts.reflection_vault.try_borrow_data()?;
+            if vault_data.len() >= 72 {
+                u64::from_le_bytes(vault_data[64..72].try_into().unwrap())
+            } else {
+                0
+            }
+        };
+        
+        // Update project's last reflection balance
+        let project_mut = &mut ctx.accounts.project;
+        project_mut.last_reflection_balance = current_vault_balance;
+
+        msg!("✅ Reflections claimed successfully");
+        msg!("   Amount transferred: {}", amount_to_transfer);
+        msg!("   New vault balance: {}", current_vault_balance);
         
         emit!(ReflectionsClaimed {
             user: ctx.accounts.user.key(),
             project: project_key,
-            amount: reflections,
+            amount: amount_to_transfer,
         });
-        
+
         Ok(())
     }
 
-    // ✅ NEW: Allow users to refresh reflection calculations without claiming
     pub fn refresh_reflections(
         ctx: Context<RefreshReflections>,
         token_mint: Pubkey,
-        pool_id: u64
+        pool_id: u64,
     ) -> Result<()> {
         require!(ctx.accounts.stake.amount > 0, ErrorCode::NoStake);
         require!(ctx.accounts.project.is_initialized, ErrorCode::NotInitialized);
-        require!(ctx.accounts.project.reflection_vault.is_some(), ErrorCode::ReflectionsNotEnabled);
+        require!(ctx.accounts.project.enable_reflections, ErrorCode::ReflectionsNotEnabled);
         require!(
-            Some(ctx.accounts.reflection_vault.key()) == ctx.accounts.project.reflection_vault,
-            ErrorCode::InvalidReflectionVault
+            ctx.accounts.project.reflection_token.is_some(),
+            ErrorCode::ReflectionTokenRequired
         );
-        
-        // Update reflection calculations - MUST update user paid marker to prevent double-counting
-        update_reflection_internal(&mut ctx.accounts.project, &mut ctx.accounts.stake, Some(&ctx.accounts.reflection_vault.to_account_info()), true)?;
 
-
-        msg!("Reflections refreshed. Pending: {}", ctx.accounts.stake.reflections_pending);
+        let project = &ctx.accounts.project;
+        let reflection_token_mint = project.reflection_token.unwrap();
         
+        // Check if it's Native SOL
+        let native_sol = Pubkey::from_str("So11111111111111111111111111111111111111112").unwrap();
+        let is_native_sol = reflection_token_mint == native_sol;
+
+        msg!("🔄 Refreshing reflections:");
+        msg!("   User: {}", ctx.accounts.user.key());
+        msg!("   Reflection type: {}", if is_native_sol { "Native SOL" } else { "SPL Token" });
+        msg!("   Reflection token: {}", reflection_token_mint);
+
+        // Update reflection calculation - MUST update user paid marker to prevent double-counting
+        update_reflection_internal(
+            &mut ctx.accounts.project,
+            &mut ctx.accounts.stake,
+            Some(&ctx.accounts.reflection_vault.to_account_info()),
+            true,
+        )?;
+
+        msg!("✅ Reflections refreshed");
+        msg!("   Pending reflections: {}", ctx.accounts.stake.reflections_pending);
+        msg!("   Last balance: {}", ctx.accounts.project.last_reflection_balance);
+
         Ok(())
     }
 
@@ -1157,19 +1232,27 @@ pub mod staking_program {
         
         if enable {
             require!(reflection_token.is_some(), ErrorCode::ReflectionTokenRequired);
-            require!(ctx.accounts.reflection_vault.is_some(), ErrorCode::ReflectionVaultRequired);
             
+            project.enable_reflections = true;
             project.reflection_token = reflection_token;
-            project.reflection_vault = ctx.accounts.reflection_vault
-                .as_ref()
-                .map(|v| v.key());
+            
+            // Calculate reflection vault address (not stored)
+            let native_sol = Pubkey::from_str("So11111111111111111111111111111111111111112").unwrap();
+            let reflection_mint = reflection_token.unwrap();
+            
+            let reflection_vault_address = if reflection_mint == native_sol {
+                project.key() // Native SOL uses Project PDA
+            } else {
+                get_associated_token_address(&project.key(), &reflection_mint) // SPL uses standard ATA
+            };
             
             emit!(ReflectionsEnabled {
                 project: project.key(),
-                reflection_token: reflection_token.unwrap(),
-                reflection_vault: project.reflection_vault.unwrap(),
+                reflection_token: reflection_mint,
+                reflection_vault: reflection_vault_address,
             });
         } else {
+            project.enable_reflections = false;
             project.reflection_token = None;
             emit!(ReflectionsDisabled {
                 project: project.key(),
@@ -1386,36 +1469,40 @@ fn update_reflection_internal(
     reflection_vault: Option<&AccountInfo>,
     update_user_paid_marker: bool,
 ) -> Result<()> {
-    if project.reflection_vault.is_none() {
+    if !project.enable_reflections {
+        return Ok(());
+    }
+    
+    if project.reflection_token.is_none() {
         return Ok(());
     }
     
     let vault = reflection_vault.ok_or(ErrorCode::ReflectionVaultRequired)?;
     let current_time = Clock::get()?.unix_timestamp;
     
-    let is_native_sol = project.reflection_token
-        .map(|mint| is_native_sol(&mint))
-        .unwrap_or(false);
+    // Determine reflection type
+    let reflection_token_mint = project.reflection_token.unwrap();
+    let native_sol = Pubkey::from_str("So11111111111111111111111111111111111111112").unwrap();
+    let is_native_sol = reflection_token_mint == native_sol;
     
-    let is_same_token = project.reflection_token
-    .map(|mint| mint == project.token_mint)
-    .unwrap_or(false);
-
+    // ✅ Calculate distributable balance based on reflection type
     let current_balance = if is_native_sol {
+        // ✅ Native SOL - read from Project PDA lamports with 0.003 SOL buffer
         let total_lamports = vault.lamports();
         let rent = Rent::get()?;
         let rent_exempt_minimum = rent.minimum_balance(vault.data_len());
-        let fixed_buffer = rent_exempt_minimum.saturating_add(1_000_000); // 0.001 SOL safety buffer
+        let fixed_buffer = rent_exempt_minimum.saturating_add(3_000_000);  // ✅ 0.003 SOL buffer
+        
+        msg!("🔍 Native SOL reflection calculation:");
+        msg!("   Total lamports: {}", total_lamports);
+        msg!("   Rent exempt minimum: {}", rent_exempt_minimum);
+        msg!("   Fixed buffer (rent + 0.003 SOL): {}", fixed_buffer);
+        msg!("   Distributable balance: {}", total_lamports.saturating_sub(fixed_buffer));
+        
         total_lamports.saturating_sub(fixed_buffer)
-    } else if is_same_token {
-        // Same token - read from staking vault
-        let vault_data = vault.try_borrow_data()?;
-        if vault_data.len() < 72 {
-            return Err(ErrorCode::InvalidReflectionVault.into());
-        }
-        u64::from_le_bytes(vault_data[64..72].try_into().unwrap())
     } else {
-        // Different token - read from reflection ATA
+        // ✅ SPL/Token-2022 - read from Project PDA's standard ATA
+        // (Works for both self-reflection and external reflection)
         let vault_data = vault.try_borrow_data()?;
         if vault_data.len() < 72 {
             return Err(ErrorCode::InvalidReflectionVault.into());
@@ -1428,12 +1515,14 @@ fn update_reflection_internal(
     let calc_new_tokens = current_balance.saturating_sub(project.last_reflection_balance);
     let calc_total_staked = project.total_staked;
 
+    // If balance decreased (e.g., admin withdrew reflections), reset baseline
     if calc_current_balance < calc_last_balance {
         project.last_reflection_balance = calc_current_balance;
         project.last_reflection_update_time = current_time;
         return Ok(());
     }
-        
+    
+    // Calculate and distribute new reflections
     if calc_new_tokens > 0 && calc_total_staked > 0 {
         let per_token_u128 = (calc_new_tokens as u128)
             .checked_mul(1_000_000_000u128)
@@ -1450,8 +1539,14 @@ fn update_reflection_internal(
         
         project.last_reflection_balance = calc_current_balance;
         project.last_reflection_update_time = current_time;
+        
+        msg!("✅ Reflection update:");
+        msg!("   New reflections: {}", calc_new_tokens);
+        msg!("   Per token rate: {}", per_token_rate);
+        msg!("   Total per token stored: {}", project.reflection_per_token_stored);
     }
     
+    // Update user's pending reflections
     if stake.amount > 0 {
         let rate_diff = project.reflection_per_token_stored
             .saturating_sub(stake.reflection_per_token_paid);
@@ -1473,6 +1568,9 @@ fn update_reflection_internal(
                 .ok_or(ErrorCode::MathOverflow)?;
             
             stake.reflection_debt = 0;
+            
+            msg!("   User earned: {}", net_earned);
+            msg!("   Total pending: {}", stake.reflections_pending);
         }
         
         if update_user_paid_marker {
@@ -1789,19 +1887,12 @@ pub struct ClaimReflections<'info> {
         constraint = stake.project == project.key() @ ErrorCode::InvalidProject
     )]
     pub stake: Account<'info, Stake>,
-    
-    #[account(
-        mut,
-        seeds = [b"staking_vault", project.key().as_ref()],
-        bump,
-    )]
-    pub staking_vault: InterfaceAccount<'info, TokenAccount>,
 
-    /// CHECK: For Native SOL, this is staking_vault. For SPL tokens, this is an ATA. Validated against project.reflection_vault
+    /// CHECK: For Native SOL = Project PDA, For SPL = Project PDA's standard ATA
     #[account(mut)]
     pub reflection_vault: AccountInfo<'info>,
     
-    /// CHECK: Can be either TokenAccount (for SPL) or wallet (for Native SOL)
+    /// CHECK: User's wallet (for Native SOL) or user's ATA (for SPL)
     #[account(mut)]
     pub user_reflection_account: AccountInfo<'info>,
     
@@ -1833,8 +1924,9 @@ pub struct RefreshReflections<'info> {
     )]
     pub stake: Account<'info, Stake>,
     
+    /// CHECK: For Native SOL = Project PDA, For SPL = Project PDA's standard ATA
     #[account(mut)]
-    pub reflection_vault: InterfaceAccount<'info, TokenAccount>,
+    pub reflection_vault: AccountInfo<'info>,
     
     pub user: Signer<'info>,
 }
@@ -2055,7 +2147,7 @@ pub struct Project {
     pub pool_id: u64,
     pub staking_vault: Pubkey,
     pub reward_vault: Pubkey,
-    pub reflection_vault: Option<Pubkey>,
+    // pub reflection_vault: Option<Pubkey>,  // ❌ REMOVED - no longer needed
     pub reflection_token: Option<Pubkey>,
     
     pub total_staked: u64,
@@ -2084,6 +2176,7 @@ pub struct Project {
     pub withdraw_paused: bool,
     pub claim_paused: bool,
     pub is_initialized: bool,
+    pub enable_reflections: bool,
     
     pub bump: u8,
     pub total_reflection_debt: u64,
@@ -2142,7 +2235,6 @@ pub struct PoolInitialized {
     pub project: Pubkey,
     pub staking_vault: Pubkey,
     pub reward_vault: Pubkey,
-    pub reflection_vault: Option<Pubkey>,
     pub rate_bps_per_year: u64,
     pub rate_mode: u8,
     pub lockup_seconds: u64,
@@ -2337,4 +2429,10 @@ pub enum ErrorCode {
     MissingAssociatedTokenProgram,
     #[msg("Please refresh reflections before claiming - new tokens have arrived in the vault")]
     RefreshRequired,
+    #[msg("Invalid rate BPS - must be less than or equal to 1,000,000")]
+    InvalidRateBps,
+     #[msg("Invalid referrer split - must be less than or equal to 10,000 BPS (100%)")]
+    InvalidReferrerSplit,
+    #[msg("No reflections to claim - refresh reflections first")]
+    NoReflectionsToClaim,
 }
