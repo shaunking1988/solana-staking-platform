@@ -539,7 +539,7 @@ export default function PoolCard(props: PoolCardProps) {
           break;
 
         case "claimSelf":
-          if (!projectData?.reflectionVault) {
+          if (!hasSelfReflections && !hasExternalReflections) {
             showError("❌ Reflections not enabled for this pool");
             return;
           }
@@ -549,7 +549,7 @@ export default function PoolCard(props: PoolCardProps) {
           break;
 
         case "claimExternal":
-          if (!projectData?.reflectionVault) {
+          if (!hasSelfReflections && !hasExternalReflections) {
             showError("❌ Reflections not enabled for this pool");
             return;
           }
