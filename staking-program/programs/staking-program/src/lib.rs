@@ -33,31 +33,22 @@ fn transfer_tokens<'info>(
     if is_native_sol(&mint.key()) {
         msg!("💰 Transferring Native SOL: {} lamports", amount);
         
-        // ✅ Use System Program transfer with proper authority
-        if let Some(seeds) = signer_seeds {
-            anchor_lang::system_program::transfer(
-                CpiContext::new_with_signer(
-                    system_program,
-                    anchor_lang::system_program::Transfer {
-                        from,
-                        to,
-                    },
-                    seeds,
-                ),
-                amount,
-            )?;
-        } else {
-            anchor_lang::system_program::transfer(
-                CpiContext::new(
-                    system_program,
-                    anchor_lang::system_program::Transfer {
-                        from,
-                        to,
-                    },
-                ),
-                amount,
-            )?;
-        }
+        // ✅ Manual lamport transfer with proper checks
+        let from_lamports = from.lamports();
+        let to_lamports = to.lamports();
+        
+        require!(
+            from_lamports >= amount,
+            ErrorCode::InsufficientBalance
+        );
+        
+        **from.try_borrow_mut_lamports()? = from_lamports
+            .checked_sub(amount)
+            .ok_or(ErrorCode::MathOverflow)?;
+        
+        **to.try_borrow_mut_lamports()? = to_lamports
+            .checked_add(amount)
+            .ok_or(ErrorCode::MathOverflow)?;
         
         msg!("✅ Native SOL transfer complete");
     } else {
