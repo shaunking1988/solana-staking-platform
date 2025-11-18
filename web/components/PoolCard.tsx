@@ -737,7 +737,7 @@ export default function PoolCard(props: PoolCardProps) {
       return;
     }
 
-    if (!projectData?.reflectionVault) {
+    if (!hasSelfReflections && !hasExternalReflections) {
       showError("❌ Reflections not enabled for this pool");
       return;
     }
