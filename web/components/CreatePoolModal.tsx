@@ -202,6 +202,13 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       setError("Please connect your wallet");
       return;
     }
+
+    // ✅ DEBUG LOG #1: Check poolConfig at creation start
+    console.log("🔍 [CREATE POOL START] Pool Config:", {
+      enableReflections: poolConfig.enableReflections,
+      reflectionType: poolConfig.reflectionType,
+      externalReflectionMint: poolConfig.externalReflectionMint,
+    });
     
     setError(null); // Clear any previous errors
 
@@ -476,6 +483,13 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       let reflectionSymbol = null;
       let actualReflectionMint = null;
 
+      // ✅ DEBUG LOG #2: Check poolConfig before vault calculation
+      console.log("🔍 [BEFORE VAULT CALC] Pool Config:", {
+        enableReflections: poolConfig.enableReflections,
+        reflectionType: poolConfig.reflectionType,
+        externalReflectionMint: poolConfig.externalReflectionMint,
+      });
+
       if (poolConfig.enableReflections) {
         try {
           // Determine reflection mint
@@ -550,12 +564,12 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
         lockPeriod: poolConfig.lockPeriod,
         rewards: selectedToken.symbol,
         poolId: poolId,
-        transferTaxBps: parseFloat(poolConfig.transferTaxPercent) * 100,  // ✅ Convert % to BPS for storage
+        transferTaxBps: parseFloat(poolConfig.transferTaxPercent) * 100,
         hasSelfReflections: poolConfig.enableReflections && poolConfig.reflectionType === "self",
         hasExternalReflections: poolConfig.enableReflections && poolConfig.reflectionType === "external",
-        externalReflectionMint: actualReflectionMint,
-        reflectionTokenSymbol: reflectionSymbol,
-        reflectionVaultAddress: reflectionVaultAddress,  // ✅ Add this for frontend display
+        externalReflectionMint: poolConfig.enableReflections ? actualReflectionMint : null,
+        reflectionTokenSymbol: poolConfig.enableReflections ? reflectionSymbol : null,
+        reflectionVaultAddress: poolConfig.enableReflections ? reflectionVaultAddress : null,
         isInitialized: true,
         isPaused: false,
         paymentTxSignature: paymentSignature,
@@ -564,6 +578,17 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
         creatorWallet: publicKey.toString(),
         projectPda: projectPDA.toString(),
       };
+
+      // ✅ DEBUG LOG #3: Check what's being saved
+      console.log("🔍 [SAVING TO DB] Pool Data:", {
+        enableReflections: poolConfig.enableReflections,
+        reflectionType: poolConfig.reflectionType,
+        hasSelfReflections: poolData.hasSelfReflections,
+        hasExternalReflections: poolData.hasExternalReflections,
+        externalReflectionMint: poolData.externalReflectionMint,
+        reflectionSymbol: poolData.reflectionTokenSymbol,
+        reflectionVaultAddress: poolData.reflectionVaultAddress,
+      });
 
       const response = await fetch("/api/admin/pools/create-user-pool", {
         method: "POST",
