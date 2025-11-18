@@ -96,12 +96,13 @@ export async function POST(req: Request) {
         hasSelfReflections: body.hasSelfReflections || false,
         hasExternalReflections: body.hasExternalReflections || false,
         externalReflectionMint: body.externalReflectionMint || null,
-        reflectionTokenAccount: body.reflectionTokenAccount || null, // ✅ Added for completeness
-        reflectionTokenSymbol: body.reflectionTokenSymbol || null,   // ✅ Added for completeness
+        reflectionTokenAccount: body.reflectionTokenAccount || null,
+        reflectionVaultAddress: body.reflectionVaultAddress || null,
+        reflectionTokenSymbol: body.reflectionTokenSymbol || null,
         isInitialized: body.isInitialized || false,
         isPaused: body.isPaused !== undefined ? body.isPaused : true, // Start paused by default
         poolAddress: body.projectPda || null,
-        transferTaxBps: transferTaxBps, // ✅ NEW: Save transfer tax to database
+        transferTaxBps: transferTaxBps,
         // User creation metadata
         // creatorWallet: body.creatorWallet, // TODO: Re-enable after running database migration
         featured: false, // User pools not featured by default

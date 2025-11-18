@@ -179,8 +179,16 @@ export default function PoolCard(props: PoolCardProps) {
         const project = await getProjectInfo(effectiveMintAddress, poolId);
         const userStake = await getUserStake(effectiveMintAddress, poolId);
         
-        if (!project || !userStake || !project.reflectionVault) {
-          console.log(`⚠️ [${name}] No reflection data available`);
+        if (!project || !userStake) {
+          console.log(`⚠️ [${name}] No project or stake data`);
+          setReflectionBalance(0);
+          setReflectionLoading(false);
+          return;
+        }
+
+        // Only check reflectionVault if reflections are enabled in database
+        if ((hasSelfReflections || hasExternalReflections) && !project.reflectionVault) {
+          console.log(`⚠️ [${name}] Reflections enabled in DB but not on-chain`);
           setReflectionBalance(0);
           setReflectionLoading(false);
           return;
