@@ -9,47 +9,47 @@ datasource db {
 }
 
 model Pool {
-  id                     String     @id @default(cuid())
-  poolId                 Int        @map("pool_id")
-  tokenMint              String     @map("token_mint")
-  name                   String
-  symbol                 String
-  apr                    Float?
-  apy                    Float?
-  type                   String
-  lockPeriod             Int?       @map("lock_period")
-  totalStaked            Float      @default(0) @map("total_staked")
-  rewards                String?
-  logo                   String?
-  pairAddress            String?    @map("pair_address")
-  hidden                 Boolean    @default(false)
-  featured               Boolean    @default(false)
-  views                  Int        @default(0)
-  createdAt              DateTime   @default(now()) @map("created_at")
-  hasSelfReflections     Boolean    @default(false) @map("has_self_reflections")
-  hasExternalReflections Boolean    @default(false) @map("has_external_reflections")
-  externalReflectionMint String?    @map("external_reflection_mint")
-  reflectionTokenAccount String?    @map("reflection_token_account")
-  reflectionTokenSymbol  String?    @map("reflection_token_symbol")
-  reflectionTokenDecimals   Int?
-  isInitialized          Boolean    @default(false) @map("is_initialized")
-  poolAddress            String?    @map("pool_address")
-  isPaused               Boolean    @default(false) @map("is_paused")
-  isEmergencyUnlocked    Boolean    @default(false) @map("is_emergency_unlocked")
-  platformFeePercent     Float      @default(2) @map("platform_fee_percent")
-  flatSolFee             Float      @default(0.005) @map("flat_sol_fee")
-  referralEnabled        Boolean    @default(false) @map("referral_enabled")
-  referralWallet         String?    @map("referral_wallet")
-  referralSplitPercent   Float?     @map("referral_split_percent")
-  transferTaxBps         Int        @default(0) @map("transfer_tax_bps")
-  Activity               Activity[]
-  stakes                 Stake[]
+  id                      String     @id @default(cuid())
+  poolId                  Int        @map("pool_id")
+  tokenMint               String     @map("token_mint")
+  name                    String
+  symbol                  String
+  apr                     Float?
+  apy                     Float?
+  type                    String
+  lockPeriod              Int?       @map("lock_period")
+  totalStaked             Float      @default(0) @map("total_staked")
+  rewards                 String?
+  logo                    String?
+  pairAddress             String?    @map("pair_address")
+  hidden                  Boolean    @default(false)
+  featured                Boolean    @default(false)
+  views                   Int        @default(0)
+  createdAt               DateTime   @default(now()) @map("created_at")
+  hasSelfReflections      Boolean    @default(false) @map("has_self_reflections")
+  hasExternalReflections  Boolean    @default(false) @map("has_external_reflections")
+  externalReflectionMint  String?    @map("external_reflection_mint")
+  reflectionTokenAccount  String?    @map("reflection_token_account")
+  reflectionVaultAddress  String?    @map("reflection_vault_address")
+  reflectionTokenSymbol   String?    @map("reflection_token_symbol")
+  reflectionTokenDecimals Int?
+  isInitialized           Boolean    @default(false) @map("is_initialized")
+  poolAddress             String?    @map("pool_address")
+  isPaused                Boolean    @default(false) @map("is_paused")
+  isEmergencyUnlocked     Boolean    @default(false) @map("is_emergency_unlocked")
+  platformFeePercent      Float      @default(2) @map("platform_fee_percent")
+  flatSolFee              Float      @default(0.005) @map("flat_sol_fee")
+  referralEnabled         Boolean    @default(false) @map("referral_enabled")
+  referralWallet          String?    @map("referral_wallet")
+  referralSplitPercent    Float?     @map("referral_split_percent")
+  transferTaxBps          Int        @default(0) @map("transfer_tax_bps")
+  Activity                Activity[]
+  stakes                  Stake[]
 
   @@unique([tokenMint, poolId], name: "pool_token_pool_id_unique")
   @@index([tokenMint, poolId], map: "pool_token_pool_id_idx")
   @@index([tokenMint], map: "pool_token_mint_idx")
   @@index([transferTaxBps], map: "pool_transfer_tax_idx")
-
   @@map("pools")
 }
 
