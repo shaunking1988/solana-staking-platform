@@ -130,21 +130,24 @@ export function useStakingProgram() {
     }
 
     // Build accounts object - include all accounts (Anchor client requires them even if Option<> in Rust)
-    const accounts: any = {
-      platform: platformConfigPDA,
-      project: projectPDA,
-      stake: userStakePDA,
-      stakingVault: stakingVaultPDA,
-      userTokenAccount: userTokenAccount,
-      feeCollectorTokenAccount: feeCollectorTokenAccount,
-      feeCollector: feeCollector,
-      referrer: finalReferrer,  // Always include (even if Option<> in Rust)
-      reflectionVault: reflectionVault || projectPDA,  // ✅ Use projectPDA as fallback for Native SOL
-      tokenMintAccount: tokenMintPubkey,
-      user: publicKey,
-      tokenProgram: tokenProgramId,
-      systemProgram: SystemProgram.programId,
-    };
+        const accounts: any = {
+          platform: platformConfigPDA,
+          project: projectPDA,
+          stake: userStakePDA,
+          stakingVault: stakingVaultPDA,
+          userTokenAccount: userTokenAccount,
+          feeCollectorTokenAccount: feeCollectorTokenAccount,
+          feeCollector: feeCollector,
+          referrer: finalReferrer,  // Always include (even if Option<> in Rust)
+          // ✅ For optional accounts causing validation errors, pass null and let Anchor handle it
+          reflectionVault: (reflectionVault && reflectionVault.toString() !== projectPDA.toString()) 
+            ? reflectionVault 
+            : null,
+          tokenMintAccount: tokenMintPubkey,
+          user: publicKey,
+          tokenProgram: tokenProgramId,
+          systemProgram: SystemProgram.programId,
+        };
     
     console.log("🔍 All accounts being passed:");
     Object.entries(accounts).forEach(([key, value]) => {
