@@ -181,6 +181,9 @@ export default function PoolCard(props: PoolCardProps) {
         setTokenDecimals(9); // fallback
       }
     };
+    
+    fetchDecimals();  // ✅ ADD THIS LINE
+  }, [effectiveMintAddress, connection, symbol]);  // ✅ ADD THIS LINE
 
   // Fetch reflection balance - USER'S PENDING REFLECTIONS
   useEffect(() => {
