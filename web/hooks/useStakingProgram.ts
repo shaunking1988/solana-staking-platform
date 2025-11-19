@@ -43,6 +43,10 @@ export function useStakingProgram() {
     poolId: number = 0,
     referrerCode?: string
   ) => {
+    console.log("🔍🔍🔍 STAKE FUNCTION CALLED WITH:");
+    console.log("   amount:", amount);
+    console.log("   typeof amount:", typeof amount);
+    console.log("   tokenMint:", tokenMint);
     if (!wallet || !publicKey) {
       throw new Error("Wallet not connected");
     }
@@ -128,15 +132,20 @@ export function useStakingProgram() {
       console.log("⚠️ Fee collector token account doesn't exist, will create it");
     }
 
+    console.log("🔍 RAW AMOUNT RECEIVED:", amount, typeof amount);
+
     // ✅ Get token decimals and convert amount properly
     const tokenMintAccount = await connection.getParsedAccountInfo(tokenMintPubkey);
     const decimals = (tokenMintAccount.value?.data as any)?.parsed?.info?.decimals || 9;
 
+    console.log("🔍 TOKEN DECIMALS:", decimals);
+    console.log("🔍 CALCULATION:", `${amount} * 10^${decimals} = ${amount * 10 ** decimals}`);
+
     // Convert user input (5) to token units (5 * 10^decimals)
     const amountBN = new BN(amount * 10 ** decimals);
 
-    console.log(`✅ Token decimals: ${decimals}, Amount: ${amount} → ${amountBN.toString()} units`);
-    
+    console.log("🔍 FINAL AMOUNT BN:", amountBN.toString());
+
     // Get project info to check for reflection vault and referrer
     const project = await program.account.project.fetch(projectPDA, "confirmed");
     const reflectionVault = project.reflectionVault;
