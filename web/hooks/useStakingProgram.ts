@@ -101,13 +101,24 @@ export function useStakingProgram() {
       console.log("✅ SPL Token: Using ATA as token account");
     }
 
-    // Get fee collector's token account (with correct token program for Token-2022)
-    const feeCollectorTokenAccount = await getAssociatedTokenAddress(
-      tokenMintPubkey,
-      feeCollector,
-      false, // allowOwnerOffCurve
-      tokenProgramId  // ✅ Use detected token program
-    );
+    // ✅ For Native SOL, fee collector account is the wallet itself
+    // For SPL tokens, it's the ATA
+    let feeCollectorTokenAccount: PublicKey;
+
+    if (isNativeSOL) {
+      // ✅ For Native SOL, use fee collector wallet directly
+      feeCollectorTokenAccount = feeCollector;
+      console.log("✅ Native SOL: Using fee collector wallet directly");
+    } else {
+      // ✅ For SPL tokens, get the ATA
+      feeCollectorTokenAccount = await getAssociatedTokenAddress(
+        tokenMintPubkey,
+        feeCollector,
+        false, // allowOwnerOffCurve
+        tokenProgramId
+      );
+      console.log("✅ SPL Token: Using fee collector ATA");
+    }
 
     // Check if fee collector token account exists, create if not
     const feeCollectorAccountInfo = await connection.getAccountInfo(feeCollectorTokenAccount);
@@ -393,13 +404,27 @@ const unstake = async (tokenMint: string, poolId: number = 0, amount?: number) =
   }
   console.log("✅ Withdrawal token account:", withdrawalTokenAccount.toBase58());
 
-  // Get fee collector's token account (with correct token program for Token-2022)
-  const feeCollectorTokenAccount = await getAssociatedTokenAddress(
-    tokenMintPubkey,
-    feeCollector,
-    false, // allowOwnerOffCurve
-    tokenProgramId  // ✅ Use detected token program
-  );
+  // ✅ For Native SOL, fee collector account is the wallet itself
+  // For SPL tokens, it's the ATA
+  const NATIVE_SOL_UNSTAKE_FEE = "So11111111111111111111111111111111111111112";
+  const isNativeSOLUnstakeFee = tokenMint === NATIVE_SOL_UNSTAKE_FEE;
+
+  let feeCollectorTokenAccount: PublicKey;
+
+  if (isNativeSOLUnstakeFee) {
+    // ✅ For Native SOL, use fee collector wallet directly
+    feeCollectorTokenAccount = feeCollector;
+    console.log("✅ Native SOL Unstake: Using fee collector wallet for fees");
+  } else {
+    // ✅ For SPL tokens, get the ATA
+    feeCollectorTokenAccount = await getAssociatedTokenAddress(
+      tokenMintPubkey,
+      feeCollector,
+      false, // allowOwnerOffCurve
+      tokenProgramId
+    );
+    console.log("✅ SPL Token Unstake: Using fee collector ATA for fees");
+  }
   console.log("✅ Fee collector token account:", feeCollectorTokenAccount.toBase58());
 
   // Get project info to check for referrer AND reflection vault
@@ -696,13 +721,27 @@ try {
       console.log("✅ SPL Token Claim: Using ATA as token account");
     }
 
-    // Get fee collector's token account (with correct token program for Token-2022)
-    const feeCollectorTokenAccount = await getAssociatedTokenAddress(
-      tokenMintPubkey,
-      feeCollector,
-      false, // allowOwnerOffCurve
-      tokenProgramId  // ✅ Use detected token program
-    );
+    // ✅ For Native SOL, fee collector account is the wallet itself
+    // For SPL tokens, it's the ATA
+    const NATIVE_SOL_CLAIM_FEE = "So11111111111111111111111111111111111111112";
+    const isNativeSOLClaimFee = tokenMint === NATIVE_SOL_CLAIM_FEE;
+
+    let feeCollectorTokenAccount: PublicKey;
+
+    if (isNativeSOLClaimFee) {
+      // ✅ For Native SOL, use fee collector wallet directly
+      feeCollectorTokenAccount = feeCollector;
+      console.log("✅ Native SOL Claim: Using fee collector wallet for fees");
+    } else {
+      // ✅ For SPL tokens, get the ATA
+      feeCollectorTokenAccount = await getAssociatedTokenAddress(
+        tokenMintPubkey,
+        feeCollector,
+        false, // allowOwnerOffCurve
+        tokenProgramId
+      );
+      console.log("✅ SPL Token Claim: Using fee collector ATA for fees");
+    }
 
     // Get project info to check for referrer and reflection vault
     const project = await program.account.project.fetch(projectPDA, "confirmed");

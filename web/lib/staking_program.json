@@ -568,33 +568,7 @@
         },
         {
           "name": "staking_vault",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  115,
-                  116,
-                  97,
-                  107,
-                  105,
-                  110,
-                  103,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "project"
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "user_token_account",
@@ -690,32 +664,7 @@
         },
         {
           "name": "reward_vault",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  119,
-                  97,
-                  114,
-                  100,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "project"
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "admin_token_account",
@@ -1683,6 +1632,9 @@
         },
         {
           "name": "withdrawal_token_account",
+          "docs": [
+            "Ownership validated in transfer_tokens function"
+          ],
           "writable": true
         },
         {
