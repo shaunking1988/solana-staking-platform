@@ -160,7 +160,7 @@ export function useStakingProgram() {
       finalReferrer = publicKey;
     }
 
-    // Build accounts object - include all accounts (Anchor client requires them even if Option<> in Rust)
+    // Build accounts object - REMOVE referrer (will use remainingAccounts instead)
         const accounts: any = {
           platform: platformConfigPDA,
           project: projectPDA,
@@ -169,7 +169,6 @@ export function useStakingProgram() {
           userTokenAccount: userTokenAccount,
           feeCollectorTokenAccount: feeCollectorTokenAccount,
           feeCollector: feeCollector,
-          referrer: finalReferrer,  // ✅ PUT IT BACK
           reflectionVault: (reflectionVault && reflectionVault.toString() !== projectPDA.toString()) 
             ? reflectionVault 
             : null,
@@ -178,6 +177,17 @@ export function useStakingProgram() {
           tokenProgram: tokenProgramId,
           systemProgram: SystemProgram.programId,
         };
+    
+    // ✅ Build remainingAccounts for referrer with explicit isWritable: false
+    const remainingAccounts = [];
+    if (projectReferrer && !projectReferrer.equals(PublicKey.default)) {
+      remainingAccounts.push({
+        pubkey: projectReferrer,
+        isWritable: false,
+        isSigner: false
+      });
+      console.log("✅ Adding referrer to remainingAccounts:", projectReferrer.toString());
+    }
     
     console.log("🔍 All accounts being passed:");
     Object.entries(accounts).forEach(([key, value]) => {
@@ -230,7 +240,8 @@ export function useStakingProgram() {
         console.log("🔧 Building deposit instruction with accounts:", Object.keys(accounts));
         const stakeIx = await program.methods
           .deposit(tokenMintPubkey, new BN(poolId), amountBN)
-          .accountsPartial(accounts)  // ✅ Use accountsPartial
+          .accountsPartial(accounts)
+          .remainingAccounts(remainingAccounts)
           .instruction();
         transaction.add(stakeIx);
         
@@ -245,7 +256,8 @@ export function useStakingProgram() {
         console.log("🔧 Building deposit instruction (direct RPC) with accounts:", Object.keys(accounts));
         tx = await program.methods
           .deposit(tokenMintPubkey, new BN(poolId), amountBN)
-          .accountsPartial(accounts)  // ✅ Use accountsPartial
+          .accountsPartial(accounts)
+          .remainingAccounts(remainingAccounts)
           .rpc({ skipPreflight: false, commitment: 'confirmed' });
               }
 
@@ -508,14 +520,23 @@ try {
     withdrawalTokenAccount: withdrawalTokenAccount,
     feeCollectorTokenAccount: feeCollectorTokenAccount,
     feeCollector: feeCollector,
-    referrer: projectReferrer || publicKey,
     reflectionVault: reflectionVault || stakingVaultPDA,
-    tokenMintAccount: tokenMintPubkey,  // ✅ Add mint account for transfer_checked
+    tokenMintAccount: tokenMintPubkey,
     user: publicKey,
-    tokenProgram: tokenProgramId,  // ✅ Use detected token program
+    tokenProgram: tokenProgramId,
     associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
     systemProgram: SystemProgram.programId,
   };
+
+  // ✅ Build remainingAccounts for referrer
+  const remainingAccountsUnstake = [];
+  if (projectReferrer && !projectReferrer.equals(PublicKey.default)) {
+    remainingAccountsUnstake.push({
+      pubkey: projectReferrer,
+      isWritable: false,
+      isSigner: false
+    });
+  }
 
   console.log("🔵 Accounts prepared for withdraw:", {
     platform: accounts.platform.toString(),
@@ -550,6 +571,7 @@ try {
       const withdrawIx = await program.methods
         .withdraw(tokenMintPubkey, new BN(poolId), amountBN)
         .accountsPartial(accounts)
+        .remainingAccounts(remainingAccountsUnstake)
         .instruction();
       
       transaction.add(withdrawIx);
@@ -569,6 +591,7 @@ try {
       const tx = await program.methods
         .withdraw(tokenMintPubkey, new BN(poolId), amountBN)
         .accountsPartial(accounts)
+        .remainingAccounts(remainingAccountsUnstake)
         .rpc({ skipPreflight: false, commitment: 'confirmed' });
 
       console.log("✅ Transaction signature:", tx);
@@ -759,13 +782,22 @@ try {
       rewardVault: rewardVaultPDA,
       userTokenAccount: withdrawalTokenAccount,
       feeCollector: feeCollector,
-      referrer: projectReferrer || publicKey,
-      reflectionVault: reflectionVault || stakingVaultPDA, // ✅ Always include, use stakingVault as fallback
+      reflectionVault: reflectionVault || stakingVaultPDA,
       tokenMintAccount: tokenMintPubkey,
       user: publicKey,
       tokenProgram: tokenProgramId,
       systemProgram: SystemProgram.programId,
     };
+
+    // ✅ Build remainingAccounts for referrer
+    const remainingAccountsClaim = [];
+    if (projectReferrer && !projectReferrer.equals(PublicKey.default)) {
+      remainingAccountsClaim.push({
+        pubkey: projectReferrer,
+        isWritable: false,
+        isSigner: false
+      });
+    }
 
     try {
       // Check if withdrawal token account exists; create if it doesn't
@@ -787,6 +819,7 @@ try {
         const claimIx = await program.methods
           .claim(tokenMintPubkey, new BN(poolId))
           .accountsPartial(accounts)
+          .remainingAccounts(remainingAccountsClaim)
           .instruction();
         
         transaction.add(claimIx);
@@ -802,6 +835,7 @@ try {
        const tx = await program.methods
           .claim(tokenMintPubkey, new BN(poolId))
           .accountsPartial(accounts)
+          .remainingAccounts(remainingAccountsClaim)
           .rpc({ skipPreflight: false, commitment: 'confirmed' });
 
         console.log("✅ Claim rewards transaction signature:", tx);
