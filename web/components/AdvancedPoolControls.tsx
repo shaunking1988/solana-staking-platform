@@ -1217,9 +1217,9 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
     setIsProcessing(true);
     try {
       if (referralEnabled) {
-        await setProjectReferrer(tokenMint, referralWallet, referralSplit * 100);
+        await setProjectReferrer(tokenMint, pool?.poolId ?? 0, referralWallet, referralSplit * 100);
       } else {
-        await setProjectReferrer(tokenMint, null, 0);
+        await setProjectReferrer(tokenMint, pool?.poolId ?? 0, null, 0);
       }
       await fetch(`/api/admin/pools`, {
         method: "PATCH",
