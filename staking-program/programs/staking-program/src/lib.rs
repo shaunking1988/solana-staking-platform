@@ -23,7 +23,6 @@ fn is_native_sol(mint: &Pubkey) -> bool {
     mint.to_string() == "So11111111111111111111111111111111111111112"
 }
 
-// ✅ NEW: Helper to transfer tokens (supports SPL, Token-2022, and Native SOL)
 fn transfer_tokens<'info>(
     from: AccountInfo<'info>,
     to: AccountInfo<'info>,
@@ -37,16 +36,16 @@ fn transfer_tokens<'info>(
     if is_native_sol(&mint.key()) {
         msg!("💰 Transferring Native SOL: {} lamports", amount);
         
-        // ✅ Manual lamport transfer with proper checks
-        let from_lamports = from.lamports();
+        // ✅ For Native SOL, use authority as the source (handles duplicate account issue)
+        let authority_lamports = authority.lamports();
         let to_lamports = to.lamports();
         
         require!(
-            from_lamports >= amount,
+            authority_lamports >= amount,
             ErrorCode::InsufficientBalance
         );
         
-        **from.try_borrow_mut_lamports()? = from_lamports
+        **authority.try_borrow_mut_lamports()? = authority_lamports
             .checked_sub(amount)
             .ok_or(ErrorCode::MathOverflow)?;
         
