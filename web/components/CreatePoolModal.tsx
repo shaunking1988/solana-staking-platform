@@ -351,6 +351,10 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
             : tokenMintPubkey)
         : null;
 
+      console.log("🔍 [AFTER DETERMINING MINT]");
+      console.log("   externalReflectionMint from config:", poolConfig.externalReflectionMint);
+      console.log("   reflectionTokenMintToUse:", reflectionTokenMintToUse?.toString());
+
       const initParams = {
         rateBpsPerYear: new anchor.BN(0),
         rateMode: 1,
@@ -361,6 +365,9 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
         enableReflections: poolConfig.enableReflections,
         reflectionToken: reflectionTokenMintToUse,
       };
+
+      console.log("🔍 [INIT PARAMS CREATED]");
+      console.log("   initParams.reflectionToken:", initParams.reflectionToken?.toString());
 
       // Build accounts object conditionally
       const initPoolAccounts: any = {
@@ -442,6 +449,9 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
         reflectionTokenAccount: initPoolAccounts.reflectionTokenAccount?.toString(),
         associatedTokenProgram: initPoolAccounts.associatedTokenProgram?.toString(),
       });
+
+      console.log("🔍 [FINAL CHECK] initParams.reflectionToken:", initParams.reflectionToken?.toString());
+      console.log("🔍 [FINAL CHECK] As bytes:", initParams.reflectionToken?.toBytes());
 
       const initPoolTx = await program.methods
         .initializePool(
