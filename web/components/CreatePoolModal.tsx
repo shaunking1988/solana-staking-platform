@@ -220,22 +220,24 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       const tokenMintPubkey = new PublicKey(selectedToken.mint);
       
       // Check if pool already exists (both on-chain and in database) and find next available poolId
-      // Check if pool already exists (both on-chain and in database) and find next available poolId
       let poolId = 0;
       let poolExists = true;
 
       console.log("🔍 Checking if pool already exists for this token...");
 
-      while (poolExists && poolId < 10) { // Max 10 pools per token
+      while (poolExists && poolId < 10) {
         const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
         
-        // Check on-chain
+        // Check on-chain using getAccountInfo (more reliable)
         let onChainExists = false;
         try {
-          await program.account.project.fetch(projectPDA);
-          onChainExists = true;
-        } catch (error) {
-          // Pool doesn't exist on-chain
+          const accountInfo = await connection.getAccountInfo(projectPDA);
+          if (accountInfo !== null) {
+            onChainExists = true;
+            console.log(`⚠️ Pool ${poolId} exists on-chain at ${projectPDA.toString()}`);
+          }
+        } catch (error: any) {
+          onChainExists = false;
         }
         
         // Check database
@@ -244,7 +246,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
           const dbCheck = await fetch(`/api/pools/by-token/${selectedToken.mint}`);
           if (dbCheck.ok) {
             const pools = await dbCheck.json();
-            dbExists = pools.some((p: any) => p.poolId === poolId);
+            dbExists = pools.some((p: any) => p.poolId === poolId.toString());
           }
         } catch (error) {
           console.log("⚠️ Could not check database, continuing...");
