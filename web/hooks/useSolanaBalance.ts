@@ -113,12 +113,31 @@ export function useSolanaBalance(mintAddress?: string | null) {
           if (!mounted) return;
           
           try {
+            // ✅ CHECK IF NATIVE SOL
+            const NATIVE_SOL_MINT = "So11111111111111111111111111111111111111112";
+            
+            if (mintAddress === NATIVE_SOL_MINT) {
+              // ✅ For Native SOL, get lamport balance directly
+              const solBalance = await connection.getBalance(publicKey);
+              const balanceValue = solBalance / 1e9; // Convert lamports to SOL
+              
+              if (mounted) {
+                setBalance(balanceValue);
+                balanceCache.set(cacheKey, {
+                  value: balanceValue,
+                  timestamp: Date.now()
+                });
+              }
+              return;
+            }
+            
+            // ✅ For SPL tokens, use token account lookup
             const mint = new PublicKey(mintAddress);
             
             // Validate mint address exists
             const mintInfo = await connection.getAccountInfo(mint);
             if (!mintInfo) {
-              console.warn(`Mint address ${mintAddress} does not exist on devnet`);
+              console.warn(`Mint address ${mintAddress} does not exist`);
               if (mounted) {
                 setBalance(0);
                 balanceCache.set(cacheKey, {
