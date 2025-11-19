@@ -133,7 +133,7 @@ export function useStakingProgram() {
       feeCollectorTokenAccount: feeCollectorTokenAccount,
       feeCollector: feeCollector,
       referrer: finalReferrer,  // Always include (even if Option<> in Rust)
-      reflectionVault: reflectionVault || stakingVaultPDA,  // Use stakingVault as fallback if no reflection vault
+      reflectionVault: reflectionVault || projectPDA,  // ✅ Use projectPDA as fallback for Native SOL
       tokenMintAccount: tokenMintPubkey,
       user: publicKey,
       tokenProgram: tokenProgramId,
