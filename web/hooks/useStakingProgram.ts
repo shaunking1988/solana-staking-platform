@@ -197,7 +197,8 @@ export function useStakingProgram() {
         console.log("🔧 Building deposit instruction with accounts:", Object.keys(accounts));
         const stakeIx = await program.methods
           .deposit(tokenMintPubkey, new BN(poolId), amountBN)
-          .accountsPartial(accounts)
+          .accounts(accounts)
+          .accountsStrict(false)
           .instruction();
         transaction.add(stakeIx);
         
@@ -212,7 +213,8 @@ export function useStakingProgram() {
         console.log("🔧 Building deposit instruction (direct RPC) with accounts:", Object.keys(accounts));
         tx = await program.methods
           .deposit(tokenMintPubkey, new BN(poolId), amountBN)
-          .accountsPartial(accounts)
+          .accounts(accounts)
+          .accountsStrict(false)
           .rpc({ skipPreflight: false, commitment: 'confirmed' });
       }
 
