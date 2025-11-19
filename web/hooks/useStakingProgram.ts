@@ -169,8 +169,7 @@ export function useStakingProgram() {
           userTokenAccount: userTokenAccount,
           feeCollectorTokenAccount: feeCollectorTokenAccount,
           feeCollector: feeCollector,
-          referrer: finalReferrer,  // Always include (even if Option<> in Rust)
-          // ✅ For optional accounts causing validation errors, pass null and let Anchor handle it
+          // ❌ REMOVED: referrer: finalReferrer,
           reflectionVault: (reflectionVault && reflectionVault.toString() !== projectPDA.toString()) 
             ? reflectionVault 
             : null,
@@ -232,7 +231,9 @@ export function useStakingProgram() {
         const stakeIx = await program.methods
           .deposit(tokenMintPubkey, new BN(poolId), amountBN)
           .accounts(accounts)
-          .accountsStrict(false)
+          .remainingAccounts([
+            { pubkey: finalReferrer, isSigner: false, isWritable: false }
+          ])
           .instruction();
         transaction.add(stakeIx);
         
@@ -248,9 +249,11 @@ export function useStakingProgram() {
         tx = await program.methods
           .deposit(tokenMintPubkey, new BN(poolId), amountBN)
           .accounts(accounts)
-          .accountsStrict(false)
+          .remainingAccounts([
+            { pubkey: finalReferrer, isSigner: false, isWritable: false }
+          ])
           .rpc({ skipPreflight: false, commitment: 'confirmed' });
-      }
+              }
 
       console.log("✅ Transaction signature:", tx);
       
