@@ -1790,9 +1790,9 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub fee_collector: AccountInfo<'info>,
     
-    /// CHECK: Referrer account (optional)
-    pub referrer: Option<AccountInfo<'info>>,
-    
+    /// CHECK: Optional referrer account (read-only, not writable)
+    pub referrer: Option<UncheckedAccount<'info>>,
+        
     /// CHECK: Optional reflection vault
     pub reflection_vault: Option<AccountInfo<'info>>,    
     pub token_mint_account: InterfaceAccount<'info, Mint>,
@@ -1851,8 +1851,8 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub fee_collector: AccountInfo<'info>,
     
-    /// CHECK: Referrer account (optional)
-    pub referrer: Option<AccountInfo<'info>>,
+    /// CHECK: Optional referrer account (read-only, not writable)
+    pub referrer: Option<UncheckedAccount<'info>>,
     
     /// CHECK: Optional reflection vault - can be staking_vault for Native SOL or ATA for SPL tokens
     pub reflection_vault: Option<AccountInfo<'info>>,
@@ -1903,8 +1903,8 @@ pub struct Claim<'info> {
     #[account(mut)]
     pub fee_collector: AccountInfo<'info>,
     
-    /// CHECK: Referrer account (optional)
-    pub referrer: Option<AccountInfo<'info>>,
+    /// CHECK: Optional referrer account (read-only, not writable)
+    pub referrer: Option<UncheckedAccount<'info>>,
 
     /// CHECK: Optional reflection vault
     pub reflection_vault: Option<AccountInfo<'info>>,    
