@@ -1315,10 +1315,27 @@ pub mod staking_program {
         amount: u64
     ) -> Result<()> {
         let project = &ctx.accounts.project;
-        require!(
-            ctx.accounts.vault.amount >= amount,
-            ErrorCode::InsufficientVaultBalance
-        );
+
+        // ✅ For AccountInfo, we need to manually check the balance
+        let is_native = is_native_sol(&ctx.accounts.token_mint_account.key());
+
+        if !is_native {
+            // For SPL tokens, read the amount field from TokenAccount data
+            let vault_data = ctx.accounts.vault.try_borrow_data()?;
+            if vault_data.len() >= 72 {
+                let vault_amount = u64::from_le_bytes(vault_data[64..72].try_into().unwrap());
+                require!(
+                    vault_amount >= amount,
+                    ErrorCode::InsufficientVaultBalance
+                );
+            }
+        } else {
+            // For Native SOL, check lamports
+            require!(
+                ctx.accounts.vault.lamports() >= amount,
+                ErrorCode::InsufficientVaultBalance
+            );
+        }
         
         let seeds = &[
             b"project",
@@ -1716,9 +1733,10 @@ pub struct Deposit<'info> {
     )]
     pub staking_vault: InterfaceAccount<'info, TokenAccount>,
     
+    /// CHECK: Can be wallet (Native SOL) or TokenAccount (SPL)
     #[account(mut)]
-    pub user_token_account: InterfaceAccount<'info, TokenAccount>,
-    
+    pub user_token_account: AccountInfo<'info>,
+        
     #[account(
         mut,
         constraint = fee_collector_token_account.owner == platform.fee_collector @ ErrorCode::InvalidFeeCollector
@@ -1777,12 +1795,11 @@ pub struct Withdraw<'info> {
     )]
     pub staking_vault: InterfaceAccount<'info, TokenAccount>,
     
-    #[account(
-        mut,
-        constraint = withdrawal_token_account.owner == stake.withdrawal_wallet @ ErrorCode::InvalidWithdrawalWallet
-    )]
-    pub withdrawal_token_account: InterfaceAccount<'info, TokenAccount>,
-    
+    /// CHECK: Can be wallet (Native SOL) or TokenAccount (SPL/Token-2022)
+    /// Ownership validated in transfer_tokens function
+    #[account(mut)]
+    pub withdrawal_token_account: AccountInfo<'info>,
+
     #[account(
         mut,
         constraint = fee_collector_token_account.owner == platform.fee_collector @ ErrorCode::InvalidFeeCollector
@@ -1842,8 +1859,9 @@ pub struct Claim<'info> {
     )]
     pub reward_vault: InterfaceAccount<'info, TokenAccount>,
     
+    /// CHECK: Can be wallet (Native SOL) or TokenAccount (SPL)
     #[account(mut)]
-    pub user_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub user_token_account: AccountInfo<'info>,
     
     /// CHECK: Fee collector wallet
     #[account(mut)]
@@ -2088,14 +2106,13 @@ pub struct ClaimUnclaimedTokens<'info> {
     )]
     pub project: Account<'info, Project>,
     
-    #[account(
-        mut,
-        constraint = vault.mint == token_mint @ ErrorCode::WrongTokenType
-    )]
-    pub vault: InterfaceAccount<'info, TokenAccount>,
-    
+    /// CHECK: Can be TokenAccount (SPL) or wallet (Native SOL)
     #[account(mut)]
-    pub admin_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub vault: AccountInfo<'info>,
+    
+    /// CHECK: Can be TokenAccount (SPL) or wallet (Native SOL)
+    #[account(mut)]
+    pub admin_token_account: AccountInfo<'info>,
     
     pub token_mint_account: InterfaceAccount<'info, Mint>,
     
@@ -2104,7 +2121,6 @@ pub struct ClaimUnclaimedTokens<'info> {
     
     pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
-
 }
 
 #[derive(Accounts)]
