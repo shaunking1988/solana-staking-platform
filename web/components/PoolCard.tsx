@@ -230,7 +230,7 @@ export default function PoolCard(props: PoolCardProps) {
         if (isNativeSOLReflections) {
           // For Native SOL, check actual vault balance and subtract 0.003 SOL buffer
           try {
-            const vaultBalance = await connection.getBalance(new PublicKey(project.stakingVault));
+            const vaultBalance = await connection.getBalance(new PublicKey(project.reflectionVault || project.key()));
             const FIXED_BUFFER = 0.003; // SOL (rent-exempt ~0.002 + safety 0.001)
             const availableInVault = Math.max(0, (vaultBalance / LAMPORTS_PER_SOL) - FIXED_BUFFER);
             
@@ -617,7 +617,7 @@ export default function PoolCard(props: PoolCardProps) {
 
               if (isNativeSOLReflections) {
                 try {
-                  const vaultBalance = await connection.getBalance(new PublicKey(project.stakingVault));
+                  const vaultBalance = await connection.getBalance(new PublicKey(project.reflectionVault || project.key()));
                   const FIXED_BUFFER = 0.003;
                   const availableInVault = Math.max(0, (vaultBalance / LAMPORTS_PER_SOL) - FIXED_BUFFER);
                   displayReflections = Math.min(pendingReflections, availableInVault);
@@ -800,7 +800,7 @@ export default function PoolCard(props: PoolCardProps) {
 
           if (isNativeSOLReflections) {
             try {
-              const vaultBalance = await connection.getBalance(new PublicKey(project.stakingVault));
+              const vaultBalance = await connection.getBalance(new PublicKey(project.reflectionVault || project.key()));
               const FIXED_BUFFER = 0.003;
               const availableInVault = Math.max(0, (vaultBalance / LAMPORTS_PER_SOL) - FIXED_BUFFER);
               displayReflections = Math.min(pendingReflections, availableInVault);
