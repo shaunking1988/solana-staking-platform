@@ -252,8 +252,21 @@ export function useStakingProgram() {
       return tx;
       
     } catch (error: any) {
-      console.error("Stake transaction error:", error);
+      console.error("❌❌❌ FULL STAKE ERROR DETAILS:");
+      console.error("Error type:", error.constructor.name);
+      console.error("Error message:", error.message);
+      console.error("Error code:", error.code);
+      console.error("Transaction logs:", error.logs);
+      console.error("Simulation error:", error.simulationError);
       
+      // Try to get detailed Anchor error
+      if (error.error) {
+        console.error("Anchor error:", error.error);
+      }
+      
+      // Full stringified error
+      console.error("Full error object:", JSON.stringify(error, null, 2));
+          
       // Check if error message indicates the transaction actually succeeded
       if (error.message?.includes("already been processed") || 
           error.message?.includes("AlreadyProcessed")) {
