@@ -1830,7 +1830,7 @@ ${calculatedPerToken > storedPerToken
             <button
               onClick={() => setActiveModal("initialize")}
               disabled={isProcessing}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm transition-colors disabled:opacity-50"
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-[#fb57ff] hover:bg-[#fb57ff]/90 rounded-lg text-sm transition-colors disabled:opacity-50"
             >
               <Play className="w-4 h-4" />
               2. Init Pool
@@ -1897,7 +1897,7 @@ ${calculatedPerToken > storedPerToken
         <button
           onClick={() => setActiveModal("transferAdmin")}
           disabled={isProcessing}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm transition-colors disabled:opacity-50"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-[#fb57ff] hover:bg-[#fb57ff]/90 rounded-lg text-sm transition-colors disabled:opacity-50"
         >
           <UserCog className="w-4 h-4" />
           Transfer Admin
@@ -2122,7 +2122,7 @@ ${calculatedPerToken > storedPerToken
       <button
         onClick={handleInitializePool}
         disabled={isProcessing}
-        className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded disabled:opacity-50"
+        className="flex-1 px-4 py-2 bg-[#fb57ff] hover:bg-[#fb57ff]/90 rounded disabled:opacity-50"
       >
         {isProcessing ? "⏳ Initializing..." : "Initialize"}
       </button>
@@ -2366,7 +2366,7 @@ ${calculatedPerToken > storedPerToken
             <button
               onClick={handleTransferAdmin}
               disabled={isProcessing || !newAdminWallet}
-              className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-[#fb57ff] hover:bg-[#fb57ff]/90 rounded disabled:opacity-50"
             >
               {isProcessing ? "⏳ Transferring..." : "Transfer"}
             </button>

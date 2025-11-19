@@ -874,7 +874,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6">
+    <div className="min-h-screen bg-[#060609] p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -1042,7 +1042,7 @@ export default function AdminPage() {
               <div className="bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] rounded-xl p-5 md:col-span-2">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-sm">Total Views</span>
-                  <Eye className="w-5 h-5 text-indigo-400" />
+                  <Eye className="w-5 h-5 text-[#fb57ff]" />
                 </div>
                 <p className="text-3xl font-bold text-white">{stats.totalViews.toLocaleString()}</p>
               </div>
@@ -1061,7 +1061,7 @@ export default function AdminPage() {
                   value={tokenMintForFeeCollector}
                   onChange={(e) => setTokenMintForFeeCollector(e.target.value)}
                   placeholder="Enter token mint"
-                  className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none font-mono text-sm"
+                  className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none font-mono text-sm"
                 />
               </div>
               <button
@@ -1171,7 +1171,7 @@ export default function AdminPage() {
                       step="0.1"
                       min="0"
                       max="100"
-                      className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none"
+                      className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       Current: {swapConfig.platformFeePercentage.toFixed(2)}%
@@ -1190,7 +1190,7 @@ export default function AdminPage() {
                       step="0.1"
                       min="0"
                       max="100"
-                      className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none"
+                      className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       Users cannot set slippage above this value
@@ -1208,7 +1208,7 @@ export default function AdminPage() {
                       onChange={(e) => setSwapConfig({ ...swapConfig, priorityFee: parseFloat(e.target.value) })}
                       step="0.0001"
                       min="0"
-                      className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none"
+                      className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       Transaction priority fee
@@ -1355,7 +1355,7 @@ export default function AdminPage() {
                   value={poolSearchQuery}
                   onChange={(e) => setPoolSearchQuery(e.target.value)}
                   placeholder="Search pools by name, symbol, or ID..."
-                  className="w-full pl-10 pr-4 py-3 rounded-lg bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-3 rounded-lg bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none transition-all"
                 />
               </div>
               <div className="flex gap-2">
@@ -1388,7 +1388,7 @@ export default function AdminPage() {
                   </button>
                   <button
                     onClick={deselectAll}
-                    className="px-3 py-2 bg-white/[0.04] rounded hover:bg-slate-600 transition-all text-sm"
+                    className="px-3 py-2 bg-white/[0.04] rounded hover:bg-white/[0.06] transition-all text-sm"
                   >
                     Clear
                   </button>
@@ -1610,7 +1610,7 @@ export default function AdminPage() {
                   value={form.pairAddress}
                   onChange={handleChange}
                   placeholder="Enter DexScreener Pair Address"
-                  className="flex-1 p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none"
+                  className="flex-1 p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                 />
                 <button
                   type="button"
@@ -1632,7 +1632,7 @@ export default function AdminPage() {
                   onChange={handleChange}
                   placeholder="Token Name"
                   required
-                  className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none"
+                  className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                 />
                 <input
                   type="text"
@@ -1641,7 +1641,7 @@ export default function AdminPage() {
                   onChange={handleChange}
                   placeholder="Symbol"
                   required
-                  className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none"
+                  className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                 />
                 <input
                   type="text"
@@ -1649,7 +1649,7 @@ export default function AdminPage() {
                   value={form.logo}
                   onChange={handleChange}
                   placeholder="Logo URL"
-                  className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none"
+                  className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                 />
                 <input
                   type="text"
@@ -1658,7 +1658,7 @@ export default function AdminPage() {
                   onChange={handleChange}
                   placeholder="Mint Address"
                   disabled={!!editingPool}
-                  className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <input
                   type="number"
@@ -1668,7 +1668,7 @@ export default function AdminPage() {
                   placeholder="Pool ID (0 for first pool, 1 for second pool...)"
                   min="0"
                   disabled={!!editingPool}
-                  className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -1690,7 +1690,7 @@ export default function AdminPage() {
                     value={form.type}
                     onChange={handleChange}
                     disabled={!!editingPool}
-                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="locked">Locked</option>
                     <option value="unlocked">Unlocked</option>
@@ -1705,7 +1705,7 @@ export default function AdminPage() {
                     onChange={handleChange}
                     placeholder="e.g., 25%"
                     disabled={!!editingPool}
-                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>
@@ -1717,7 +1717,7 @@ export default function AdminPage() {
                     onChange={handleChange}
                     placeholder="e.g., 15%"
                     disabled={!!editingPool}
-                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -1729,7 +1729,7 @@ export default function AdminPage() {
                     value={form.rateMode}
                     onChange={handleChange}
                     disabled={!!editingPool}
-                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value={0}>Fixed APY (rate calculated from APY %)</option>
                     <option value={1}>Dynamic Pool (rate calculated from deposited rewards)</option>
@@ -1749,7 +1749,7 @@ export default function AdminPage() {
                     onChange={handleChange}
                     placeholder="e.g., 30"
                     disabled={!!editingPool}
-                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -1760,7 +1760,7 @@ export default function AdminPage() {
                     value={form.rewards}
                     onChange={handleChange}
                     placeholder="e.g., 10 TOKEN"
-                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none"
+                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                   />
                 </div>
               </div>
@@ -1804,7 +1804,7 @@ export default function AdminPage() {
                     value={form.externalReflectionMint}
                     onChange={handleChange}
                     placeholder="External Reflection Token Mint Address"
-                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-blue-500 focus:outline-none"
+                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                   />
                 )}
               </div>
@@ -1840,7 +1840,7 @@ export default function AdminPage() {
                     });
                     setActiveTab("pools");
                   }}
-                  className="px-6 py-3 bg-white/[0.04] rounded-lg hover:bg-slate-600 transition-all"
+                  className="px-6 py-3 bg-white/[0.04] rounded-lg hover:bg-white/[0.06] transition-all"
                 >
                   Cancel
                 </button>
@@ -1981,7 +1981,7 @@ export default function AdminPage() {
                   searchTokens(e.target.value);
                 }}
                 placeholder="Search by name, symbol, or address..."
-                className="w-full bg-white/[0.03] text-white rounded-lg pl-10 pr-4 py-3 outline-none border border-white/[0.05] focus:border-purple-500"
+                className="w-full bg-white/[0.03] text-white rounded-lg pl-10 pr-4 py-3 outline-none border border-white/[0.05] focus:border-[#fb57ff]"
                 autoFocus
               />
             </div>
@@ -2099,7 +2099,7 @@ export default function AdminPage() {
                     feeCollector: "",
                   });
                 }}
-                className="flex-1 px-4 py-3 bg-white/[0.04] rounded-lg hover:bg-slate-600 transition-all"
+                className="flex-1 px-4 py-3 bg-white/[0.04] rounded-lg hover:bg-white/[0.06] transition-all"
               >
                 Cancel
               </button>
@@ -2124,7 +2124,7 @@ export default function AdminPage() {
             </p>
             <div className="flex justify-end gap-2">
               <button
-                className="px-4 py-2 bg-white/[0.04] rounded-lg hover:bg-slate-600 transition-all"
+                className="px-4 py-2 bg-white/[0.04] rounded-lg hover:bg-white/[0.06] transition-all"
                 onClick={() => setConfirmDelete(null)}
               >
                 Cancel
@@ -2164,7 +2164,7 @@ export default function AdminPage() {
                   value={newFeeCollector}
                   onChange={(e) => setNewFeeCollector(e.target.value)}
                   placeholder="66oZ17EyWhmRXPYpuVpoojvmaz3AZWAaewekTWqJFhfB"
-                  className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-purple-500 focus:outline-none font-mono text-sm"
+                  className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none font-mono text-sm"
                 />
               </div>
             </div>
@@ -2181,7 +2181,7 @@ export default function AdminPage() {
                   setShowFeeCollectorModal(false);
                   setNewFeeCollector("");
                 }}
-                className="flex-1 px-4 py-3 bg-white/[0.04] rounded-lg hover:bg-slate-600 transition-all"
+                className="flex-1 px-4 py-3 bg-white/[0.04] rounded-lg hover:bg-white/[0.06] transition-all"
               >
                 Cancel
               </button>
