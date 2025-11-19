@@ -134,17 +134,9 @@ export function useStakingProgram() {
 
     console.log("🔍 RAW AMOUNT RECEIVED:", amount, typeof amount);
 
-    // ✅ Get token decimals and convert amount properly
-    const tokenMintAccount = await connection.getParsedAccountInfo(tokenMintPubkey);
-    const decimals = (tokenMintAccount.value?.data as any)?.parsed?.info?.decimals || 9;
-
-    console.log("🔍 TOKEN DECIMALS:", decimals);
-    console.log("🔍 CALCULATION:", `${amount} * 10^${decimals} = ${amount * 10 ** decimals}`);
-
-    // Convert user input (5) to token units (5 * 10^decimals)
-    const amountBN = new BN(amount * 10 ** decimals);
-
-    console.log("🔍 FINAL AMOUNT BN:", amountBN.toString());
+    // ✅ Amount is already in token units (pre-multiplied by UI)
+    const amountBN = new BN(amount);
+    console.log(`✅ Using pre-calculated amount: ${amountBN.toString()} units`);
 
     // Get project info to check for reflection vault and referrer
     const project = await program.account.project.fetch(projectPDA, "confirmed");
