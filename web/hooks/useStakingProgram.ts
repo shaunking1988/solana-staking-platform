@@ -836,9 +836,9 @@ try {
 
     let actualReflectionVault: PublicKey;
     if (isNativeSOLReflections) {
-      // For Native SOL, use the staking vault (not an ATA)
-      actualReflectionVault = stakingVaultPDA;
-      console.log("✅ Using staking vault for Native SOL reflections:", actualReflectionVault.toString());
+      // For Native SOL, use the Project PDA (where SOL lamports are stored)
+      actualReflectionVault = projectPDA;
+      console.log("✅ Using Project PDA for Native SOL reflections:", actualReflectionVault.toString());
     } else {
       // For SPL tokens, use the stored reflection vault ATA
       actualReflectionVault = reflectionVaultPubkey;
