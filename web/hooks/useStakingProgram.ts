@@ -112,6 +112,12 @@ export function useStakingProgram() {
     const reflectionVault = project.reflectionVault;
     const projectReferrer = project.referrer;
 
+    console.log("🔍 DEBUG reflection vault:");
+    console.log("   project.reflectionVault:", reflectionVault?.toString());
+    console.log("   projectPDA:", projectPDA.toString());
+    console.log("   stakingVaultPDA:", stakingVaultPDA.toString());
+    console.log("   Are they equal?", reflectionVault?.toString() === projectPDA.toString());
+
     // Determine referrer: use provided code, project referrer, or fallback to user
     let finalReferrer: PublicKey;
     if (referrerCode) {
