@@ -128,9 +128,15 @@ export function useStakingProgram() {
       console.log("⚠️ Fee collector token account doesn't exist, will create it");
     }
 
-    // Convert amount to proper decimals
-    const amountBN = new BN(amount);
+    // ✅ Get token decimals and convert amount properly
+    const tokenMintAccount = await connection.getParsedAccountInfo(tokenMintPubkey);
+    const decimals = (tokenMintAccount.value?.data as any)?.parsed?.info?.decimals || 9;
 
+    // Convert user input (5) to token units (5 * 10^decimals)
+    const amountBN = new BN(amount * 10 ** decimals);
+
+    console.log(`✅ Token decimals: ${decimals}, Amount: ${amount} → ${amountBN.toString()} units`);
+    
     // Get project info to check for reflection vault and referrer
     const project = await program.account.project.fetch(projectPDA, "confirmed");
     const reflectionVault = project.reflectionVault;
