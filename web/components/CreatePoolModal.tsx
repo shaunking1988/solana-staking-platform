@@ -577,6 +577,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
         initTxSignature: initPoolTx,
         creatorWallet: publicKey.toString(),
         projectPda: projectPDA.toString(),
+        poolAddress: projectPDA.toString(),
       };
 
       // ✅ DEBUG LOG #3: Check what's being saved
