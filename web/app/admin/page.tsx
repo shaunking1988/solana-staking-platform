@@ -799,8 +799,7 @@ export default function AdminPage() {
         setActiveTab("pools");
       }
 
-      // Reset form
-      setForm({
+        // Reset form
         setForm({
           name: "",
           symbol: "",
