@@ -1743,8 +1743,7 @@ pub struct Deposit<'info> {
     pub referrer: Option<AccountInfo<'info>>,
     
     /// CHECK: Optional reflection vault
-    pub reflection_vault: Option<InterfaceAccount<'info, TokenAccount>>,
-    
+    pub reflection_vault: Option<AccountInfo<'info>>,    
     pub token_mint_account: InterfaceAccount<'info, Mint>,
     
     #[account(mut)]
@@ -1864,8 +1863,7 @@ pub struct Claim<'info> {
     pub referrer: Option<AccountInfo<'info>>,
 
     /// CHECK: Optional reflection vault
-    pub reflection_vault: Option<InterfaceAccount<'info, TokenAccount>>,
-    
+    pub reflection_vault: Option<AccountInfo<'info>>,    
     pub token_mint_account: InterfaceAccount<'info, Mint>,
     
     #[account(mut)]
@@ -2041,8 +2039,7 @@ pub struct ToggleReflections<'info> {
     pub project: Account<'info, Project>,
     
     /// CHECK: Optional reflection vault
-    pub reflection_vault: Option<InterfaceAccount<'info, TokenAccount>>,
-    
+    pub reflection_vault: Option<AccountInfo<'info>>,    
     #[account(mut)]
     pub admin: Signer<'info>,
 }
