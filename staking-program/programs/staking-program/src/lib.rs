@@ -960,22 +960,12 @@ pub mod staking_program {
 
         // ✅ Transfer based on reflection type
         if is_native_sol {
-            // ✅ Native SOL - transfer lamports from Project PDA
+            // ✅ Native SOL - manually transfer lamports from Project PDA
             msg!("💰 Transferring Native SOL lamports from Project PDA");
             
-            let transfer_ix = system_instruction::transfer(
-                &ctx.accounts.reflection_vault.key(),
-                &ctx.accounts.user_reflection_account.key(),
-                amount_to_transfer,
-            );
-
-            let account_infos = [
-                ctx.accounts.reflection_vault.to_account_info(),
-                ctx.accounts.user_reflection_account.to_account_info(),
-                ctx.accounts.system_program.to_account_info(),
-            ];
-
-            invoke_signed(&transfer_ix, &account_infos, signer_seeds)?;
+            // Manual lamport transfer (works for accounts with data)
+            **ctx.accounts.reflection_vault.try_borrow_mut_lamports()? -= amount_to_transfer;
+            **ctx.accounts.user_reflection_account.try_borrow_mut_lamports()? += amount_to_transfer;
             
             msg!("✅ Native SOL transferred successfully");
             
