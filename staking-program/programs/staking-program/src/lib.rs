@@ -472,7 +472,18 @@ pub mod staking_program {
     require!(stake.project == project_key, ErrorCode::InvalidProject);
     
     update_reward(&mut ctx.accounts.project, stake)?;
-    update_reflection(&mut ctx.accounts.project, stake, ctx.accounts.reflection_vault.as_ref().map(|v| v.to_account_info()).as_ref())?;
+    
+    // Only update reflections if enabled for this pool
+    if ctx.accounts.project.enable_reflections {
+        let reflection_vault_account = if let Some(ref vault) = ctx.accounts.reflection_vault {
+            // SPL token reflections - separate vault provided
+            Some(vault.to_account_info())
+        } else {
+            // Native SOL reflections - use project PDA
+            Some(ctx.accounts.project.to_account_info())
+        };
+        update_reflection(&mut ctx.accounts.project, stake, reflection_vault_account.as_ref())?;
+    }
 
     stake.amount = stake.amount
         .checked_add(actual_received)  // ✅ Use actual_received!
@@ -796,8 +807,18 @@ pub mod staking_program {
 
     let rewards = ctx.accounts.stake.rewards_pending;
     require!(rewards > 0, ErrorCode::NoRewards);
+
+    // Check reward vault balance (handle both Native SOL and SPL)
+    let is_native = is_native_sol(&ctx.accounts.token_mint_account.key());
+    let vault_balance = if is_native {
+        ctx.accounts.reward_vault.lamports()
+    } else {
+        let vault_data = ctx.accounts.reward_vault.try_borrow_data()?;
+        u64::from_le_bytes(vault_data[64..72].try_into().unwrap())
+    };
+
     require!(
-        ctx.accounts.reward_vault.amount >= rewards,
+        vault_balance >= rewards,
         ErrorCode::InsufficientRewardVault
     );
     
@@ -1762,12 +1783,10 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub user_token_account: AccountInfo<'info>,
         
-    #[account(
-        mut,
-        constraint = fee_collector_token_account.owner == platform.fee_collector @ ErrorCode::InvalidFeeCollector
-    )]
-    pub fee_collector_token_account: InterfaceAccount<'info, TokenAccount>,
-    
+    /// CHECK: Can be TokenAccount (SPL) or wallet (Native SOL)
+    #[account(mut)]
+    pub fee_collector_token_account: AccountInfo<'info>,
+        
     /// CHECK: Fee collector wallet
     #[account(mut)]
     pub fee_collector: AccountInfo<'info>,
@@ -1825,12 +1844,10 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub withdrawal_token_account: AccountInfo<'info>,
 
-    #[account(
-        mut,
-        constraint = fee_collector_token_account.owner == platform.fee_collector @ ErrorCode::InvalidFeeCollector
-    )]
-    pub fee_collector_token_account: InterfaceAccount<'info, TokenAccount>,
-    
+    /// CHECK: Can be TokenAccount (SPL) or wallet (Native SOL)
+    #[account(mut)]
+    pub fee_collector_token_account: AccountInfo<'info>,
+        
     /// CHECK: Fee collector wallet
     #[account(mut)]
     pub fee_collector: AccountInfo<'info>,
@@ -1875,15 +1892,10 @@ pub struct Claim<'info> {
     )]
     pub stake: Account<'info, Stake>,
     
-    #[account(
-        mut,
-        seeds = [b"reward_vault", project.key().as_ref()],
-        bump,
-        constraint = reward_vault.mint == token_mint @ ErrorCode::WrongTokenType,
-        constraint = reward_vault.key() == project.reward_vault @ ErrorCode::UnauthorizedVault
-    )]
-    pub reward_vault: InterfaceAccount<'info, TokenAccount>,
-    
+    /// CHECK: Can be TokenAccount (SPL) or wallet (Native SOL)
+    #[account(mut)]
+    pub reward_vault: AccountInfo<'info>,
+        
     /// CHECK: Can be wallet (Native SOL) or TokenAccount (SPL)
     #[account(mut)]
     pub user_token_account: AccountInfo<'info>,
@@ -1983,8 +1995,9 @@ pub struct DepositRewards<'info> {
     #[account(mut)]
     pub reward_vault: AccountInfo<'info>,
     
+    /// CHECK: Can be TokenAccount (SPL) or wallet (Native SOL)
     #[account(mut)]
-    pub admin_token_account: InterfaceAccount<'info, TokenAccount>,
+    pub admin_token_account: AccountInfo<'info>,
     
     pub token_mint_account: InterfaceAccount<'info, Mint>,
     
