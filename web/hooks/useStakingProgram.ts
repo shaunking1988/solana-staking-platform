@@ -80,13 +80,26 @@ export function useStakingProgram() {
     const [stakingVaultPDA] = getPDAs.stakingVault(tokenMintPubkey, poolId);
     const [userStakePDA] = getPDAs.userStake(projectPDA, publicKey);
 
-    // Get user's token account (with correct token program for Token-2022)
-    const userTokenAccount = await getAssociatedTokenAddress(
-      tokenMintPubkey,
-      publicKey,
-      false, // allowOwnerOffCurve
-      tokenProgramId  // ✅ Use detected token program
-    );
+    // ✅ Handle Native SOL vs SPL tokens differently
+    const NATIVE_SOL = "So11111111111111111111111111111111111111112";
+    const isNativeSOL = tokenMint === NATIVE_SOL;
+
+    let userTokenAccount: PublicKey;
+
+    if (isNativeSOL) {
+      // ✅ For Native SOL, use the wallet itself (no ATA)
+      userTokenAccount = publicKey;
+      console.log("✅ Native SOL: Using wallet directly as token account");
+    } else {
+      // ✅ For SPL tokens, get the ATA
+      userTokenAccount = await getAssociatedTokenAddress(
+        tokenMintPubkey,
+        publicKey,
+        false, // allowOwnerOffCurve
+        tokenProgramId  // Use detected token program
+      );
+      console.log("✅ SPL Token: Using ATA as token account");
+    }
 
     // Get fee collector's token account (with correct token program for Token-2022)
     const feeCollectorTokenAccount = await getAssociatedTokenAddress(
@@ -358,13 +371,26 @@ const unstake = async (tokenMint: string, poolId: number = 0, amount?: number) =
   const withdrawalWallet = userStake.withdrawalWallet || publicKey;
   console.log("✅ Withdrawal wallet:", withdrawalWallet.toBase58());
 
-  // Get withdrawal wallet's token account (with correct token program for Token-2022)
-  const withdrawalTokenAccount = await getAssociatedTokenAddress(
-    tokenMintPubkey,
-    withdrawalWallet,
-    false, // allowOwnerOffCurve
-    tokenProgramId  // ✅ Use detected token program
-  );
+  // ✅ Handle Native SOL vs SPL tokens differently
+  const NATIVE_SOL_UNSTAKE = "So11111111111111111111111111111111111111112";
+  const isNativeSOLUnstake = tokenMint === NATIVE_SOL_UNSTAKE;
+
+  let withdrawalTokenAccount: PublicKey;
+
+  if (isNativeSOLUnstake) {
+    // ✅ For Native SOL, use the wallet itself (no ATA)
+    withdrawalTokenAccount = withdrawalWallet;
+    console.log("✅ Native SOL Unstake: Using wallet directly as token account");
+  } else {
+    // ✅ For SPL tokens, get the ATA
+    withdrawalTokenAccount = await getAssociatedTokenAddress(
+      tokenMintPubkey,
+      withdrawalWallet,
+      false, // allowOwnerOffCurve
+      tokenProgramId  // Use detected token program
+    );
+    console.log("✅ SPL Token Unstake: Using ATA as token account");
+  }
   console.log("✅ Withdrawal token account:", withdrawalTokenAccount.toBase58());
 
   // Get fee collector's token account (with correct token program for Token-2022)
@@ -649,13 +675,26 @@ try {
     const userStake = await program.account.stake.fetch(userStakePDA, "confirmed");
     const withdrawalWallet = userStake.withdrawalWallet || publicKey;
 
-    // Get withdrawal wallet's token account (with correct token program for Token-2022)
-    const withdrawalTokenAccount = await getAssociatedTokenAddress(
-      tokenMintPubkey,
-      withdrawalWallet,
-      false, // allowOwnerOffCurve
-      tokenProgramId  // ✅ Use detected token program
-    );
+    // ✅ Handle Native SOL vs SPL tokens differently
+    const NATIVE_SOL_CLAIM = "So11111111111111111111111111111111111111112";
+    const isNativeSOLClaim = tokenMint === NATIVE_SOL_CLAIM;
+
+    let withdrawalTokenAccount: PublicKey;
+
+    if (isNativeSOLClaim) {
+      // ✅ For Native SOL, use the wallet itself (no ATA)
+      withdrawalTokenAccount = withdrawalWallet;
+      console.log("✅ Native SOL Claim: Using wallet directly as token account");
+    } else {
+      // ✅ For SPL tokens, get the ATA
+      withdrawalTokenAccount = await getAssociatedTokenAddress(
+        tokenMintPubkey,
+        withdrawalWallet,
+        false, // allowOwnerOffCurve
+        tokenProgramId  // Use detected token program
+      );
+      console.log("✅ SPL Token Claim: Using ATA as token account");
+    }
 
     // Get fee collector's token account (with correct token program for Token-2022)
     const feeCollectorTokenAccount = await getAssociatedTokenAddress(
