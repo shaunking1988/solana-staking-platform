@@ -220,11 +220,12 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
       const tokenMintPubkey = new PublicKey(selectedToken.mint);
       
       // Check if pool already exists (both on-chain and in database) and find next available poolId
+      // Check if pool already exists (both on-chain and in database) and find next available poolId
       let poolId = 0;
       let poolExists = true;
-      
+
       console.log("🔍 Checking if pool already exists for this token...");
-      
+
       while (poolExists && poolId < 10) { // Max 10 pools per token
         const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
         
@@ -257,7 +258,7 @@ export default function CreatePoolModal({ onClose, onSuccess }: CreatePoolModalP
           poolExists = false;
         }
       }
-      
+
       if (poolExists) {
         throw new Error("Maximum number of pools (10) reached for this token. Please contact support.");
       }
