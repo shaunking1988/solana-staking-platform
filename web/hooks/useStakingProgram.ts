@@ -763,17 +763,12 @@ try {
       userTokenAccount: withdrawalTokenAccount,
       feeCollector: feeCollector,
       referrer: projectReferrer || publicKey,
-      tokenMintAccount: tokenMintPubkey,  // ✅ Add mint account for transfer_checked
+      reflectionVault: reflectionVault || stakingVaultPDA, // ✅ Always include, use stakingVault as fallback
+      tokenMintAccount: tokenMintPubkey,
       user: publicKey,
-      tokenProgram: tokenProgramId,  // ✅ Use detected token program
+      tokenProgram: tokenProgramId,
       systemProgram: SystemProgram.programId,
     };
-
-    // ✅ Include reflection vault if reflections are enabled for this project
-    if (reflectionVault) {
-      accounts.reflectionVault = reflectionVault;
-      console.log("✅ Including reflection vault in claim accounts:", reflectionVault.toString());
-    }
 
     try {
       // Check if withdrawal token account exists; create if it doesn't
