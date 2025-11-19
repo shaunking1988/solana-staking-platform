@@ -176,7 +176,7 @@ pub mod staking_program {
         
         require!(!project.is_initialized, ErrorCode::AlreadyInitialized);
         require!(
-            params.pool_duration_seconds > 0,  // ✅ NO .is_some() or .unwrap()
+            params.pool_duration_seconds > 0,
             ErrorCode::InvalidPoolDuration
         );
         
@@ -209,10 +209,10 @@ pub mod staking_program {
         project.rate_mode = params.rate_mode;
         project.rate_bps_per_year = params.rate_bps_per_year;
         project.lockup_seconds = params.lockup_seconds;
-        project.pool_duration_seconds = params.pool_duration_seconds;  // ✅ Direct assignment
+        project.pool_duration_seconds = params.pool_duration_seconds;
         project.pool_start_time = current_time;
         project.pool_end_time = current_time
-            .checked_add(params.pool_duration_seconds as i64)  // ✅ NO .unwrap()
+            .checked_add(params.pool_duration_seconds as i64)
             .ok_or(ErrorCode::MathOverflow)?;
         
         project.last_update_time = current_time;
@@ -269,6 +269,10 @@ pub mod staking_program {
                 msg!("   Project PDA: {}", project.key());
                 msg!("   No separate account creation needed");
                 
+                // ✅ CRITICAL FIX: Store Project PDA as reflection vault
+                project.reflection_vault = Some(project.key());
+                msg!("✅ Stored Project PDA as reflection vault: {}", project.key());
+                
             } else {
                 // ✅ CASE 2 & 3: SPL/Token-2022 reflections (external or self)
                 msg!("✅ SPL/Token-2022 reflections enabled");
@@ -281,7 +285,6 @@ pub mod staking_program {
                 msg!("   Reflection token: {}", reflection_token);
                 msg!("   Owner: Project PDA ({})", project.key());
                 
-                let project_key = project.key();
                 let bump = project.bump;
                 let pool_id_bytes = pool_id.to_le_bytes();
                 
@@ -294,7 +297,6 @@ pub mod staking_program {
                 let signer_seeds = &[&seeds[..]];
                 
                 // ✅ Create standard ATA owned by Project PDA using CPI
-                // Unwrap the optional accounts (they must exist if we're here)
                 let reflection_token_account = ctx.accounts.reflection_token_account.as_ref()
                     .ok_or(ErrorCode::ReflectionVaultRequired)?;
                 let reflection_token_mint = ctx.accounts.reflection_token_mint.as_ref()
@@ -307,7 +309,7 @@ pub mod staking_program {
                 let cpi_accounts = CreateAssociatedToken {
                     payer: ctx.accounts.admin.to_account_info(),
                     associated_token: reflection_token_account.to_account_info(),
-                    authority: project.to_account_info(),  // ✅ Use the mutable ref from line 175
+                    authority: project.to_account_info(),
                     mint: reflection_token_mint.to_account_info(),
                     system_program: ctx.accounts.system_program.to_account_info(),
                     token_program: reflection_token_program.to_account_info(),
@@ -322,6 +324,10 @@ pub mod staking_program {
                 create_ata(cpi_ctx)?;
 
                 msg!("✅ Reflection Vault ATA created: {}", reflection_token_account.key());
+                
+                // ✅ CRITICAL FIX: Store the reflection vault address
+                project.reflection_vault = Some(reflection_token_account.key());
+                msg!("✅ Stored reflection vault in project: {}", reflection_token_account.key());
             }
         } else {
             msg!("ℹ️ Reflections disabled for this pool");
@@ -337,14 +343,14 @@ pub mod staking_program {
             rate_bps_per_year: params.rate_bps_per_year,
             rate_mode: params.rate_mode,
             lockup_seconds: params.lockup_seconds,
-            pool_duration_seconds: params.pool_duration_seconds,  // ✅ NO .unwrap()
+            pool_duration_seconds: params.pool_duration_seconds,
             reflections_enabled: params.enable_reflections,
         });
         
         msg!("✅ Pool initialized successfully");
         msg!("   Rate mode: {}", project.rate_mode);
         msg!("   Lock period: {} seconds", project.lockup_seconds);
-        msg!("   Pool duration: {} seconds", params.pool_duration_seconds);  // ✅ NO .unwrap()
+        msg!("   Pool duration: {} seconds", params.pool_duration_seconds);
 
         Ok(())
     }
@@ -2147,7 +2153,7 @@ pub struct Project {
     pub pool_id: u64,
     pub staking_vault: Pubkey,
     pub reward_vault: Pubkey,
-    // pub reflection_vault: Option<Pubkey>,  // ❌ REMOVED - no longer needed
+    pub reflection_vault: Option<Pubkey>,
     pub reflection_token: Option<Pubkey>,
     
     pub total_staked: u64,
