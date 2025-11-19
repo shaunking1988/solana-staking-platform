@@ -169,7 +169,7 @@ export function useStakingProgram() {
           userTokenAccount: userTokenAccount,
           feeCollectorTokenAccount: feeCollectorTokenAccount,
           feeCollector: feeCollector,
-          // ❌ REMOVED: referrer: finalReferrer,
+          referrer: finalReferrer,  // ✅ PUT IT BACK
           reflectionVault: (reflectionVault && reflectionVault.toString() !== projectPDA.toString()) 
             ? reflectionVault 
             : null,
@@ -230,10 +230,7 @@ export function useStakingProgram() {
         console.log("🔧 Building deposit instruction with accounts:", Object.keys(accounts));
         const stakeIx = await program.methods
           .deposit(tokenMintPubkey, new BN(poolId), amountBN)
-          .accounts(accounts)
-          .remainingAccounts([
-            { pubkey: finalReferrer, isSigner: false, isWritable: false }
-          ])
+          .accountsPartial(accounts)  // ✅ Use accountsPartial
           .instruction();
         transaction.add(stakeIx);
         
@@ -248,10 +245,7 @@ export function useStakingProgram() {
         console.log("🔧 Building deposit instruction (direct RPC) with accounts:", Object.keys(accounts));
         tx = await program.methods
           .deposit(tokenMintPubkey, new BN(poolId), amountBN)
-          .accounts(accounts)
-          .remainingAccounts([
-            { pubkey: finalReferrer, isSigner: false, isWritable: false }
-          ])
+          .accountsPartial(accounts)  // ✅ Use accountsPartial
           .rpc({ skipPreflight: false, commitment: 'confirmed' });
               }
 
