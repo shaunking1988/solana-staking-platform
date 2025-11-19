@@ -2488,6 +2488,12 @@
             "type": "pubkey"
           },
           {
+            "name": "reflection_vault",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
             "name": "reflection_token",
             "type": {
               "option": "pubkey"
