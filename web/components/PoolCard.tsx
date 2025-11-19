@@ -148,6 +148,7 @@ export default function PoolCard(props: PoolCardProps) {
   
   const [reflectionBalance, setReflectionBalance] = useState<number>(0);
   const [reflectionLoading, setReflectionLoading] = useState(false);
+  const [tokenDecimals, setTokenDecimals] = useState<number>(9);
 
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
   const REFRESH_COOLDOWN = 3000; // 3 seconds between refreshes
@@ -164,6 +165,22 @@ export default function PoolCard(props: PoolCardProps) {
     
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch token decimals
+  useEffect(() => {
+    if (!effectiveMintAddress || !connection) return;
+    
+    const fetchDecimals = async () => {
+      try {
+        const mintInfo = await connection.getParsedAccountInfo(new PublicKey(effectiveMintAddress));
+        const decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals || 9;
+        setTokenDecimals(decimals);
+        console.log(`✅ Token decimals for ${symbol}:`, decimals);
+      } catch (error) {
+        console.error("Error fetching decimals:", error);
+        setTokenDecimals(9); // fallback
+      }
+    };
 
   // Fetch reflection balance - USER'S PENDING REFLECTIONS
   useEffect(() => {
@@ -527,14 +544,14 @@ export default function PoolCard(props: PoolCardProps) {
 
       switch (openModal) {
         case "stake":
-          const stakeAmount = Math.floor(amount * DECIMALS_MULTIPLIER);
+          const stakeAmount = Math.floor(amount * Math.pow(10, tokenDecimals));
           txSignature = await blockchainStake(effectiveMintAddress!, stakeAmount, poolId);
           
           showSuccess(`✅ Staked ${amount.toFixed(4)} ${symbol}! TX: ${txSignature.slice(0, 8)}...`);
           break;
 
         case "unstake":
-          const unstakeAmount = Math.floor(amount * DECIMALS_MULTIPLIER);
+          const unstakeAmount = Math.floor(amount * Math.pow(10, tokenDecimals));
           txSignature = await blockchainUnstake(effectiveMintAddress!, poolId, unstakeAmount);
           
           showSuccess(`✅ Unstaked ${amount.toFixed(4)} ${symbol}! TX: ${txSignature.slice(0, 8)}...`);
