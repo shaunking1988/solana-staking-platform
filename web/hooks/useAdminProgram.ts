@@ -114,10 +114,17 @@ const sendTransactionWithFreshBlockhash = async (
     let reflectionInfo = null;
     if (projectData.reflectionToken) {
       const reflectionTokenMint = projectData.reflectionToken as PublicKey;
-      
-      // ✅ Check if Native SOL
-      const NATIVE_SOL = "So11111111111111111111111111111111111111112";
-      const isNativeSOL = reflectionTokenMint.toString() === NATIVE_SOL;
+
+    // ✅ Check if Native SOL
+    const NATIVE_SOL = "So11111111111111111111111111111111111111112";
+    const reflectionMintStr = reflectionTokenMint.toString();
+
+    console.log("🔍 [REFLECTION TYPE CHECK]");
+    console.log("   Mint from blockchain:", reflectionMintStr);
+    console.log("   Native SOL constant:", NATIVE_SOL);
+    console.log("   Are they equal?", reflectionMintStr === NATIVE_SOL);
+
+    const isNativeSOL = reflectionMintStr === NATIVE_SOL;
       
       let reflectionBalance = 0;
       let reflectionExists = false;
