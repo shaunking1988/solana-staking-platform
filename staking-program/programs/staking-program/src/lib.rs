@@ -403,9 +403,18 @@ pub mod staking_program {
             .checked_sub(token_fee)
             .ok_or(ErrorCode::MathOverflow)?;
         
-        // ✅ Get vault balance BEFORE transfer to detect transfer tax
-        let vault_balance_before = ctx.accounts.staking_vault.amount;
-        
+        // ✅ Detect if Native SOL or SPL token
+        let is_native = is_native_sol(&ctx.accounts.token_mint_account.key());
+
+        // ✅ Get vault balance BEFORE transfer (handle both Native SOL and SPL)
+        let vault_balance_before = if is_native {
+            ctx.accounts.staking_vault.lamports()
+        } else {
+            // For SPL tokens, read amount from TokenAccount data
+            let vault_data = ctx.accounts.staking_vault.try_borrow_data()?;
+            u64::from_le_bytes(vault_data[64..72].try_into().unwrap())
+        };
+
         // ✅ Transfer tokens to staking vault (supports SPL, Token-2022, Native SOL)
         // Tax will be applied automatically by token program if token has transfer tax
         transfer_tokens(
@@ -418,10 +427,16 @@ pub mod staking_program {
             amount_after_fee,
             None,
         )?;
-        
-        // ✅ Reload vault to get ACTUAL amount received (accounts for transfer tax)
-        ctx.accounts.staking_vault.reload()?;
-        let vault_balance_after = ctx.accounts.staking_vault.amount;
+
+        // ✅ Get vault balance AFTER transfer (handle both Native SOL and SPL)
+        let vault_balance_after = if is_native {
+            ctx.accounts.staking_vault.lamports()
+        } else {
+            // For SPL tokens, read amount from TokenAccount data
+            let vault_data = ctx.accounts.staking_vault.try_borrow_data()?;
+            u64::from_le_bytes(vault_data[64..72].try_into().unwrap())
+        };
+
         let actual_received = vault_balance_after
             .checked_sub(vault_balance_before)
             .ok_or(ErrorCode::MathOverflow)?;
@@ -1082,9 +1097,18 @@ pub mod staking_program {
     
     let project_key = ctx.accounts.project.key();
     
-    // ✅ Get vault balance BEFORE transfer to detect transfer tax
-    let reward_vault_balance_before = ctx.accounts.reward_vault.amount;
-    
+    // ✅ Detect if Native SOL or SPL token
+    let is_native = is_native_sol(&ctx.accounts.token_mint_account.key());
+
+    // ✅ Get vault balance BEFORE transfer (handle both Native SOL and SPL)
+    let reward_vault_balance_before = if is_native {
+        ctx.accounts.reward_vault.lamports()
+    } else {
+        // For SPL tokens, read amount from TokenAccount data
+        let vault_data = ctx.accounts.reward_vault.try_borrow_data()?;
+        u64::from_le_bytes(vault_data[64..72].try_into().unwrap())
+    };
+
     // ✅ Transfer rewards to vault (supports SPL, Token-2022, Native SOL)
     // Tax will be applied automatically by token program if token has transfer tax
     transfer_tokens(
@@ -1097,10 +1121,16 @@ pub mod staking_program {
         amount,
         None,
     )?;
-    
-    // ✅ Reload vault to get ACTUAL amount received (accounts for transfer tax)
-    ctx.accounts.reward_vault.reload()?;
-    let reward_vault_balance_after = ctx.accounts.reward_vault.amount;
+
+    // ✅ Get vault balance AFTER transfer (handle both Native SOL and SPL)
+    let reward_vault_balance_after = if is_native {
+        ctx.accounts.reward_vault.lamports()
+    } else {
+        // For SPL tokens, read amount from TokenAccount data
+        let vault_data = ctx.accounts.reward_vault.try_borrow_data()?;
+        u64::from_le_bytes(vault_data[64..72].try_into().unwrap())
+    };
+
     let actual_received = reward_vault_balance_after
         .checked_sub(reward_vault_balance_before)
         .ok_or(ErrorCode::MathOverflow)?;
@@ -1724,14 +1754,9 @@ pub struct Deposit<'info> {
     )]
     pub stake: Account<'info, Stake>,
     
-    #[account(
-        mut,
-        seeds = [b"staking_vault", project.key().as_ref()],
-        bump,
-        constraint = staking_vault.mint == token_mint @ ErrorCode::WrongTokenType,
-        constraint = staking_vault.key() == project.staking_vault @ ErrorCode::UnauthorizedVault
-    )]
-    pub staking_vault: InterfaceAccount<'info, TokenAccount>,
+    /// CHECK: Can be TokenAccount (SPL) or wallet (Native SOL)
+    #[account(mut)]
+    pub staking_vault: AccountInfo<'info>,
     
     /// CHECK: Can be wallet (Native SOL) or TokenAccount (SPL)
     #[account(mut)]
@@ -1954,14 +1979,9 @@ pub struct DepositRewards<'info> {
     )]
     pub project: Box<Account<'info, Project>>,
     
-    #[account(
-        mut,
-        seeds = [b"reward_vault", project.key().as_ref()],
-        bump,
-        constraint = reward_vault.mint == token_mint @ ErrorCode::WrongTokenType,
-        constraint = reward_vault.key() == project.reward_vault @ ErrorCode::UnauthorizedVault
-    )]
-    pub reward_vault: InterfaceAccount<'info, TokenAccount>,
+    /// CHECK: Can be TokenAccount (SPL) or wallet (Native SOL)
+    #[account(mut)]
+    pub reward_vault: AccountInfo<'info>,
     
     #[account(mut)]
     pub admin_token_account: InterfaceAccount<'info, TokenAccount>,
