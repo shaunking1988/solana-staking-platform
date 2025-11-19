@@ -44,7 +44,7 @@ async function waitForRpcSlot() {
 
 const CACHE_DURATION = 120000; // 2 minutes
 const TOKEN_DECIMALS = 9;
-const DECIMALS_MULTIPLIER = Math.pow(10, TOKEN_DECIMALS);
+const decimalsMultiplier = Math.pow(10, TOKEN_DECIMALS);
 
 interface PoolCardProps {
   id: string;
@@ -149,6 +149,8 @@ export default function PoolCard(props: PoolCardProps) {
   const [reflectionBalance, setReflectionBalance] = useState<number>(0);
   const [reflectionLoading, setReflectionLoading] = useState(false);
   const [tokenDecimals, setTokenDecimals] = useState<number>(9);
+  const decimalsMultiplier = useMemo(() => Math.pow(10, tokenDecimals), [tokenDecimals]);
+
 
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
   const REFRESH_COOLDOWN = 3000; // 3 seconds between refreshes
@@ -263,7 +265,7 @@ export default function PoolCard(props: PoolCardProps) {
                                   
         console.log(`🔍 [${name}] Reflection Calculation:`, {
           userStakedLamports: userStakedLamports,
-          userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
+          userStakedTokens: userStakedLamports / decimalsMultiplier,
           currentRate: currentReflectionPerToken,
           pendingLamports: pendingReflectionsLamports,
           pendingTokens: pendingReflections,
@@ -367,7 +369,7 @@ export default function PoolCard(props: PoolCardProps) {
         const userStake = await getUserStake(effectiveMintAddress, poolId);
         
         if (userStake) {
-          setUserStakedAmount(userStake.amount.toNumber() / DECIMALS_MULTIPLIER);
+          setUserStakedAmount(userStake.amount.toNumber() / decimalsMultiplier);
           setUserStakeTimestamp(userStake.lastStakeTimestamp?.toNumber() || 0);
           setStakeData(userStake);
         } else {
@@ -601,7 +603,7 @@ export default function PoolCard(props: PoolCardProps) {
           const project = await getProjectInfo(effectiveMintAddress!, poolId);
           
           if (userStake) {
-            setUserStakedAmount(userStake.amount.toNumber() / DECIMALS_MULTIPLIER);
+            setUserStakedAmount(userStake.amount.toNumber() / decimalsMultiplier);
             setUserStakeTimestamp(userStake.lastStakeTimestamp?.toNumber() || 0);
             setStakeData(userStake);
           }
@@ -674,7 +676,7 @@ export default function PoolCard(props: PoolCardProps) {
           try {
             const userStake = await getUserStake(effectiveMintAddress!, poolId);
             if (userStake) {
-              setUserStakedAmount(userStake.amount.toNumber() / DECIMALS_MULTIPLIER);
+              setUserStakedAmount(userStake.amount.toNumber() / decimalsMultiplier);
               setUserStakeTimestamp(userStake.lastStakeTimestamp?.toNumber() || 0);
               setStakeData(userStake);
             }
@@ -784,7 +786,7 @@ export default function PoolCard(props: PoolCardProps) {
       const project = await getProjectInfo(effectiveMintAddress, poolId);
       
       if (userStake) {
-        setUserStakedAmount(userStake.amount.toNumber() / DECIMALS_MULTIPLIER);
+        setUserStakedAmount(userStake.amount.toNumber() / decimalsMultiplier);
         setUserStakeTimestamp(userStake.lastStakeTimestamp?.toNumber() || 0);
         setStakeData(userStake);
       }
@@ -831,7 +833,7 @@ export default function PoolCard(props: PoolCardProps) {
                                           
           console.log(`🔍 [REVSHARE] Reflection Calculation After Refresh:`, {
             userStakedLamports,
-            userStakedTokens: userStakedLamports / DECIMALS_MULTIPLIER,
+            userStakedTokens: userStakedLamports / decimalsMultiplier,
             currentRate: currentReflectionPerToken,
             pendingLamports: pendingReflectionsLamports,
             pendingTokens: pendingReflections,
