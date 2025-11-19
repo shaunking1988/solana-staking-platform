@@ -1044,7 +1044,7 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
         tokenMint: tokenMint,
         poolId: pool?.poolId ?? 0,
         rateBpsPerYear: apy * 100,
-        rateMode: lockPeriod > 0 ? 0 : 1,
+        rateMode: pool?.rateMode ?? (lockPeriod > 0 ? 0 : 1),  // ✅ Read from database, fallback to old logic
         lockupSeconds: lockPeriod * 86400,
         poolDurationSeconds: duration * 86400,
         referrer: referralEnabled ? referralWallet : null,
@@ -1247,13 +1247,13 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
   return (
     <div className="space-y-4">
       {successMsg && (
-        <div className="bg-green-600 text-white px-4 py-2 rounded animate-pulse">{successMsg}</div>
+        <div className="bg-green-500/20 border border-green-500/50 text-green-300 px-4 py-2 rounded-lg animate-pulse">{successMsg}</div>
       )}
       {errorMsg && (
-        <div className="bg-red-600 text-white px-4 py-2 rounded animate-pulse">{errorMsg}</div>
+        <div className="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-2 rounded-lg animate-pulse">{errorMsg}</div>
       )}
 
-      <div className="bg-blue-900/30 border border-blue-500/50 rounded-lg p-4">
+      <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-4 hover:bg-white/[0.04] transition-all">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-blue-300 flex items-center gap-2">
             <Search className="w-5 h-5" />
@@ -1307,7 +1307,7 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
         </div>
         
         {poolStatus && (
-          <div className="mt-3 p-4 bg-slate-800 rounded-lg border border-slate-700">
+          <div className="mt-3 p-4 bg-white/[0.03] rounded-lg border border-white/[0.05]">
             {poolStatus.initialized ? (
               <div className="space-y-2">
                 <div className="text-green-400 font-bold text-lg mb-3 flex items-center gap-2">
@@ -1382,7 +1382,7 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
         </div>
         
         {tokenBalance !== null && (
-          <div className="mt-3 p-4 bg-slate-800 rounded-lg border border-slate-700">
+          <div className="mt-3 p-4 bg-white/[0.03] rounded-lg border border-white/[0.05]">
             <div className="text-center">
               <div className="text-3xl font-bold text-green-400 mb-2">
                 {tokenBalance}
@@ -1419,9 +1419,9 @@ export default function AdvancedPoolControls({ pool, onUpdate }: { pool: Pool; o
         </div>
         
         {rewardVaultBalance !== null && (
-          <div className="mt-3 p-4 bg-slate-800 rounded-lg border border-slate-700">
+          <div className="mt-3 p-4 bg-white/[0.03] rounded-lg border border-white/[0.05]">
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-400 mb-2">
+              <div className="text-3xl font-bold text-[#fb57ff] mb-2">
                 {rewardVaultBalance}
               </div>
               <div className="text-sm text-gray-400">
@@ -1508,7 +1508,7 @@ ${calculatedPerToken > storedPerToken
         </div>
         
         {loadingVaultInfo && (
-          <div className="mt-3 p-4 bg-slate-800 rounded-lg border border-slate-700">
+          <div className="mt-3 p-4 bg-white/[0.03] rounded-lg border border-white/[0.05]">
             <div className="animate-pulse space-y-3">
               <div className="h-4 bg-gray-700 rounded"></div>
               <div className="h-4 bg-gray-700 rounded"></div>
@@ -1520,9 +1520,9 @@ ${calculatedPerToken > storedPerToken
         {vaultInfo && !loadingVaultInfo && (
           <div className="mt-3 space-y-3">
             {/* Staking Vault */}
-            <div className="p-4 bg-slate-800 rounded-lg border border-blue-500/30">
+            <div className="p-4 bg-white/[0.03] rounded-lg border border-blue-500/30">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-blue-400 font-bold">Staking Vault</h4>
+                <h4 className="text-[#fb57ff] font-bold">Staking Vault</h4>
                 <span className={`px-2 py-1 rounded text-xs font-semibold ${
                   vaultInfo.stakingVault.exists 
                     ? "bg-green-900 text-green-300" 
@@ -1559,7 +1559,7 @@ ${calculatedPerToken > storedPerToken
                   href={`https://explorer.solana.com/address/${vaultInfo.stakingVault.address}?cluster=devnet`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 mt-2"
+                  className="inline-flex items-center gap-1 text-xs text-[#fb57ff] hover:text-blue-300 mt-2"
                 >
                   View on Explorer ↗
                 </a>
@@ -1567,9 +1567,9 @@ ${calculatedPerToken > storedPerToken
             </div>
 
             {/* Reward Vault */}
-            <div className="p-4 bg-slate-800 rounded-lg border border-purple-500/30">
+            <div className="p-4 bg-white/[0.03] rounded-lg border border-purple-500/30">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-purple-400 font-bold">Reward Vault</h4>
+                <h4 className="text-[#fb57ff] font-bold">Reward Vault</h4>
                 <span className={`px-2 py-1 rounded text-xs font-semibold ${
                   vaultInfo.rewardVault.exists 
                     ? "bg-green-900 text-green-300" 
@@ -1606,7 +1606,7 @@ ${calculatedPerToken > storedPerToken
                   href={`https://explorer.solana.com/address/${vaultInfo.rewardVault.address}?cluster=devnet`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 mt-2"
+                  className="inline-flex items-center gap-1 text-xs text-[#fb57ff] hover:text-purple-300 mt-2"
                 >
                   View on Explorer ↗
                 </a>
@@ -1614,7 +1614,7 @@ ${calculatedPerToken > storedPerToken
             </div>
 
             {/* Reflection Vault */}
-            <div className="p-4 bg-slate-800 rounded-lg border border-yellow-500/30">
+            <div className="p-4 bg-white/[0.03] rounded-lg border border-yellow-500/30">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-yellow-400 font-bold">Reflection Vault</h4>
                 <span className={`px-2 py-1 rounded text-xs font-semibold ${
@@ -1786,7 +1786,7 @@ ${calculatedPerToken > storedPerToken
         </div>
       )}
 
-      <div className="bg-slate-700 rounded-lg p-4 text-sm">
+      <div className="bg-white/[0.04] rounded-lg p-4 text-sm">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div>
             <span className="text-gray-400">Status:</span>
@@ -1822,7 +1822,7 @@ ${calculatedPerToken > storedPerToken
             <button
               onClick={handleCreateProject}
               disabled={isProcessing}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition-colors disabled:opacity-50"
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-[#fb57ff] hover:bg-[#fb57ff]/90 rounded-lg text-sm transition-colors disabled:opacity-50"
             >
               <Play className="w-4 h-4" />
               1. Create Project
@@ -1852,7 +1852,7 @@ ${calculatedPerToken > storedPerToken
         <button
           onClick={() => setActiveModal("updateParams")}
           disabled={isProcessing}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition-colors disabled:opacity-50"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-[#fb57ff] hover:bg-[#fb57ff]/90 rounded-lg text-sm transition-colors disabled:opacity-50"
         >
           <TrendingUp className="w-4 h-4" />
           Update APY
@@ -1861,7 +1861,7 @@ ${calculatedPerToken > storedPerToken
         <button
           onClick={() => setActiveModal("duration")}
           disabled={isProcessing}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-colors disabled:opacity-50"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-[#fb57ff] hover:bg-[#fb57ff]/90 rounded-lg text-sm transition-colors disabled:opacity-50"
         >
           <Clock className="w-4 h-4" />
           Duration
@@ -1879,7 +1879,7 @@ ${calculatedPerToken > storedPerToken
         <button
           onClick={() => setActiveModal("fees")}
           disabled={isProcessing}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition-colors disabled:opacity-50"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-[#fb57ff] hover:bg-[#fb57ff]/90 rounded-lg text-sm transition-colors disabled:opacity-50"
         >
           <SettingsIcon className="w-4 h-4" />
           Fees
@@ -1888,7 +1888,7 @@ ${calculatedPerToken > storedPerToken
         <button
           onClick={() => setActiveModal("referral")}
           disabled={isProcessing}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-colors disabled:opacity-50"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-[#fb57ff] hover:bg-[#fb57ff]/90 rounded-lg text-sm transition-colors disabled:opacity-50"
         >
           <Users className="w-4 h-4" />
           Referral
@@ -1955,7 +1955,7 @@ ${calculatedPerToken > storedPerToken
 
 {activeModal && (
   <div className="fixed inset-0 flex items-center justify-center bg-black/70 z-50 p-4">
-    <div className="bg-slate-800 p-6 rounded-xl shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div className="bg-white/[0.03] p-6 rounded-xl shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
       
      {activeModal === "initialize" && (
   <>
@@ -1978,7 +1978,7 @@ ${calculatedPerToken > storedPerToken
           step="0.1"
           value={apy}
           onChange={(e) => setApy(Number(e.target.value))}
-          className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+          className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
         />
       </div>
       <div>
@@ -1987,7 +1987,7 @@ ${calculatedPerToken > storedPerToken
           type="number"
           value={lockPeriod}
           onChange={(e) => setLockPeriod(Number(e.target.value))}
-          className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+          className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
         />
       </div>
       <div>
@@ -1996,12 +1996,12 @@ ${calculatedPerToken > storedPerToken
           type="number"
           value={duration}
           onChange={(e) => setDuration(Number(e.target.value))}
-          className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+          className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
         />
       </div>
 
       {/* ✅ NEW: Pool Fee Settings */}
-      <div className="border-t border-slate-700 pt-3 mt-3">
+      <div className="border-t border-white/[0.05] pt-3 mt-3">
         <h3 className="text-sm font-semibold text-purple-300 mb-2">💰 Pool Fee Settings</h3>
         <p className="text-xs text-gray-400 mb-3">These fees apply only to this pool</p>
         <div className="space-y-2">
@@ -2014,7 +2014,7 @@ ${calculatedPerToken > storedPerToken
               max="10"
               value={platformFee}
               onChange={(e) => setPlatformFee(Number(e.target.value))}
-              className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+              className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
             />
             <p className="text-xs text-gray-500 mt-1">Applied to deposits and withdrawals</p>
           </div>
@@ -2026,14 +2026,14 @@ ${calculatedPerToken > storedPerToken
               min="0"
               value={flatFee}
               onChange={(e) => setFlatFee(Number(e.target.value))}
-              className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+              className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
             />
             <p className="text-xs text-gray-500 mt-1">Applied to all operations</p>
           </div>
         </div>
       </div>
 
-      <div className="border-t border-slate-700 pt-3">
+      <div className="border-t border-white/[0.05] pt-3">
         <p className="text-xs text-gray-400 mb-2">UI Validation Only:</p>
         <div className="grid grid-cols-2 gap-2">
           <div>
@@ -2042,7 +2042,7 @@ ${calculatedPerToken > storedPerToken
               type="number"
               value={minStake}
               onChange={(e) => setMinStake(Number(e.target.value))}
-              className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+              className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
             />
           </div>
           <div>
@@ -2051,12 +2051,12 @@ ${calculatedPerToken > storedPerToken
               type="number"
               value={maxStake}
               onChange={(e) => setMaxStake(Number(e.target.value))}
-              className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+              className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
             />
           </div>
         </div>
       </div>
-      <div className="border-t border-slate-700 pt-3">
+      <div className="border-t border-white/[0.05] pt-3">
         <label className="flex items-center gap-2 cursor-pointer mb-2">
           <input
             type="checkbox"
@@ -2073,19 +2073,19 @@ ${calculatedPerToken > storedPerToken
               value={referralWallet}
               onChange={(e) => setReferralWallet(e.target.value)}
               placeholder="Referrer wallet"
-              className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700 text-xs"
+              className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700 text-xs"
             />
             <input
               type="number"
               value={referralSplit}
               onChange={(e) => setReferralSplit(Number(e.target.value))}
               placeholder="Split %"
-              className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+              className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
             />
           </div>
         )}
       </div>
-      <div className="border-t border-slate-700 pt-3">
+      <div className="border-t border-white/[0.05] pt-3">
         <label className="flex items-center gap-2 cursor-pointer mb-2">
           <input
             type="checkbox"
@@ -2100,7 +2100,7 @@ ${calculatedPerToken > storedPerToken
             <select
               value={reflectionType}
               onChange={(e) => setReflectionType(e.target.value as "self" | "external")}
-              className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700 text-sm"
+              className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700 text-sm"
             >
               <option value="self">Self</option>
               <option value="external">External</option>
@@ -2111,7 +2111,7 @@ ${calculatedPerToken > storedPerToken
                 value={externalReflectionMint}
                 onChange={(e) => setExternalReflectionMint(e.target.value)}
                 placeholder="Token mint"
-                className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700 text-xs"
+                className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700 text-xs"
               />
             )}
           </div>
@@ -2147,7 +2147,7 @@ ${calculatedPerToken > storedPerToken
                 step="0.1"
                 value={apy}
                 onChange={(e) => setApy(Number(e.target.value))}
-                className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+                className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
               />
             </div>
             <div>
@@ -2156,7 +2156,7 @@ ${calculatedPerToken > storedPerToken
                 type="number"
                 value={lockPeriod}
                 onChange={(e) => setLockPeriod(Number(e.target.value))}
-                className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+                className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
               />
             </div>
           </div>
@@ -2164,7 +2164,7 @@ ${calculatedPerToken > storedPerToken
             <button
               onClick={handleUpdateParams}
               disabled={isProcessing}
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-[#fb57ff] hover:bg-[#fb57ff]/90 rounded disabled:opacity-50"
             >
               {isProcessing ? "⏳ Updating..." : "Update"}
             </button>
@@ -2185,7 +2185,7 @@ ${calculatedPerToken > storedPerToken
                 type="number"
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+                className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
               />
             </div>
           </div>
@@ -2193,7 +2193,7 @@ ${calculatedPerToken > storedPerToken
             <button
               onClick={handleUpdateDuration}
               disabled={isProcessing}
-              className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-[#fb57ff] hover:bg-[#fb57ff]/90 rounded disabled:opacity-50"
             >
               {isProcessing ? "⏳ Updating..." : "Update"}
             </button>
@@ -2220,7 +2220,7 @@ ${calculatedPerToken > storedPerToken
                 value={rewardAmount}
                 onChange={(e) => setRewardAmount(Number(e.target.value))}
                 disabled={isProcessing}
-                className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700 disabled:opacity-50"
+                className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700 disabled:opacity-50"
               />
               <p className="text-xs text-gray-500 mt-1">
                 Will deposit: {(rewardAmount * 1_000_000_000).toLocaleString()} lamports
@@ -2265,7 +2265,7 @@ ${calculatedPerToken > storedPerToken
                 step="0.1"
                 value={platformFee}
                 onChange={(e) => setPlatformFee(Number(e.target.value))}
-                className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+                className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
               />
             </div>
             <div>
@@ -2275,7 +2275,7 @@ ${calculatedPerToken > storedPerToken
                 step="0.001"
                 value={flatFee}
                 onChange={(e) => setFlatFee(Number(e.target.value))}
-                className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+                className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
               />
             </div>
           </div>
@@ -2283,7 +2283,7 @@ ${calculatedPerToken > storedPerToken
             <button
               onClick={handleUpdateFees}
               disabled={isProcessing}
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-[#fb57ff] hover:bg-[#fb57ff]/90 rounded disabled:opacity-50"
             >
               {isProcessing ? "⏳ Updating..." : "Update"}
             </button>
@@ -2315,7 +2315,7 @@ ${calculatedPerToken > storedPerToken
                     type="text"
                     value={referralWallet}
                     onChange={(e) => setReferralWallet(e.target.value)}
-                    className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+                    className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
                   />
                 </div>
                 <div>
@@ -2324,7 +2324,7 @@ ${calculatedPerToken > storedPerToken
                     type="number"
                     value={referralSplit}
                     onChange={(e) => setReferralSplit(Number(e.target.value))}
-                    className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+                    className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
                   />
                 </div>
               </div>
@@ -2334,7 +2334,7 @@ ${calculatedPerToken > storedPerToken
             <button
               onClick={handleUpdateReferral}
               disabled={isProcessing}
-              className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-[#fb57ff] hover:bg-[#fb57ff]/90 rounded disabled:opacity-50"
             >
               {isProcessing ? "⏳ Updating..." : "Update"}
             </button>
@@ -2358,7 +2358,7 @@ ${calculatedPerToken > storedPerToken
                 type="text"
                 value={newAdminWallet}
                 onChange={(e) => setNewAdminWallet(e.target.value)}
-                className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+                className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
               />
             </div>
           </div>
@@ -2400,7 +2400,7 @@ ${calculatedPerToken > storedPerToken
             </div>
           </div>
           
-          <div className="mb-6 p-4 bg-slate-800 rounded-lg">
+          <div className="mb-6 p-4 bg-white/[0.03] rounded-lg">
             <p className="text-gray-300 text-sm mb-2">Current Pool Stats:</p>
             <div className="space-y-1 text-xs">
               <div className="flex justify-between">
@@ -2452,7 +2452,7 @@ ${calculatedPerToken > storedPerToken
                   <select
                     value={reflectionType}
                     onChange={(e) => setReflectionType(e.target.value as "self" | "external")}
-                    className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+                    className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
                   >
                     <option value="self">Self</option>
                     <option value="external">External</option>
@@ -2465,7 +2465,7 @@ ${calculatedPerToken > storedPerToken
                       type="text"
                       value={externalReflectionMint}
                       onChange={(e) => setExternalReflectionMint(e.target.value)}
-                      className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+                      className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
                     />
                   </div>
                 )}
@@ -2517,7 +2517,7 @@ ${calculatedPerToken > storedPerToken
                 value={emergencyUserWallet}
                 onChange={(e) => setEmergencyUserWallet(e.target.value)}
                 placeholder="User wallet address"
-                className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+                className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
               />
             </div>
           </div>
@@ -2551,7 +2551,7 @@ ${calculatedPerToken > storedPerToken
               <select
                 value={vaultType}
                 onChange={(e) => setVaultType(e.target.value as any)}
-                className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+                className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
               >
                 <option value="staking">Staking</option>
                 <option value="reward">Reward</option>
@@ -2571,7 +2571,7 @@ ${calculatedPerToken > storedPerToken
                 type="number"
                 value={claimAmount}
                 onChange={(e) => setClaimAmount(Number(e.target.value))}
-                className="w-full p-2 rounded bg-slate-900 text-white border border-gray-700"
+                className="w-full p-2 rounded bg-white/[0.02] text-white border border-gray-700"
               />
             </div>
           </div>
@@ -2596,11 +2596,11 @@ ${calculatedPerToken > storedPerToken
 
 {txModal.show && (
   <div className="fixed inset-0 flex items-center justify-center bg-black/80 z-[60] p-4">
-    <div className="bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-md border-2 border-slate-700">
+    <div className="bg-white/[0.03] p-6 rounded-xl shadow-2xl w-full max-w-md border-2 border-white/[0.05]">
       {txModal.type === 'pending' && (
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <h3 className="text-xl font-bold text-blue-400 mb-2">{txModal.title}</h3>
+          <h3 className="text-xl font-bold text-[#fb57ff] mb-2">{txModal.title}</h3>
           <p className="text-gray-300">{txModal.message}</p>
         </div>
       )}
@@ -2616,14 +2616,14 @@ ${calculatedPerToken > storedPerToken
           <p className="text-gray-300 mb-4">{txModal.message}</p>
           
           {txModal.txSignature && (
-            <div className="bg-slate-900 p-3 rounded-lg mb-4">
+            <div className="bg-white/[0.02] p-3 rounded-lg mb-4">
               <p className="text-xs text-gray-400 mb-1">Transaction Signature:</p>
-              <p className="text-xs font-mono text-blue-400 break-all">{txModal.txSignature}</p>
+              <p className="text-xs font-mono text-[#fb57ff] break-all">{txModal.txSignature}</p>
               <a
                 href={`https://explorer.solana.com/tx/${txModal.txSignature}?cluster=devnet`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 text-xs underline mt-2 inline-block"
+                className="text-[#fb57ff] hover:text-blue-300 text-xs underline mt-2 inline-block"
               >
                 View on Solana Explorer →
               </a>
