@@ -429,33 +429,72 @@ const sendTransactionWithFreshBlockhash = async (
     const accounts: any = {
       project: projectPDA,
       stakingVault: stakingVaultPDA,
-      reflectionTokenMint: null,
-      reflectionTokenAccount: null,
       admin: publicKey,
-      associatedTokenProgram: null,
       systemProgram: SystemProgram.programId,
-      tokenProgram: tokenProgramId,  // ✅ Use detected token program
+      tokenProgram: tokenProgramId,
     };
 
-    // Add reflection-related accounts if reflections enabled
+    // ✅ ALWAYS provide reflection accounts (use placeholders if disabled)
     if (params.enableReflections && params.reflectionToken) {
-      const reflectionTokenMintPubkey = new PublicKey(params.reflectionToken);
+      // Real reflection setup
+      const reflectionTokenMintPubkey = params.reflectionToken;
       
-      // Get the ATA for the staking vault to hold reflection tokens
-      const reflectionTokenAccount = getAssociatedTokenAddressSync(
-        reflectionTokenMintPubkey,
-        stakingVaultPDA,
-        true // allowOwnerOffCurve for PDA
-      );
+      // Check if Native SOL
+      const NATIVE_SOL = "So11111111111111111111111111111111111111112";
+      const isNativeSol = reflectionTokenMintPubkey.toString() === NATIVE_SOL;
+      
+      if (isNativeSol) {
+        // ✅ Native SOL - no ATA needed, just pass Project PDA
+        accounts.reflectionTokenMint = reflectionTokenMintPubkey;
+        accounts.reflectionTokenAccount = projectPDA;  // Project PDA itself
+        accounts.associatedTokenProgram = ASSOCIATED_TOKEN_PROGRAM_ID;
+        accounts.reflectionTokenProgram = TOKEN_PROGRAM_ID;
+        
+        console.log("✅ Native SOL reflections - using Project PDA");
+      } else {
+        // ✅ SPL/Token-2022 - needs detection
+        const TOKEN_2022_PROGRAM_ID = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+        const SPL_TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+        
+        const reflectionMintInfo = await connection.getAccountInfo(reflectionTokenMintPubkey);
+        if (!reflectionMintInfo) {
+          throw new Error("Reflection token mint not found");
+        }
+        
+        const reflectionTokenProgramId = reflectionMintInfo.owner.equals(TOKEN_2022_PROGRAM_ID) 
+          ? TOKEN_2022_PROGRAM_ID 
+          : SPL_TOKEN_PROGRAM_ID;
+        
+        console.log(`✅ Reflection token program detected: ${reflectionTokenProgramId.toString()}`);
 
-      accounts.reflectionTokenMint = reflectionTokenMintPubkey;
-      accounts.reflectionTokenAccount = reflectionTokenAccount;
-      accounts.associatedTokenProgram = ASSOCIATED_TOKEN_PROGRAM_ID;
+        // Get the ATA for the project PDA to hold reflection tokens
+        const reflectionTokenAccount = getAssociatedTokenAddressSync(
+          reflectionTokenMintPubkey,
+          projectPDA,  // ✅ Project PDA owns the reflection account
+          true,        // allowOwnerOffCurve
+          reflectionTokenProgramId
+        );
 
-      console.log('🔧 Reflection accounts:', {
-        reflectionTokenMint: reflectionTokenMintPubkey.toString(),
-        reflectionTokenAccount: reflectionTokenAccount.toString(),
-      });
+        accounts.reflectionTokenMint = reflectionTokenMintPubkey;
+        accounts.reflectionTokenAccount = reflectionTokenAccount;
+        accounts.reflectionTokenProgram = reflectionTokenProgramId;
+        accounts.associatedTokenProgram = ASSOCIATED_TOKEN_PROGRAM_ID;
+
+        console.log('🔧 Reflection accounts (ENABLED):', {
+          reflectionTokenMint: reflectionTokenMintPubkey.toString(),
+          reflectionTokenAccount: reflectionTokenAccount.toString(),
+          reflectionTokenProgram: reflectionTokenProgramId.toString(),
+        });
+      }
+    } else {
+      // ✅ Placeholder accounts when reflections DISABLED
+      // Pass program ID as placeholder for optional accounts
+      accounts.reflectionTokenMint = program.programId;
+      accounts.reflectionTokenAccount = program.programId;
+      accounts.associatedTokenProgram = program.programId;
+      accounts.reflectionTokenProgram = program.programId;
+      
+      console.log('🔧 Reflection accounts (DISABLED - using placeholders)');
     }
 
     console.log('🔧 All accounts:', accounts);
