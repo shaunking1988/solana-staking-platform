@@ -178,12 +178,12 @@ export function useStakingProgram() {
           systemProgram: SystemProgram.programId,
         };
     
-    // ✅ Build remainingAccounts for referrer with explicit isWritable: false
+    // ✅ Build remainingAccounts for referrer with explicit isWritable: true
     const remainingAccounts = [];
     if (projectReferrer && !projectReferrer.equals(PublicKey.default)) {
       remainingAccounts.push({
         pubkey: projectReferrer,
-        isWritable: false,
+        isWritable: true,
         isSigner: false
       });
       console.log("✅ Adding referrer to remainingAccounts:", projectReferrer.toString());
@@ -533,7 +533,7 @@ try {
   if (projectReferrer && !projectReferrer.equals(PublicKey.default)) {
     remainingAccountsUnstake.push({
       pubkey: projectReferrer,
-      isWritable: false,
+      isWritable: true,
       isSigner: false
     });
   }
@@ -794,7 +794,7 @@ try {
     if (projectReferrer && !projectReferrer.equals(PublicKey.default)) {
       remainingAccountsClaim.push({
         pubkey: projectReferrer,
-        isWritable: false,
+        isWritable: true,
         isSigner: false
       });
     }
