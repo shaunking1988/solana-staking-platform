@@ -26,7 +26,7 @@ export default function WhaleClubPage() {
 
         {/* Coming Soon Card */}
         <div 
-          className="bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-all duration-200 rounded-lg p-8 sm:p-12 lg:p-16 text-center group"
+          className="bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-all duration-200 rounded-lg p-8 sm:p-12 lg:p-16 text-center group relative"
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)';
           }}
@@ -76,7 +76,7 @@ export default function WhaleClubPage() {
 
           {/* Description */}
           <p className="text-gray-300 text-base sm:text-lg lg:text-xl mb-8 max-w-2xl mx-auto leading-relaxed">
-            Hold a minimum of <span className="font-bold text-white">1 million StakePoint tokens</span> to earn absolute exclusive rewards!
+            Hold a minimum of <span className="font-bold text-white">10 million StakePoint tokens</span> to earn absolute exclusive rewards!
           </p>
 
           {/* Requirements Box */}
@@ -99,11 +99,11 @@ export default function WhaleClubPage() {
                 backgroundClip: 'text'
               }}
             >
-              1,000,000 SPT
+              10,000,000 SPT
             </div>
           </div>
 
-          {/* Features Preview */}
+          {/* Features Preview - 3 BOXES */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-4xl mx-auto">
             {[
               { 
@@ -115,6 +115,11 @@ export default function WhaleClubPage() {
                 icon: Sparkles,
                 title: "Priority Access", 
                 desc: "First access to new pools and features" 
+              },
+              { 
+                icon: Award,
+                title: "VIP Benefits", 
+                desc: "Enhanced perks" 
               }
             ].map((feature, index) => {
               const Icon = feature.icon;
@@ -172,7 +177,7 @@ export default function WhaleClubPage() {
               </h3>
               <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
                 The Whale Club is being developed to reward our most dedicated community members. 
-                Hold 1 million SPT tokens to automatically qualify for exclusive benefits when this feature launches. 
+                Hold 10 million SPT tokens to automatically qualify for exclusive benefits when this feature launches. 
                 Stay tuned for announcements!
               </p>
             </div>

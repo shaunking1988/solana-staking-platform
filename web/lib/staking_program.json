@@ -1106,140 +1106,6 @@
       ]
     },
     {
-      "name": "toggle_reflections",
-      "discriminator": [
-        20,
-        92,
-        217,
-        28,
-        186,
-        35,
-        48,
-        83
-      ],
-      "accounts": [
-        {
-          "name": "project",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "token_mint"
-              },
-              {
-                "kind": "arg",
-                "path": "pool_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "reflection_vault",
-          "optional": true
-        },
-        {
-          "name": "admin",
-          "writable": true,
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "token_mint",
-          "type": "pubkey"
-        },
-        {
-          "name": "pool_id",
-          "type": "u64"
-        },
-        {
-          "name": "enable",
-          "type": "bool"
-        },
-        {
-          "name": "reflection_token",
-          "type": {
-            "option": "pubkey"
-          }
-        }
-      ]
-    },
-    {
-      "name": "transfer_admin",
-      "discriminator": [
-        42,
-        242,
-        66,
-        106,
-        228,
-        10,
-        111,
-        156
-      ],
-      "accounts": [
-        {
-          "name": "project",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "token_mint"
-              },
-              {
-                "kind": "arg",
-                "path": "pool_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "admin",
-          "writable": true,
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "token_mint",
-          "type": "pubkey"
-        },
-        {
-          "name": "pool_id",
-          "type": "u64"
-        },
-        {
-          "name": "new_admin",
-          "type": "pubkey"
-        }
-      ]
-    },
-    {
       "name": "unpause_project",
       "discriminator": [
         65,
@@ -1344,68 +1210,6 @@
         {
           "name": "new_fee_collector",
           "type": "pubkey"
-        }
-      ]
-    },
-    {
-      "name": "update_pool_duration",
-      "discriminator": [
-        142,
-        15,
-        79,
-        228,
-        232,
-        185,
-        215,
-        103
-      ],
-      "accounts": [
-        {
-          "name": "project",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  106,
-                  101,
-                  99,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "token_mint"
-              },
-              {
-                "kind": "arg",
-                "path": "pool_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "admin",
-          "writable": true,
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "token_mint",
-          "type": "pubkey"
-        },
-        {
-          "name": "pool_id",
-          "type": "u64"
-        },
-        {
-          "name": "duration_seconds",
-          "type": "u64"
         }
       ]
     },
@@ -1691,19 +1495,6 @@
   ],
   "events": [
     {
-      "name": "AdminTransferred",
-      "discriminator": [
-        255,
-        147,
-        182,
-        5,
-        199,
-        217,
-        38,
-        179
-      ]
-    },
-    {
       "name": "EmergencyUnlockEvent",
       "discriminator": [
         144,
@@ -1756,19 +1547,6 @@
       ]
     },
     {
-      "name": "PoolDurationUpdated",
-      "discriminator": [
-        4,
-        205,
-        99,
-        90,
-        56,
-        235,
-        175,
-        101
-      ]
-    },
-    {
       "name": "PoolInitialized",
       "discriminator": [
         100,
@@ -1792,19 +1570,6 @@
         31,
         67,
         168
-      ]
-    },
-    {
-      "name": "ProjectParamsUpdated",
-      "discriminator": [
-        128,
-        143,
-        93,
-        53,
-        240,
-        224,
-        220,
-        213
       ]
     },
     {
@@ -1857,32 +1622,6 @@
         219,
         0,
         189
-      ]
-    },
-    {
-      "name": "ReflectionsDisabled",
-      "discriminator": [
-        133,
-        240,
-        234,
-        220,
-        99,
-        160,
-        12,
-        10
-      ]
-    },
-    {
-      "name": "ReflectionsEnabled",
-      "discriminator": [
-        222,
-        38,
-        130,
-        1,
-        56,
-        219,
-        15,
-        193
       ]
     },
     {
@@ -2152,26 +1891,6 @@
   ],
   "types": [
     {
-      "name": "AdminTransferred",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "project",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_admin",
-            "type": "pubkey"
-          },
-          {
-            "name": "new_admin",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
       "name": "EmergencyUnlockEvent",
       "type": {
         "kind": "struct",
@@ -2316,22 +2035,6 @@
           },
           {
             "name": "platform_sol_fee",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "PoolDurationUpdated",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "project",
-            "type": "pubkey"
-          },
-          {
-            "name": "duration_seconds",
             "type": "u64"
           }
         ]
@@ -2548,26 +2251,6 @@
       }
     },
     {
-      "name": "ProjectParamsUpdated",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "project",
-            "type": "pubkey"
-          },
-          {
-            "name": "rate_bps_per_year",
-            "type": "u64"
-          },
-          {
-            "name": "lockup_seconds",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
       "name": "ProjectPaused",
       "type": {
         "kind": "struct",
@@ -2629,38 +2312,6 @@
           {
             "name": "amount",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "ReflectionsDisabled",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "project",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "ReflectionsEnabled",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "project",
-            "type": "pubkey"
-          },
-          {
-            "name": "reflection_token",
-            "type": "pubkey"
-          },
-          {
-            "name": "reflection_vault",
-            "type": "pubkey"
           }
         ]
       }
