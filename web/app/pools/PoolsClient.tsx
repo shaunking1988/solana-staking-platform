@@ -372,164 +372,22 @@ export default function PoolsClient({ pools }: { pools: Pool[] }) {
             </div>
           ))}
         </div>
-      ) : (
-        // LIST VIEW - MOBILE: Show as cards, DESKTOP: Show as table rows
-        <div className="space-y-2 sm:space-y-3 animate-in fade-in duration-500">
+       ) : (
+        // LIST VIEW - Use PoolCard component
+        <div className="space-y-3 animate-in fade-in duration-500">
           {sortedPools.map((pool, index) => (
             <div
               key={pool.id}
-              className="bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] rounded-lg p-3 sm:px-4 sm:py-3 transition-all duration-300 animate-in slide-in-from-left duration-300"
+              className="animate-in slide-in-from-left duration-300"
               style={{ animationDelay: `${index * 20}ms` }}
-              onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(251, 87, 255, 0.3)'}
-              onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
             >
-              {/* MOBILE: Card Layout */}
-              <div className="block lg:hidden space-y-3">
-                <div className="flex items-center gap-3">
-                  {pool.logo ? (
-                    <img src={pool.logo} alt={pool.name} className="w-12 h-12 rounded-full border-2 border-white/[0.1]" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg" style={{ background: 'rgba(251, 87, 255, 0.2)' }}>
-                      {pool.symbol.slice(0, 2)}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-bold text-white truncate">{pool.name}</h3>
-                      {pool.featured && <span className="text-xs">⭐</span>}
-                      {/* ✅ Show Pool ID Badge */}
-                      {poolCountByToken[pool.tokenMint] > 1 && (
-                        <span className="text-xs px-2 py-0.5 rounded border" style={{ background: 'rgba(251, 87, 255, 0.2)', borderColor: 'rgba(251, 87, 255, 0.5)', color: '#fb57ff' }}>
-                          Pool #{pool.poolId}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-400 text-xs">{pool.symbol}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-bold" style={{ color: '#fb57ff' }}>
-                      {(() => {
-                        const rate = (pool.rateMode === 0 || pool.apy !== null ? pool.apy : pool.apr) ?? 0;
-                        return typeof rate === 'number' ? rate.toFixed(2) : rate ?? "-";
-                      })()}%
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {pool.rateMode === 0 ? "APY" : pool.rateMode === 1 ? "APR" : (pool.apy ? "APY" : "APR")}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="bg-white/[0.02] border border-white/[0.05] p-2 rounded">
-                    <p className="text-gray-400 text-xs">Lock Period</p>
-                    <p className="text-white font-semibold">{pool.type === "locked" ? `${pool.lockPeriod}d` : "Flexible"}</p>
-                  </div>
-                  <div className="bg-white/[0.02] border border-white/[0.05] p-2 rounded">
-                    <p className="text-gray-400 text-xs">Total Staked</p>
-                    <p className="text-white font-semibold">{Number(pool.totalStaked).toLocaleString(undefined, { maximumFractionDigits: 0 })} {pool.symbol}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <button 
-                    className="px-3 py-2 text-white rounded-lg font-semibold transition-all active:scale-95 text-sm min-h-[44px]"
-                    style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
-                  >
-                    Stake
-                  </button>
-                  <button className="px-3 py-2 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.05] text-white rounded-lg font-semibold transition-all active:scale-95 text-sm min-h-[44px]">
-                    Rewards
-                  </button>
-                </div>
-              </div>
-
-              {/* DESKTOP: Table Row Layout */}
-              <div className="hidden lg:grid lg:grid-cols-12 gap-4 items-center">
-                {/* Logo & Name - 3 columns */}
-                <div className="col-span-3 flex items-center gap-3 min-w-0">
-                  {pool.logo ? (
-                    <img src={pool.logo} alt={pool.name} className="w-12 h-12 rounded-full border-2 border-white/[0.1] flex-shrink-0" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0" style={{ background: 'rgba(251, 87, 255, 0.2)' }}>
-                      {pool.symbol.slice(0, 2)}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-bold text-white truncate" title={pool.name}>
-                        {pool.name}
-                      </h3>
-                      {pool.featured && <span className="text-xs flex-shrink-0">⭐</span>}
-                      {/* ✅ Show Pool ID Badge in list view */}
-                      {poolCountByToken[pool.tokenMint] > 1 && (
-                        <span className="text-xs px-2 py-0.5 rounded border whitespace-nowrap" style={{ background: 'rgba(251, 87, 255, 0.2)', borderColor: 'rgba(251, 87, 255, 0.5)', color: '#fb57ff' }}>
-                          Pool #{pool.poolId}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-400 text-xs truncate">{pool.symbol}</p>
-                  </div>
-                </div>
-
-                {/* Stats Grid - 4 columns */}
-                <div className="col-span-4 grid grid-cols-4 gap-4">
-                  {/* APY/APR */}
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500 mb-1">{pool.rateMode === 0 ? "APY" : pool.rateMode === 1 ? "APR" : (pool.apy ? "APY" : "APR")}</p>
-                    <p className="text-lg font-bold" style={{ color: '#fb57ff' }}>
-                      {(() => {
-                        const rate = (pool.rateMode === 0 || pool.apy !== null ? pool.apy : pool.apr) ?? 0;
-                        return typeof rate === 'number' ? rate.toFixed(2) : "-";
-                      })()}%
-                    </p>
-                  </div>
-
-                  {/* Lock Period */}
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500 mb-1">Lock</p>
-                    <p className="text-sm font-semibold text-white">
-                      {pool.type === "locked" ? `${pool.lockPeriod}d` : "Flex"}
-                    </p>
-                  </div>
-
-                  {/* TVL */}
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500 mb-1">Staked</p>
-                    <p className="text-sm font-semibold text-white truncate" title={`${Number(pool.totalStaked).toLocaleString()} ${pool.symbol}`}>
-                      {Number(pool.totalStaked).toLocaleString(undefined, { maximumFractionDigits: 0 })} {pool.symbol}
-                    </p>
-                  </div>
-
-                  {/* Rewards */}
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500 mb-1">Rewards</p>
-                    <p className="text-sm font-semibold text-white truncate" title={pool.rewards || "0"}>
-                      {pool.rewards || "0"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Actions - 5 columns */}
-                <div className="col-span-5 flex gap-2 justify-end">
-                  <button 
-                    className="px-4 py-2 text-white rounded-lg font-semibold transition-all active:scale-95 text-sm whitespace-nowrap"
-                    style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
-                  >
-                    Stake
-                  </button>
-                  <button className="px-3 py-2 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.05] text-white rounded-lg font-semibold transition-all active:scale-95 text-sm whitespace-nowrap">
-                    Unstake
-                  </button>
-                  <button className="px-4 py-2 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.05] text-white rounded-lg font-semibold transition-all active:scale-95 text-sm whitespace-nowrap">
-                    Rewards
-                  </button>
-                  {(pool.hasSelfReflections || pool.hasExternalReflections) && (
-                    <button className="px-3 py-2 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.05] text-white rounded-lg font-semibold transition-all active:scale-95 text-sm whitespace-nowrap">
-                      Reflect
-                    </button>
-                  )}
-                </div>
-              </div>
+              <PoolCard 
+                {...pool}
+                poolId={pool.poolId}
+                tokenMint={pool.tokenMint}
+                showPoolNumber={poolCountByToken[pool.tokenMint] > 1}
+                totalPoolsForToken={poolCountByToken[pool.tokenMint]}
+              />
             </div>
           ))}
         </div>
