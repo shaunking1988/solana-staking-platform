@@ -354,8 +354,8 @@ pub mod staking_program {
         Ok(())
     }
 
-    pub fn deposit(
-        ctx: Context<Deposit>,
+    pub fn deposit<'info>(
+        ctx: Context<'_, '_, '_, 'info, Deposit<'info>>,
         token_mint: Pubkey,
         pool_id: u64,
         amount: u64
@@ -512,7 +512,14 @@ pub mod staking_program {
         
         if platform_sol_fee > 0 {
             if let Some(referrer_key) = project_referrer {
-                if let Some(ref referrer_account) = ctx.accounts.referrer {
+                // Get referrer from remaining_accounts if present
+                let referrer_account = if !ctx.remaining_accounts.is_empty() {
+                    Some(&ctx.remaining_accounts[0])
+                } else {
+                    None
+                };
+                
+                if let Some(referrer_account) = referrer_account {
                     require!(
                         referrer_account.key() == referrer_key,
                         ErrorCode::InvalidReferrer
@@ -589,8 +596,8 @@ pub mod staking_program {
         Ok(())
     }
 
-    pub fn withdraw(
-        ctx: Context<Withdraw>,
+    pub fn withdraw<'info>(
+        ctx: Context<'_, '_, '_, 'info, Withdraw<'info>>,
         token_mint: Pubkey,
         pool_id: u64,
         amount: u64
@@ -691,7 +698,14 @@ pub mod staking_program {
         // Collect SOL fee
         if ctx.accounts.platform.platform_sol_fee > 0 {
             if let Some(referrer_key) = ctx.accounts.project.referrer {
-                if let Some(ref referrer_account) = ctx.accounts.referrer {
+                // Get referrer from remaining_accounts if present
+                let referrer_account = if !ctx.remaining_accounts.is_empty() {
+                    Some(&ctx.remaining_accounts[0])
+                } else {
+                    None
+                };
+                
+                if let Some(referrer_account) = referrer_account {
                     require!(
                         referrer_account.key() == referrer_key,
                         ErrorCode::InvalidReferrer
@@ -765,8 +779,8 @@ pub mod staking_program {
         
         Ok(())
     }
-    pub fn claim(
-        ctx: Context<Claim>,
+    pub fn claim<'info>(
+        ctx: Context<'_, '_, '_, 'info, Claim<'info>>,
         token_mint: Pubkey,
         pool_id: u64
     ) -> Result<()> {
@@ -856,7 +870,14 @@ pub mod staking_program {
     // Collect SOL fee (with referral split if applicable)
     if platform_sol_fee > 0 {
         if let Some(referrer_key) = project_referrer {
-            if let Some(ref referrer_account) = ctx.accounts.referrer {
+            // Get referrer from remaining_accounts if present
+            let referrer_account = if !ctx.remaining_accounts.is_empty() {
+                Some(&ctx.remaining_accounts[0])
+            } else {
+                None
+            };
+            
+            if let Some(referrer_account) = referrer_account {
                 require!(
                     referrer_account.key() == referrer_key,
                     ErrorCode::InvalidReferrer
@@ -1789,9 +1810,6 @@ pub struct Deposit<'info> {
     /// CHECK: Fee collector wallet
     #[account(mut)]
     pub fee_collector: AccountInfo<'info>,
-    
-    /// CHECK: Optional referrer account (read-only, not writable)
-    pub referrer: Option<UncheckedAccount<'info>>,
         
     /// CHECK: Optional reflection vault
     pub reflection_vault: Option<AccountInfo<'info>>,    
@@ -1851,9 +1869,6 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub fee_collector: AccountInfo<'info>,
     
-    /// CHECK: Optional referrer account (read-only, not writable)
-    pub referrer: Option<UncheckedAccount<'info>>,
-    
     /// CHECK: Optional reflection vault - can be staking_vault for Native SOL or ATA for SPL tokens
     pub reflection_vault: Option<AccountInfo<'info>>,
     
@@ -1903,9 +1918,6 @@ pub struct Claim<'info> {
     #[account(mut)]
     pub fee_collector: AccountInfo<'info>,
     
-    /// CHECK: Optional referrer account (read-only, not writable)
-    pub referrer: Option<UncheckedAccount<'info>>,
-
     /// CHECK: Optional reflection vault
     pub reflection_vault: Option<AccountInfo<'info>>,    
     pub token_mint_account: InterfaceAccount<'info, Mint>,

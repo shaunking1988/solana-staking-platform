@@ -109,10 +109,6 @@
           "writable": true
         },
         {
-          "name": "referrer",
-          "optional": true
-        },
-        {
           "name": "reflection_vault",
           "optional": true
         },
@@ -556,10 +552,6 @@
         {
           "name": "fee_collector",
           "writable": true
-        },
-        {
-          "name": "referrer",
-          "optional": true
         },
         {
           "name": "reflection_vault",
@@ -1619,10 +1611,6 @@
         {
           "name": "fee_collector",
           "writable": true
-        },
-        {
-          "name": "referrer",
-          "optional": true
         },
         {
           "name": "reflection_vault",
