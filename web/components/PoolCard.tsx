@@ -1008,11 +1008,6 @@ export default function PoolCard(props: PoolCardProps) {
             <p className="text-white font-semibold text-[11px] sm:text-xs md:text-sm leading-tight truncate">
               {connected ? `${displayStakedAmount.toFixed(2)} ${symbol}` : "-"}
             </p>
-            {transferTaxBps > 0 && connected && userStakedAmount > 0 && (
-              <p className="text-gray-500 text-[8px] mt-0.5">
-                (Raw: {userStakedAmount.toFixed(2)})
-              </p>
-            )}
           </div>
           
           <div className="bg-white/[0.02] p-2 rounded-lg border border-white/[0.05]">
