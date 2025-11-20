@@ -7,6 +7,7 @@ import { useStakingProgram } from '@/hooks/useStakingProgram';
 import { useToast } from "@/components/ToastContainer";
 import { LoadingSpinner } from "@/components/SkeletonLoaders";
 import { useRealtimeRewards, formatRewards } from "@/utils/calculatePendingRewards";
+import { useSound } from '@/hooks/useSound';
 import { 
   Lock, 
   Unlock, 
@@ -108,6 +109,8 @@ export default function PoolCard(props: PoolCardProps) {
     totalPoolsForToken = 1,
     transferTaxBps = 0,
   } = props;
+
+  const { playSound } = useSound();
 
   const effectiveMintAddress = tokenMint || mintAddress;
   
@@ -277,6 +280,8 @@ export default function PoolCard(props: PoolCardProps) {
         setReflectionBalance(Math.max(0, displayReflections));
                 
       } catch (error: any) {
+
+        playSound('error'); 
         console.error(`❌ [${name}] Error fetching reflection balance:`, error);
         setReflectionBalance(0);
       } finally {
@@ -538,6 +543,7 @@ export default function PoolCard(props: PoolCardProps) {
   const handleConfirmAction = async () => {
     const validation = validateTransaction();
     if (!validation.valid) {
+      playSound('error'); // ✅ ADD THIS LINE
       showError(`❌ ${validation.error}`);
       return;
     }
@@ -552,6 +558,7 @@ export default function PoolCard(props: PoolCardProps) {
           const stakeAmount = Math.floor(amount * Math.pow(10, tokenDecimals));
           txSignature = await blockchainStake(effectiveMintAddress!, stakeAmount, poolId);
           
+          playSound('success'); // ✅ ADD THIS LINE
           showSuccess(`✅ Staked ${amount.toFixed(4)} ${symbol}! TX: ${txSignature.slice(0, 8)}...`);
           break;
 
@@ -559,36 +566,43 @@ export default function PoolCard(props: PoolCardProps) {
           const unstakeAmount = Math.floor(amount * Math.pow(10, tokenDecimals));
           txSignature = await blockchainUnstake(effectiveMintAddress!, poolId, unstakeAmount);
           
+          playSound('success'); // ✅ ADD THIS LINE
           showSuccess(`✅ Unstaked ${amount.toFixed(4)} ${symbol}! TX: ${txSignature.slice(0, 8)}...`);
           break;
 
         case "claimRewards":
           txSignature = await blockchainClaimRewards(effectiveMintAddress!, poolId);
           
+          playSound('success'); // ✅ ADD THIS LINE
           showSuccess(`✅ Claimed rewards! TX: ${txSignature.slice(0, 8)}...`);
           break;
 
         case "claimSelf":
           if (!hasSelfReflections && !hasExternalReflections) {
+            playSound('error'); // ✅ ADD THIS LINE
             showError("❌ Reflections not enabled for this pool");
             return;
           }
           txSignature = await blockchainClaimReflections(effectiveMintAddress!, poolId);
           
+          playSound('success'); // ✅ ADD THIS LINE
           showSuccess(`✅ Claimed reflections! TX: ${txSignature.slice(0, 8)}...`);
           break;
 
         case "claimExternal":
           if (!hasSelfReflections && !hasExternalReflections) {
+            playSound('error'); // ✅ ADD THIS LINE
             showError("❌ Reflections not enabled for this pool");
             return;
           }
           if (!externalReflectionMint) {
+            playSound('error'); // ✅ ADD THIS LINE
             showError("❌ External reflection mint not configured");
             return;
           }
           txSignature = await blockchainClaimReflections(effectiveMintAddress!, poolId);
 
+          playSound('success'); // ✅ ADD THIS LINE
           showSuccess(`✅ Claimed external reflections! TX: ${txSignature.slice(0, 8)}...`);
           break;
 
@@ -751,6 +765,7 @@ export default function PoolCard(props: PoolCardProps) {
 
   const handleRefreshReflections = async () => {
     if (!effectiveMintAddress) {
+      playSound('error'); // ✅ ADD THIS LINE
       showError("❌ Token mint missing");
       return;
     }
@@ -768,6 +783,7 @@ export default function PoolCard(props: PoolCardProps) {
     }
 
     if (!hasSelfReflections && !hasExternalReflections) {
+      playSound('error'); // ✅ ADD THIS LINE
       showError("❌ Reflections not enabled for this pool");
       return;
     }
@@ -846,9 +862,11 @@ export default function PoolCard(props: PoolCardProps) {
         }
       }
       
+      playSound('success'); // ✅ ADD THIS LINE
       showSuccess("✅ Reflections refreshed!");
       
     } catch (error: any) {
+      playSound('error'); // ✅ ADD THIS LINE
       showError(`❌ Error: ${error.message || "Failed to refresh"}`);
     } finally {
       setIsProcessing(false);

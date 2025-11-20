@@ -7,6 +7,7 @@ import { getAssociatedTokenAddress, getAccount } from "@solana/spl-token";
 import { ArrowDownUp, Settings, Info, TrendingUp, Zap, ExternalLink } from "lucide-react";
 import { useToast } from "@/components/ToastContainer";
 import TokenSelectModal from "./TokenSelectModal";
+import { useSound } from '@/hooks/useSound';
 import { executeJupiterSwap, getJupiterQuote } from "@/lib/jupiter-swap";
 
 interface Token {
@@ -34,6 +35,8 @@ export default function SwapPage() {
   const { publicKey, signTransaction } = useWallet();
   const { connection } = useConnection();
   const { showSuccess, showError, showInfo } = useToast();
+
+  const { playSound } = useSound();
 
   // State
   const [tokens, setTokens] = useState<Token[]>([]);
@@ -352,11 +355,13 @@ export default function SwapPage() {
 
   const handleSwap = async () => {
     if (!publicKey || !signTransaction || !fromToken || !toToken || !fromAmount) {
+      playSound('error'); // ✅ ADD THIS LINE
       showError("Please connect wallet");
       return;
     }
 
     if (!config?.swapEnabled) {
+      playSound('error'); // ✅ ADD THIS LINE
       showError("Swap disabled");
       return;
     }
@@ -405,6 +410,7 @@ export default function SwapPage() {
 
         console.log('✅ Transaction confirmed!');
         
+        playSound('swap'); // ✅ ADD THIS LINE
         showSuccess(`✅ ${fromToken.symbol} → ${toToken.symbol}`);
         
         setFromAmount("");
@@ -419,6 +425,7 @@ export default function SwapPage() {
         
         if (status.value?.confirmationStatus === 'confirmed' || 
             status.value?.confirmationStatus === 'finalized') {
+          playSound('swap'); // ✅ ADD THIS LINE
           showSuccess(`✅ ${fromToken.symbol} → ${toToken.symbol}`);
           setFromAmount("");
           setToAmount("");
@@ -466,7 +473,10 @@ export default function SwapPage() {
       }
 
     } catch (error: any) {
+      playSound('error');
       console.error("❌ Swap error:", error);
+      
+      playSound('error'); // ✅ ADD THIS LINE (IMPORTANT - at start of catch block)
       
       // Show Jupiter's actual error message
       if (error.message?.includes('User rejected')) {
