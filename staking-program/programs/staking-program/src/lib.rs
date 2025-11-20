@@ -1222,49 +1222,6 @@ pub mod staking_program {
     
     Ok(())
 }
-    
-    pub fn transfer_admin(
-        ctx: Context<TransferAdmin>,
-        token_mint: Pubkey,
-        pool_id: u64,
-        new_admin: Pubkey
-    ) -> Result<()> {
-        let project = &mut ctx.accounts.project;
-        let old_admin = project.admin;
-        project.admin = new_admin;
-        
-        emit!(AdminTransferred {
-            project: project.key(),
-            old_admin,
-            new_admin,
-        });
-        
-        Ok(())
-    }
-
-    pub fn update_pool_duration(
-        ctx: Context<UpdatePoolDuration>,
-        token_mint: Pubkey,
-        pool_id: u64,
-        duration_seconds: u64,
-    ) -> Result<()> {
-        require!(duration_seconds > 0, ErrorCode::InvalidPoolDuration);
-        
-        let project = &mut ctx.accounts.project;
-        let current_time = Clock::get()?.unix_timestamp;
-        
-        project.pool_duration_seconds = duration_seconds;
-        project.pool_end_time = current_time
-            .checked_add(duration_seconds as i64)
-            .ok_or(ErrorCode::MathOverflow)?;
-        
-        emit!(PoolDurationUpdated {
-            project: project.key(),
-            duration_seconds,
-        });
-        
-        Ok(())
-    }
 
     pub fn update_referrer(
         ctx: Context<UpdateReferrer>,
@@ -1284,47 +1241,6 @@ pub mod staking_program {
             referrer,
             split_bps,
         });
-        
-        Ok(())
-    }
-
-    pub fn toggle_reflections(
-        ctx: Context<ToggleReflections>,
-        token_mint: Pubkey,
-        pool_id: u64,
-        enable: bool,
-        reflection_token: Option<Pubkey>,
-    ) -> Result<()> {
-        let project = &mut ctx.accounts.project;
-        
-        if enable {
-            require!(reflection_token.is_some(), ErrorCode::ReflectionTokenRequired);
-            
-            project.enable_reflections = true;
-            project.reflection_token = reflection_token;
-            
-            // Calculate reflection vault address (not stored)
-            let native_sol = Pubkey::from_str("So11111111111111111111111111111111111111112").unwrap();
-            let reflection_mint = reflection_token.unwrap();
-            
-            let reflection_vault_address = if reflection_mint == native_sol {
-                project.key() // Native SOL uses Project PDA
-            } else {
-                get_associated_token_address(&project.key(), &reflection_mint) // SPL uses standard ATA
-            };
-            
-            emit!(ReflectionsEnabled {
-                project: project.key(),
-                reflection_token: reflection_mint,
-                reflection_vault: reflection_vault_address,
-            });
-        } else {
-            project.enable_reflections = false;
-            project.reflection_token = None;
-            emit!(ReflectionsDisabled {
-                project: project.key(),
-            });
-        }
         
         Ok(())
     }
@@ -2021,51 +1937,6 @@ pub struct DepositRewards<'info> {
 
 #[derive(Accounts)]
 #[instruction(token_mint: Pubkey, pool_id: u64)]
-pub struct TransferAdmin<'info> {
-    #[account(
-        mut,
-        seeds = [b"project", token_mint.as_ref(), &pool_id.to_le_bytes()],
-        bump = project.bump,
-        constraint = project.admin == admin.key() @ ErrorCode::Unauthorized
-    )]
-    pub project: Account<'info, Project>,
-    
-    #[account(mut)]
-    pub admin: Signer<'info>,
-}
-
-#[derive(Accounts)]
-#[instruction(token_mint: Pubkey, pool_id: u64)]
-pub struct UpdatePoolParams<'info> {
-    #[account(
-        mut,
-        seeds = [b"project", token_mint.as_ref(), &pool_id.to_le_bytes()],
-        bump = project.bump,
-        constraint = project.admin == admin.key() @ ErrorCode::Unauthorized
-    )]
-    pub project: Account<'info, Project>,
-    
-    #[account(mut)]
-    pub admin: Signer<'info>,
-}
-
-#[derive(Accounts)]
-#[instruction(token_mint: Pubkey, pool_id: u64)]
-pub struct UpdatePoolDuration<'info> {
-    #[account(
-        mut,
-        seeds = [b"project", token_mint.as_ref(), &pool_id.to_le_bytes()],
-        bump = project.bump,
-        constraint = project.admin == admin.key() @ ErrorCode::Unauthorized
-    )]
-    pub project: Account<'info, Project>,
-    
-    #[account(mut)]
-    pub admin: Signer<'info>,
-}
-
-#[derive(Accounts)]
-#[instruction(token_mint: Pubkey, pool_id: u64)]
 pub struct UpdateReferrer<'info> {
     #[account(
         mut,
@@ -2075,23 +1946,6 @@ pub struct UpdateReferrer<'info> {
     )]
     pub project: Account<'info, Project>,
     
-    #[account(mut)]
-    pub admin: Signer<'info>,
-}
-
-#[derive(Accounts)]
-#[instruction(token_mint: Pubkey, pool_id: u64)]
-pub struct ToggleReflections<'info> {
-    #[account(
-        mut,
-        seeds = [b"project", token_mint.as_ref(), &pool_id.to_le_bytes()],
-        bump = project.bump,
-        constraint = project.admin == admin.key() @ ErrorCode::Unauthorized
-    )]
-    pub project: Account<'info, Project>,
-    
-    /// CHECK: Optional reflection vault
-    pub reflection_vault: Option<AccountInfo<'info>>,    
     #[account(mut)]
     pub admin: Signer<'info>,
 }
@@ -2336,42 +2190,10 @@ pub struct RewardsDeposited {
 }
 
 #[event]
-pub struct AdminTransferred {
-    pub project: Pubkey,
-    pub old_admin: Pubkey,
-    pub new_admin: Pubkey,
-}
-
-#[event]
-pub struct ProjectParamsUpdated {
-    pub project: Pubkey,
-    pub rate_bps_per_year: u64,
-    pub lockup_seconds: u64,
-}
-
-#[event]
-pub struct PoolDurationUpdated {
-    pub project: Pubkey,
-    pub duration_seconds: u64,
-}
-
-#[event]
 pub struct ReferrerUpdated {
     pub project: Pubkey,
     pub referrer: Option<Pubkey>,
     pub split_bps: u64,
-}
-
-#[event]
-pub struct ReflectionsEnabled {
-    pub project: Pubkey,
-    pub reflection_token: Pubkey,
-    pub reflection_vault: Pubkey,
-}
-
-#[event]
-pub struct ReflectionsDisabled {
-    pub project: Pubkey,
 }
 
 #[event]
