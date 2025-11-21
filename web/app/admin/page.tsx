@@ -884,12 +884,12 @@ export default function AdminPage() {
             <p className="text-gray-400 mt-1">Manage your staking pools & platform</p>
           </div>
           <button
-            onClick={() => setActiveTab("create")}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-black to-[#fb57ff] rounded-lg hover:from-[#fb57ff]/90 hover:to-[#fb57ff]/70
-          >
-            <Plus className="w-5 h-5" />
-            New Pool
-          </button>
+          onClick={() => setActiveTab("create")}
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-black to-[#fb57ff] rounded-lg hover:from-[#fb57ff]/90 hover:to-[#fb57ff]/70 transition-all"
+        >
+          <Plus className="w-5 h-5" />
+          New Pool
+        </button>
         </div>
 
         <div className="flex gap-2 border-b border-white/[0.05] overflow-x-auto">
@@ -1065,12 +1065,12 @@ export default function AdminPage() {
                 />
               </div>
               <button
-                onClick={handleCreateTokenAccount}
-                disabled={creatingTokenAccount || !tokenMintForFeeCollector}
-                className="w-full px-4 py-3 bg-gradient-to-r from-black to-[#fb57ff] rounded-lg hover:from-[#fb57ff]/90 hover:to-[#fb57ff]/70bg-white/[0.02] p-6 rounded-2xl border border-white/[0.05]
-              >
-                {creatingTokenAccount ? "Creating..." : "Create Token Account"}
-              </button>
+              onClick={handleCreateTokenAccount}
+              disabled={creatingTokenAccount || !tokenMintForFeeCollector}
+              className="w-full px-4 py-3 bg-gradient-to-r from-black to-[#fb57ff] rounded-lg hover:from-[#fb57ff]/90 hover:to-[#fb57ff]/70 transition-all font-semibold disabled:opacity-50"
+            >
+              {creatingTokenAccount ? "Creating..." : "Create Token Account"}
+            </button>
             </div>
 
             {/* Platform Settings Card */}
@@ -1813,7 +1813,7 @@ export default function AdminPage() {
             <div className="flex gap-3">
               <button
                 type="submit"
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-500 hover:to-purple-500 transition-all font-medium text-lg"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-black to-[#fb57ff] rounded-lg hover:from-[#fb57ff]/90 hover:to-[#fb57ff]/70 transition-all font-medium text-lg"
               >
                 {editingPool ? "💾 Update Pool Info" : "🚀 Create Pool"}
               </button>
