@@ -1678,15 +1678,6 @@ ${calculatedPerToken > storedPerToken
           <Users className="w-4 h-4" />
           Referral
         </button>
-
-        <button
-          onClick={() => setActiveModal("transferAdmin")}
-          disabled={isProcessing}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-[#fb57ff] hover:bg-[#fb57ff]/90 rounded-lg text-sm transition-colors disabled:opacity-50"
-        >
-          <UserCog className="w-4 h-4" />
-          Transfer Admin
-        </button>
         
         <button
           onClick={() => setActiveModal("unlock")}
