@@ -1170,6 +1170,161 @@ try {
   };
 
   /**
+ * Claim unclaimed tokens (Admin only)
+ * @param tokenMint - The token mint address
+ * @param poolId - Pool number
+ */
+const claimUnclaimedTokens = async (tokenMint: string, poolId: number = 0) => {
+  if (!wallet || !publicKey) {
+    throw new Error("Wallet not connected");
+  }
+
+  const program = getProgram(wallet, connection);
+  const tokenMintPubkey = new PublicKey(tokenMint);
+
+  // Get PDAs
+  const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
+
+  // Fetch project to verify admin
+  const project = await program.account.project.fetch(projectPDA, "confirmed");
+  
+  // Verify caller is admin
+  if (!project.admin.equals(publicKey)) {
+    throw new Error("Only admin can claim unclaimed tokens");
+  }
+
+  // ✅ DETECT THE TOKEN PROGRAM TYPE
+  const mintInfo = await connection.getAccountInfo(tokenMintPubkey);
+  if (!mintInfo) {
+    throw new Error("Token mint not found");
+  }
+  
+  const TOKEN_2022_PROGRAM_ID = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+  const SPL_TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+  
+  const tokenProgramId = mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID) 
+    ? TOKEN_2022_PROGRAM_ID 
+    : SPL_TOKEN_PROGRAM_ID;
+
+  console.log(`✅ Token program detected: ${tokenProgramId.toString()}`);
+
+  // ✅ Handle Native SOL vs SPL tokens
+  const NATIVE_SOL = "So11111111111111111111111111111111111111112";
+  const isNativeSOL = tokenMint === NATIVE_SOL;
+
+  let adminTokenAccount: PublicKey;
+
+  if (isNativeSOL) {
+    // For Native SOL, use admin wallet directly
+    adminTokenAccount = project.admin;
+    console.log("✅ Native SOL: Using admin wallet directly");
+  } else {
+    // For SPL tokens, get the ATA
+    adminTokenAccount = await getAssociatedTokenAddress(
+      tokenMintPubkey,
+      project.admin,
+      false,
+      tokenProgramId
+    );
+    console.log("✅ SPL Token: Using admin ATA");
+  }
+
+  // Get project vault (where unclaimed tokens are stored)
+  const [projectVaultPDA] = getPDAs.stakingVault(tokenMintPubkey, poolId);
+
+  console.log("🔑 Claim Unclaimed Tokens:", {
+    project: projectPDA.toString(),
+    projectVault: projectVaultPDA.toString(),
+    tokenMint: tokenMintPubkey.toString(),
+    adminTokenAccount: adminTokenAccount.toString(),
+    admin: project.admin.toString(),
+  });
+
+  try {
+    // Check if admin token account exists; create if not
+    const accountInfo = await connection.getAccountInfo(adminTokenAccount);
+    
+    if (!accountInfo && !isNativeSOL) {
+      console.log("⚠️ Creating admin token account...");
+      
+      const createATAIx = createAssociatedTokenAccountInstruction(
+        publicKey,
+        adminTokenAccount,
+        project.admin,
+        tokenMintPubkey,
+        tokenProgramId,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+      
+      const transaction = new Transaction();
+      transaction.add(createATAIx);
+      
+      const claimIx = await program.methods
+        .claimUnclaimedTokens(tokenMintPubkey, new BN(poolId))
+        .accounts({
+          project: projectPDA,
+          projectVault: projectVaultPDA,
+          tokenMint: tokenMintPubkey,
+          adminTokenAccount: adminTokenAccount,
+          admin: project.admin,
+          tokenProgram: tokenProgramId,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+      
+      transaction.add(claimIx);
+      
+      const signature = await sendTransaction(transaction, connection);
+      console.log("✅ Claim unclaimed tokens (with ATA creation):", signature);
+      
+      await connection.confirmTransaction(signature, 'confirmed');
+      console.log("✅ Transaction confirmed!");
+      
+      return signature;
+    } else {
+      // Admin account exists, claim directly
+      const tx = await program.methods
+        .claimUnclaimedTokens(tokenMintPubkey, new BN(poolId))
+        .accounts({
+          project: projectPDA,
+          projectVault: projectVaultPDA,
+          tokenMint: tokenMintPubkey,
+          adminTokenAccount: adminTokenAccount,
+          admin: project.admin,
+          tokenProgram: tokenProgramId,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc({ skipPreflight: false, commitment: 'confirmed' });
+
+      console.log("✅ Claim unclaimed tokens signature:", tx);
+      
+      const confirmation = await connection.confirmTransaction(tx, 'confirmed');
+      
+      if (confirmation.value.err) {
+        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      }
+
+      console.log("✅ Transaction confirmed!");
+      return tx;
+    }
+  } catch (error: any) {
+    console.error("❌ Claim unclaimed error:", error);
+    
+    if (error.message?.includes("already been processed") || 
+        error.message?.includes("AlreadyProcessed")) {
+      console.log("⚠️ Transaction already processed - likely succeeded");
+      const signature = error.signature || error.txSignature;
+      if (signature) {
+        return signature;
+      }
+      throw new Error("Transaction may have succeeded. Please refresh.");
+    }
+    
+    throw error;
+  }
+};
+
+  /**
    * Get user stake info
    * @param tokenMint - The token mint address
    */
@@ -1353,6 +1508,7 @@ try {
     claimRewards,
     claimReflections,
     refreshReflections,
+    claimUnclaimedTokens,
     
     // Query Functions
     getUserStake,

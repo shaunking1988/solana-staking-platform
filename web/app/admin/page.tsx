@@ -885,7 +885,7 @@ export default function AdminPage() {
           </div>
           <button
             onClick={() => setActiveTab("create")}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-500 hover:to-purple-500 transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-black to-[#fb57ff] rounded-lg hover:from-[#fb57ff]/90 hover:to-[#fb57ff]/70
           >
             <Plus className="w-5 h-5" />
             New Pool
@@ -896,7 +896,7 @@ export default function AdminPage() {
           <button
             onClick={() => setActiveTab("dashboard")}
             className={`flex items-center gap-2 px-4 py-3 font-medium transition-all whitespace-nowrap ${activeTab === "dashboard"
-                ? "text-[#fb57ff] border-b-2 border-blue-400"
+                ? "text-[#fb57ff] border-b-2 border-[#fb57ff]"
                 : "text-gray-400 hover:text-gray-300"
               }`}
           >
@@ -980,7 +980,7 @@ export default function AdminPage() {
                     </p>
                     <button
                       onClick={() => setShowInitModal(true)}
-                      className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg hover:from-yellow-500 hover:to-orange-500 transition-all font-semibold flex items-center gap-2"
+                      className="px-6 py-3 bg-gradient-to-r from-black to-[#fb57ff] rounded-lg hover:from-[#fb57ff]/90 hover:to-[#fb57ff]/70 transition-all font-semibold flex items-center gap-2"
                     >
                       <Zap className="w-5 h-5" />
                       Initialize Platform Now
@@ -991,7 +991,7 @@ export default function AdminPage() {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              <div className="bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] rounded-xl p-5">
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-5">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-sm">Total Pools</span>
                   <Settings className="w-5 h-5 text-[#fb57ff]" />
@@ -999,7 +999,7 @@ export default function AdminPage() {
                 <p className="text-3xl font-bold text-white">{stats.total}</p>
               </div>
 
-              <div className="bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] rounded-xl p-5">
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-5">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-sm">Active Pools</span>
                   <Play className="w-5 h-5 text-green-400" />
@@ -1007,7 +1007,7 @@ export default function AdminPage() {
                 <p className="text-3xl font-bold text-white">{stats.active}</p>
               </div>
 
-              <div className="bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] rounded-xl p-5">
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-5">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-sm">Paused</span>
                   <Pause className="w-5 h-5 text-yellow-400" />
@@ -1015,7 +1015,7 @@ export default function AdminPage() {
                 <p className="text-3xl font-bold text-white">{stats.paused}</p>
               </div>
 
-              <div className="bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] rounded-xl p-5">
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-5">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-sm">Featured</span>
                   <TrendingUp className="w-5 h-5 text-[#fb57ff]" />
@@ -1023,7 +1023,7 @@ export default function AdminPage() {
                 <p className="text-3xl font-bold text-white">{stats.featured}</p>
               </div>
 
-              <div className="bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] rounded-xl p-5">
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-5">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-sm">Hidden</span>
                   <Eye className="w-5 h-5 text-gray-400" />
@@ -1031,7 +1031,7 @@ export default function AdminPage() {
                 <p className="text-3xl font-bold text-white">{stats.hidden}</p>
               </div>
 
-              <div className="bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] rounded-xl p-5">
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-5">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-sm">Initialized</span>
                   <CheckSquare className="w-5 h-5 text-[#fb57ff]" />
@@ -1039,7 +1039,7 @@ export default function AdminPage() {
                 <p className="text-3xl font-bold text-white">{stats.initialized}</p>
               </div>
 
-              <div className="bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] rounded-xl p-5 md:col-span-2">
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-5 md:col-span-2">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-400 text-sm">Total Views</span>
                   <Eye className="w-5 h-5 text-[#fb57ff]" />
@@ -1049,7 +1049,7 @@ export default function AdminPage() {
             </div>
 
             {/* Create Token Account for Fee Collector */}
-            <div className="bg-gradient-to-br from-blue-900/30 to-blue-800/30 p-6 rounded-2xl border border-blue-500/30">
+            <div className="bg-white/[0.02] p-6 rounded-2xl border border-white/[0.05]">
               <h3 className="text-xl font-bold mb-4">Create Token Account</h3>
               <p className="text-gray-400 text-sm mb-4">
                 Create token account for fee collector before staking
@@ -1061,20 +1061,20 @@ export default function AdminPage() {
                   value={tokenMintForFeeCollector}
                   onChange={(e) => setTokenMintForFeeCollector(e.target.value)}
                   placeholder="Enter token mint"
-                  className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none font-mono text-sm"
+                  className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none font-mono text-sm"
                 />
               </div>
               <button
                 onClick={handleCreateTokenAccount}
                 disabled={creatingTokenAccount || !tokenMintForFeeCollector}
-                className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg hover:from-blue-500 hover:to-cyan-500 transition-all disabled:opacity-50 font-semibold"
+                className="w-full px-4 py-3 bg-gradient-to-r from-black to-[#fb57ff] rounded-lg hover:from-[#fb57ff]/90 hover:to-[#fb57ff]/70bg-white/[0.02] p-6 rounded-2xl border border-white/[0.05]
               >
                 {creatingTokenAccount ? "Creating..." : "Create Token Account"}
               </button>
             </div>
 
             {/* Platform Settings Card */}
-            <div className="bg-gradient-to-br from-purple-900/30 to-purple-800/30 p-6 rounded-2xl border border-purple-500/30">
+            <div className="bg-white/[0.02] p-6 rounded-2xl border border-white/[0.05]">
               <div className="flex items-center gap-3 mb-4">
                 <Settings className="w-8 h-8 text-[#fb57ff]" />
                 <h3 className="text-xl font-bold">Platform Settings</h3>
@@ -1082,20 +1082,20 @@ export default function AdminPage() {
               <p className="text-gray-400 mb-4">Manage platform configuration</p>
               <button
                 onClick={() => setShowFeeCollectorModal(true)}
-                className="w-full px-4 py-2 bg-purple-600 rounded-lg hover:bg-purple-500 transition-all"
+                className="w-full px-4 py-2 bg-[#fb57ff] rounded-lg hover:bg-[#fb57ff]/90 transition-all"
               >
                 Update Fee Collector
               </button>
             </div>
 
-            <div className="bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] rounded-xl p-6">
+            <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6">
               <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-[#fb57ff]" />
                 Recent Pools
               </h3>
               <div className="space-y-3">
                 {pools.slice(0, 5).map((pool) => (
-                  <div key={pool.id} className="flex items-center justify-between p-3 bg-white/[0.03]/50 rounded-lg">
+                  <div key={pool.id} className="flex items-center justify-between p-3 bg-white/[0.02] rounded-lg">
                     <div className="flex items-center gap-3">
                       {pool.logo && (
                         <img src={pool.logo} alt={pool.symbol} className="w-10 h-10 rounded" />
@@ -1125,7 +1125,7 @@ export default function AdminPage() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Swap Configuration */}
-              <div className="bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] rounded-xl p-6">
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <ArrowDownUp className="w-6 h-6 text-[#fb57ff]" />
@@ -1133,7 +1133,7 @@ export default function AdminPage() {
                   </div>
                   <button
                     onClick={loadSwapConfig}
-                    className="p-2 bg-white/[0.03] rounded-lg hover:bg-white/[0.04] transition-all"
+                    className="p-2 bg-white/[0.02] rounded-lg hover:bg-white/[0.04] transition-all"
                     title="Refresh"
                   >
                     <RefreshCw className="w-4 h-4" />
@@ -1142,7 +1142,7 @@ export default function AdminPage() {
 
                 <div className="space-y-4">
                   {/* Enable/Disable Swap */}
-                  <div className="flex items-center justify-between p-4 bg-white/[0.03]/50 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-white/[0.02] rounded-lg">
                     <div>
                       <p className="font-semibold text-white">Swap Feature</p>
                       <p className="text-sm text-gray-400">Enable or disable swap functionality</p>
@@ -1171,7 +1171,7 @@ export default function AdminPage() {
                       step="0.1"
                       min="0"
                       max="100"
-                      className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
+                      className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       Current: {swapConfig.platformFeePercentage.toFixed(2)}%
@@ -1190,7 +1190,7 @@ export default function AdminPage() {
                       step="0.1"
                       min="0"
                       max="100"
-                      className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
+                      className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       Users cannot set slippage above this value
@@ -1208,7 +1208,7 @@ export default function AdminPage() {
                       onChange={(e) => setSwapConfig({ ...swapConfig, priorityFee: parseFloat(e.target.value) })}
                       step="0.0001"
                       min="0"
-                      className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
+                      className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       Transaction priority fee
@@ -1218,7 +1218,7 @@ export default function AdminPage() {
                   <button
                     onClick={handleSaveSwapConfig}
                     disabled={savingSwapConfig}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-500 hover:to-purple-500 transition-all font-semibold disabled:opacity-50"
+                    className="w-full px-4 py-3 bg-gradient-to-r from-black to-[#fb57ff] rounded-lg hover:from-[#fb57ff]/90 hover:to-[#fb57ff]/70bg-white/[0.02] p-6 rounded-2xl border border-white/[0.05] transition-all font-semibold disabled:opacity-50"
                   >
                     {savingSwapConfig ? "Saving..." : "Save Swap Configuration"}
                   </button>
@@ -1226,7 +1226,7 @@ export default function AdminPage() {
               </div>
 
               {/* Featured Tokens Manager */}
-              <div className="bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] rounded-xl p-6">
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <Sparkles className="w-6 h-6 text-yellow-400" />
@@ -1243,7 +1243,7 @@ export default function AdminPage() {
                     <button
                       onClick={loadFeaturedTokens}
                       disabled={loadingTokens}
-                      className="p-2 bg-white/[0.03] rounded-lg hover:bg-white/[0.04] transition-all disabled:opacity-50"
+                      className="p-2 bg-white/[0.02] rounded-lg hover:bg-white/[0.04] transition-all disabled:opacity-50"
                       title="Refresh"
                     >
                       <RefreshCw className={`w-4 h-4 ${loadingTokens ? "animate-spin" : ""}`} />
@@ -1267,7 +1267,7 @@ export default function AdminPage() {
                     featuredTokens.map((token, index) => (
                       <div
                         key={token.address}
-                        className={`bg-white/[0.03]/50 rounded-lg p-3 flex items-center gap-3 ${!token.enabled ? "opacity-50" : ""
+                        className={`bg-white/[0.02] rounded-lg p-3 flex items-center gap-3 ${!token.enabled ? "opacity-50" : ""
                           }`}
                       >
                         {token.logoURI && (
@@ -1322,7 +1322,7 @@ export default function AdminPage() {
                 <button
                   onClick={handleSaveFeaturedTokens}
                   disabled={savingFeaturedTokens}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg hover:from-purple-500 hover:to-pink-500 transition-all font-semibold disabled:opacity-50"
+                  className="w-full px-4 py-3 bg-gradient-to-r from-black to-[#fb57ff] rounded-lg hover:from-[#fb57ff]/90 hover:to-[#fb57ff]/70bg-white/[0.02] p-6 rounded-2xl border border-white/[0.05] transition-all font-semibold disabled:opacity-50"
                 >
                   {savingFeaturedTokens ? "Saving..." : "Save Featured Tokens"}
                 </button>
@@ -1330,12 +1330,12 @@ export default function AdminPage() {
             </div>
 
             {/* Info Banner */}
-            <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-4">
+            <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4">
               <div className="flex items-start gap-3">
                 <ArrowDownUp className="w-5 h-5 text-[#fb57ff] flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-blue-300 font-semibold mb-1">Configuration Overview</p>
-                  <p className="text-blue-200 text-sm">
+                  <p className="text-gray-300 font-semibold mb-1">Configuration Overview</p>
+                  <p className="text-gray-400 text-sm">
                     <strong>Swap Configuration:</strong> Controls swap functionality, fees, and slippage limits.<br />
                     <strong>Featured Tokens:</strong> Tokens shown in the swap interface for quick access. Users can search for any token, but featured tokens appear prominently.
                   </p>
@@ -1355,19 +1355,19 @@ export default function AdminPage() {
                   value={poolSearchQuery}
                   onChange={(e) => setPoolSearchQuery(e.target.value)}
                   placeholder="Search pools by name, symbol, or ID..."
-                  className="w-full pl-10 pr-4 py-3 rounded-lg bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none transition-all"
                 />
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={expandAll}
-                  className="px-4 py-3 bg-white/[0.03] border border-white/[0.05] rounded-lg hover:bg-white/[0.04] transition-all text-sm"
+                  className="px-4 py-3 bg-white/[0.02] border border-white/[0.05] rounded-lg hover:bg-white/[0.04] transition-all text-sm"
                 >
                   Expand All
                 </button>
                 <button
                   onClick={collapseAll}
-                  className="px-4 py-3 bg-white/[0.03] border border-white/[0.05] rounded-lg hover:bg-white/[0.04] transition-all text-sm"
+                  className="px-4 py-3 bg-white/[0.02] border border-white/[0.05] rounded-lg hover:bg-white/[0.04] transition-all text-sm"
                 >
                   Collapse All
                 </button>
@@ -1375,7 +1375,7 @@ export default function AdminPage() {
             </div>
 
             {selectedPools.size > 0 && (
-              <div className="bg-blue-600/20 border border-blue-600 rounded-lg p-4 flex items-center justify-between">
+              <div className="bg-[#fb57ff]/10 border border-[#fb57ff]/30 rounded-lg p-4 flex items-center justify-between">
                 <span className="text-[#fb57ff] font-medium">
                   {selectedPools.size} pool{selectedPools.size !== 1 ? "s" : ""} selected
                 </span>
@@ -1403,7 +1403,7 @@ export default function AdminPage() {
               <div className="flex gap-2">
                 <button
                   onClick={selectAllFiltered}
-                  className="text-[#fb57ff] hover:text-blue-300"
+                  className="text-[#fb57ff] hover:text-gray-300"
                 >
                   Select All
                 </button>
@@ -1574,7 +1574,7 @@ export default function AdminPage() {
         {activeTab === "create" && (
           <form
             onSubmit={handleSubmit}
-            className="bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] rounded-xl p-6 space-y-6"
+            className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6 space-y-6"
           >
             <h2 className="text-2xl font-semibold">
               {editingPool ? "✏️ Edit Pool" : "🎨 Create New Pool"}
@@ -1610,7 +1610,7 @@ export default function AdminPage() {
                   value={form.pairAddress}
                   onChange={handleChange}
                   placeholder="Enter DexScreener Pair Address"
-                  className="flex-1 p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
+                  className="flex-1 p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                 />
                 <button
                   type="button"
@@ -1632,7 +1632,7 @@ export default function AdminPage() {
                   onChange={handleChange}
                   placeholder="Token Name"
                   required
-                  className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
+                  className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                 />
                 <input
                   type="text"
@@ -1641,7 +1641,7 @@ export default function AdminPage() {
                   onChange={handleChange}
                   placeholder="Symbol"
                   required
-                  className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
+                  className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                 />
                 <input
                   type="text"
@@ -1649,7 +1649,7 @@ export default function AdminPage() {
                   value={form.logo}
                   onChange={handleChange}
                   placeholder="Logo URL"
-                  className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
+                  className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                 />
                 <input
                   type="text"
@@ -1658,7 +1658,7 @@ export default function AdminPage() {
                   onChange={handleChange}
                   placeholder="Mint Address"
                   disabled={!!editingPool}
-                  className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <input
                   type="number"
@@ -1668,7 +1668,7 @@ export default function AdminPage() {
                   placeholder="Pool ID (0 for first pool, 1 for second pool...)"
                   min="0"
                   disabled={!!editingPool}
-                  className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -1690,7 +1690,7 @@ export default function AdminPage() {
                     value={form.type}
                     onChange={handleChange}
                     disabled={!!editingPool}
-                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="locked">Locked</option>
                     <option value="unlocked">Unlocked</option>
@@ -1705,7 +1705,7 @@ export default function AdminPage() {
                     onChange={handleChange}
                     placeholder="e.g., 25%"
                     disabled={!!editingPool}
-                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>
@@ -1717,7 +1717,7 @@ export default function AdminPage() {
                     onChange={handleChange}
                     placeholder="e.g., 15%"
                     disabled={!!editingPool}
-                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -1729,7 +1729,7 @@ export default function AdminPage() {
                     value={form.rateMode}
                     onChange={handleChange}
                     disabled={!!editingPool}
-                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value={0}>Fixed APY (rate calculated from APY %)</option>
                     <option value={1}>Dynamic Pool (rate calculated from deposited rewards)</option>
@@ -1749,7 +1749,7 @@ export default function AdminPage() {
                     onChange={handleChange}
                     placeholder="e.g., 30"
                     disabled={!!editingPool}
-                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -1760,7 +1760,7 @@ export default function AdminPage() {
                     value={form.rewards}
                     onChange={handleChange}
                     placeholder="e.g., 10 TOKEN"
-                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
+                    className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                   />
                 </div>
               </div>
@@ -1769,7 +1769,7 @@ export default function AdminPage() {
             <div className="space-y-3 border-t border-white/[0.05] pt-4">
               <h3 className="text-lg font-semibold text-[#fb57ff]">Step 4: Reflection Settings</h3>
               <div className="space-y-3">
-                <label className="flex items-center gap-3 cursor-pointer p-3 bg-white/[0.03] rounded-lg hover:bg-slate-750 transition-all">
+                <label className="flex items-center gap-3 cursor-pointer p-3 bg-white/[0.02] rounded-lg hover:bg-slate-750 transition-all">
                   <input
                     type="checkbox"
                     name="hasSelfReflections"
@@ -1783,7 +1783,7 @@ export default function AdminPage() {
                   </div>
                 </label>
 
-                <label className="flex items-center gap-3 cursor-pointer p-3 bg-white/[0.03] rounded-lg hover:bg-slate-750 transition-all">
+                <label className="flex items-center gap-3 cursor-pointer p-3 bg-white/[0.02] rounded-lg hover:bg-slate-750 transition-all">
                   <input
                     type="checkbox"
                     name="hasExternalReflections"
@@ -1804,7 +1804,7 @@ export default function AdminPage() {
                     value={form.externalReflectionMint}
                     onChange={handleChange}
                     placeholder="External Reflection Token Mint Address"
-                    className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
+                    className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none"
                   />
                 )}
               </div>
@@ -1864,7 +1864,7 @@ export default function AdminPage() {
         {activeTab === "telegram" && (
           <div className="space-y-6">
             {/* Main Bot Control */}
-            <div className="bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] rounded-xl p-6">
+            <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6">
               <div className="flex items-center gap-3 mb-4">
                 <Activity className="w-8 h-8 text-[#fb57ff]" />
                 <div>
@@ -1873,15 +1873,15 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-4 mb-6">
+              <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4 mb-6">
                 <div className="flex items-start gap-3">
                   <Activity className="w-5 h-5 text-[#fb57ff] flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-blue-300 font-semibold mb-2">About the Leaderboard Bot</p>
-                    <p className="text-blue-200 text-sm mb-2">
+                    <p className="text-gray-300 font-semibold mb-2">About the Leaderboard Bot</p>
+                    <p className="text-gray-400 text-sm mb-2">
                       This bot displays the weekly top traders on your StakePoint platform. It shows:
                     </p>
-                    <ul className="text-blue-200 text-sm list-disc list-inside space-y-1">
+                    <ul className="text-gray-400 text-sm list-disc list-inside space-y-1">
                       <li>Top 10/20 traders for the current week (Monday-Sunday)</li>
                       <li>Trading volumes and swap counts</li>
                       <li>40% reward pool distributed to top traders</li>
@@ -1896,33 +1896,33 @@ export default function AdminPage() {
             </div>
 
             {/* Bot Commands Reference */}
-            <div className="bg-white/[0.02]/50 backdrop-blur border border-white/[0.05] rounded-xl p-6">
+            <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <span>📱</span>
                 Bot Commands
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="bg-white/[0.03]/50 p-4 rounded-lg">
+                <div className="bg-white/[0.02] p-4 rounded-lg">
                   <code className="text-[#fb57ff]">/start</code>
                   <p className="text-sm text-gray-400 mt-1">Welcome message and bot info</p>
                 </div>
-                <div className="bg-white/[0.03]/50 p-4 rounded-lg">
+                <div className="bg-white/[0.02] p-4 rounded-lg">
                   <code className="text-[#fb57ff]">/help</code>
                   <p className="text-sm text-gray-400 mt-1">Show all available commands</p>
                 </div>
-                <div className="bg-white/[0.03]/50 p-4 rounded-lg">
+                <div className="bg-white/[0.02] p-4 rounded-lg">
                   <code className="text-[#fb57ff]">/toptraders</code>
                   <p className="text-sm text-gray-400 mt-1">Weekly top 10 (Monday-Sunday)</p>
                 </div>
-                <div className="bg-white/[0.03]/50 p-4 rounded-lg">
+                <div className="bg-white/[0.02] p-4 rounded-lg">
                   <code className="text-[#fb57ff]">/top20</code>
                   <p className="text-sm text-gray-400 mt-1">Weekly top 20 traders</p>
                 </div>
-                <div className="bg-white/[0.03]/50 p-4 rounded-lg">
+                <div className="bg-white/[0.02] p-4 rounded-lg">
                   <code className="text-[#fb57ff]">/monthly</code>
                   <p className="text-sm text-gray-400 mt-1">Last 30 days top 10</p>
                 </div>
-                <div className="bg-white/[0.03]/50 p-4 rounded-lg">
+                <div className="bg-white/[0.02] p-4 rounded-lg">
                   <code className="text-[#fb57ff]">/alltime</code>
                   <p className="text-sm text-gray-400 mt-1">All-time top 10 traders</p>
                 </div>
@@ -1981,7 +1981,7 @@ export default function AdminPage() {
                   searchTokens(e.target.value);
                 }}
                 placeholder="Search by name, symbol, or address..."
-                className="w-full bg-white/[0.03] text-white rounded-lg pl-10 pr-4 py-3 outline-none border border-white/[0.05] focus:border-[#fb57ff]"
+                className="w-full bg-white/[0.02] text-white rounded-lg pl-10 pr-4 py-3 outline-none border border-white/[0.05] focus:border-[#fb57ff]"
                 autoFocus
               />
             </div>
@@ -1999,7 +1999,7 @@ export default function AdminPage() {
                   <button
                     key={token.address}
                     onClick={() => addToken(token)}
-                    className="w-full flex items-center gap-3 p-3 bg-white/[0.03] hover:bg-white/[0.04] rounded-lg transition-colors"
+                    className="w-full flex items-center gap-3 p-3 bg-white/[0.02] hover:bg-white/[0.04] rounded-lg transition-colors"
                   >
                     {token.logoURI && (
                       <img
@@ -2046,7 +2046,7 @@ export default function AdminPage() {
                   value={initForm.platformTokenFeeBps}
                   onChange={(e) => setInitForm({ ...initForm, platformTokenFeeBps: e.target.value })}
                   placeholder="250"
-                  className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-yellow-500 focus:outline-none"
+                  className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-yellow-500 focus:outline-none"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   250 = 2.5%, 100 = 1%, 10000 = 100%
@@ -2062,7 +2062,7 @@ export default function AdminPage() {
                   value={initForm.platformSolFee}
                   onChange={(e) => setInitForm({ ...initForm, platformSolFee: e.target.value })}
                   placeholder="1000000"
-                  className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-yellow-500 focus:outline-none"
+                  className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-yellow-500 focus:outline-none"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   1000000 lamports = 0.001 SOL | 1000000000 = 1 SOL
@@ -2078,7 +2078,7 @@ export default function AdminPage() {
                   value={initForm.feeCollector}
                   onChange={(e) => setInitForm({ ...initForm, feeCollector: e.target.value })}
                   placeholder="Enter wallet address to receive fees"
-                  className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-yellow-500 focus:outline-none font-mono text-sm"
+                  className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-yellow-500 focus:outline-none font-mono text-sm"
                 />
               </div>
             </div>
@@ -2106,7 +2106,7 @@ export default function AdminPage() {
               <button
                 onClick={handleInitializePlatform}
                 disabled={!initForm.feeCollector}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg hover:from-yellow-500 hover:to-orange-500 transition-all disabled:opacity-50 font-semibold"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-black to-[#fb57ff] rounded-lg hover:from-[#fb57ff]/90 hover:to-[#fb57ff]/70 transition-all disabled:opacity-50 font-semibold"
               >
                 Initialize Platform
               </button>
@@ -2164,7 +2164,7 @@ export default function AdminPage() {
                   value={newFeeCollector}
                   onChange={(e) => setNewFeeCollector(e.target.value)}
                   placeholder="66oZ17EyWhmRXPYpuVpoojvmaz3AZWAaewekTWqJFhfB"
-                  className="w-full p-3 rounded-lg bg-white/[0.03] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none font-mono text-sm"
+                  className="w-full p-3 rounded-lg bg-white/[0.02] border border-white/[0.05] text-white focus:border-[#fb57ff] focus:outline-none font-mono text-sm"
                 />
               </div>
             </div>
@@ -2188,7 +2188,7 @@ export default function AdminPage() {
               <button
                 onClick={handleUpdateFeeCollector}
                 disabled={!newFeeCollector}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg hover:from-purple-500 hover:to-blue-500 transition-all disabled:opacity-50 font-semibold"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-black to-[#fb57ff] rounded-lg hover:from-[#fb57ff]/90 hover:to-[#fb57ff]/70 transition-all disabled:opacity-50 font-semibold"
               >
                 Update Fee Collector
               </button>
