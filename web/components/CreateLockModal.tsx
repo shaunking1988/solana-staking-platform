@@ -296,12 +296,12 @@ export default function CreateLockModal({
         const program = getProgram(walletForCheck, connection);
         const tokenMintPubkey = new PublicKey(selectedToken.mint);
         
-        let poolId = 0;
+        let poolId = 1000;
         let poolExists = true;
         
         console.log("🔍 Finding next available poolId...");
         
-        while (poolExists && poolId < 100) { // Max 100 pools per token
+        while (poolExists && poolId < 2000) { // Max 100 pools per token
           const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
           
           // Check on-chain
