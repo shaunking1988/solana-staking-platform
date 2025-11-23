@@ -32,7 +32,7 @@ export default function CreateLockModal({
   onClose,
   onSuccess,
 }: CreateLockModalProps) {
-  const { publicKey } = useWallet();
+  const { publicKey, wallet } = useWallet();
   const { connection } = useConnection();
   const { stake } = useStakingProgram();
   const { initializePool, createProject } = useAdminProgram();
@@ -62,7 +62,7 @@ export default function CreateLockModal({
     
     for (let i = 0; i < maxRetries; i++) {
       try {
-        const wallet = (window as any).solana;
+        const wallet = wallet.adapter;
         if (!wallet) throw new Error("Wallet not found");
         
         const program = getProgram(wallet, connection);
@@ -212,8 +212,7 @@ export default function CreateLockModal({
     setError("");
 
     // ✅ Check wallet connection first
-    const wallet = (window as any).solana;
-    if (!wallet || !publicKey) {
+    if (!publicKey || !wallet) {
       setError("Please connect your wallet first");
       return;
     }
@@ -266,7 +265,7 @@ export default function CreateLockModal({
         // Pool with this lockup already exists for this token, verify it on-chain
         setStatusMessage("Verifying existing pool...");
         const { getProgram, getPDAs } = await import("@/lib/anchor-program");
-        const walletForVerify = (window as any).solana;
+        const walletForVerify = wallet.adapter;
         const program = getProgram(walletForVerify, connection);
         const tokenMintPubkey = new PublicKey(selectedToken.mint);
         
@@ -293,7 +292,7 @@ export default function CreateLockModal({
         // Need to find next available poolId (check both on-chain AND database)
         const { getProgram } = await import("@/lib/anchor-program");
         const { getPDAs } = await import("@/lib/anchor-program");
-        const walletForCheck = (window as any).solana;
+        const walletForCheck = wallet.adapter;
         const program = getProgram(walletForCheck, connection);
         const tokenMintPubkey = new PublicKey(selectedToken.mint);
         
