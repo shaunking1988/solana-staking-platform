@@ -56,16 +56,15 @@ export default function CreateLockModal({
   }, [isOpen, publicKey]);
 
   // Helper: Wait for project account to exist and be fully initialized on-chain
-  const waitForProjectAccount = async (tokenMint: string, poolId: number, maxRetries = 30) => {
+  const waitForProjectAccount = async (tokenMint: string, poolId: number, walletAdapter: any, maxRetries = 30) => {
     const { getProgram } = await import("@/lib/anchor-program");
     const { getPDAs } = await import("@/lib/anchor-program");
     
     for (let i = 0; i < maxRetries; i++) {
       try {
-        const wallet = wallet.adapter;
-        if (!wallet) throw new Error("Wallet not found");
-        
-        const program = getProgram(wallet, connection);
+        if (!walletAdapter) throw new Error("Wallet not found");
+
+        const program = getProgram(walletAdapter, connection);
         const tokenMintPubkey = new PublicKey(tokenMint);
         const [projectPDA] = getPDAs.project(tokenMintPubkey, poolId);
         
@@ -347,7 +346,7 @@ export default function CreateLockModal({
           
            // Step 1.5: Wait for project account to be queryable
            setStatusMessage("Confirming project account...");
-           await waitForProjectAccount(selectedToken.mint, usedPoolId);
+           await waitForProjectAccount(selectedToken.mint, usedPoolId, wallet.adapter);
            
            // Step 2: Initialize pool with lockup
           setStatusMessage("Initializing pool with lockup...");
