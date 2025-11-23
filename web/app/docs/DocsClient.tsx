@@ -912,7 +912,7 @@ export default function DocsClient() {
                           <div className="bg-black/30 rounded-lg p-4 border border-white/[0.05]">
                             <p className="text-xs text-gray-400 mb-1">Platform Fee</p>
                             <p className="text-white font-semibold">Variable</p>
-                            <p className="text-xs text-gray-400 mt-1">Collected from staking transactions.
+                            <p className="text-xs text-gray-400 mt-1">Collected from staking transactions.</p>
                           </div>
                         </div>
                       </div>
