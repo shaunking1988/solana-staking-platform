@@ -211,7 +211,9 @@ export default function CreateLockModal({
     e.preventDefault();
     setError("");
 
-    if (!publicKey) {
+    // ✅ Check wallet connection first
+    const wallet = (window as any).solana;
+    if (!wallet || !publicKey) {
       setError("Please connect your wallet first");
       return;
     }
