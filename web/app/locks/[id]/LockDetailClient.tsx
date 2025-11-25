@@ -279,7 +279,7 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
                     <Copy className="w-4 h-4 text-gray-400" />
                   )}
                 </button>
-                
+                <a
                   href={`https://solscan.io/token/${lock.tokenMint}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -330,7 +330,7 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
                     <Copy className="w-4 h-4 text-gray-400" />
                   )}
                 </button>
-                
+                <a
                   href={`https://solscan.io/account/${lock.creatorWallet}`}
                   target="_blank"
                   rel="noopener noreferrer"
