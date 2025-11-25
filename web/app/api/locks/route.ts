@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
       creatorWallet,
       poolAddress,
       stakePda,
+      poolId, // ← ADD THIS
       logo,
     } = body;
 
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
         creatorWallet,
         poolAddress: poolAddress || null,
         stakePda: stakePda || null,
+        poolId: poolId !== undefined ? poolId : null, // ← ADD THIS
         logo: logo || null,
         isActive: true,
         isUnlocked: false,
@@ -129,4 +131,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

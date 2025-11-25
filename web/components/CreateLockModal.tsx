@@ -431,6 +431,7 @@ export default function CreateLockModal({
           creatorWallet: publicKey.toString(),
           poolAddress: matchingPool?.poolAddress || null,
           stakePda: stakePDA.toString(),
+          poolId: usedPoolId,
           logo: selectedToken.logoURI || null,
         }),
       });

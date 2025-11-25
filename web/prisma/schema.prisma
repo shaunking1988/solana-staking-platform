@@ -180,6 +180,7 @@ model Lock {
   creatorWallet     String   @map("creator_wallet")
   poolAddress       String?  @map("pool_address")
   stakePda          String?  @map("stake_pda")
+  poolId            Int?
   logo              String?
   isActive          Boolean  @default(true) @map("is_active")
   isUnlocked        Boolean  @default(false) @map("is_unlocked")
