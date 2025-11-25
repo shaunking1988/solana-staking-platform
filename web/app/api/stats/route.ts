@@ -3,6 +3,9 @@ import { Connection, PublicKey } from '@solana/web3.js';
 import { getMint } from '@solana/spl-token';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Cache for token decimals (in-memory, resets on server restart)
 const decimalsCache = new Map<string, number>();
 

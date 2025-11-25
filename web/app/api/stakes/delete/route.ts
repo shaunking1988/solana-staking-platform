@@ -47,7 +47,18 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('✅ [DELETE] Stake deleted successfully:', deleted.id);
-    return NextResponse.json({ success: true, message: 'Stake deleted', deleted });
+    
+    // ✅ Convert BigInt to string before returning
+    const deletedResponse = {
+      id: deleted.id,
+      userWallet: deleted.userWallet,
+      tokenMint: deleted.tokenMint,
+      poolId: deleted.poolId,
+      stakedAmount: deleted.stakedAmount?.toString(), // Convert BigInt to string
+      stakePda: deleted.stakePda,
+    };
+    
+    return NextResponse.json({ success: true, message: 'Stake deleted', deleted: deletedResponse });
   } catch (error: any) {
     console.error('❌ [DELETE] Error:', error);
     
