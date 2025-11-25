@@ -11,11 +11,13 @@ import {
   Share2,
   CheckCircle,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { formatDistance, format } from "date-fns";
 import Link from "next/link";
 import LockChart from "@/components/LockChart";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import { useStakingProgram } from "@/hooks/useStakingProgram";
 
 interface LockDetailClientProps {
   lock: {
@@ -28,6 +30,7 @@ interface LockDetailClientProps {
     lockDuration: number;
     unlockTime: Date;
     creatorWallet: string;
+    poolId?: number;
     logo: string | null;
     isActive: boolean;
     isUnlocked: boolean;
@@ -36,16 +39,19 @@ interface LockDetailClientProps {
 }
 
 export default function LockDetailClient({ lock: initialLock }: LockDetailClientProps) {
-  const { publicKey } = useWallet();
+  const { publicKey, wallet } = useWallet();
+  const { connection } = useConnection();
+  const { unstake } = useStakingProgram();
   const [lock, setLock] = useState(initialLock);
   const [copied, setCopied] = useState<string | null>(null);
   const [shareTooltip, setShareTooltip] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [unlockError, setUnlockError] = useState("");
 
   const unlockDate = new Date(lock.unlockTime);
   const createdDate = new Date(lock.createdAt);
   
-  // Only calculate time-sensitive values on client
   const [now, setNow] = useState<Date | null>(null);
   
   useEffect(() => {
@@ -80,6 +86,47 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
     setTimeout(() => setShareTooltip(false), 2000);
   };
 
+  const handleUnlock = async () => {
+    if (!publicKey || !isOwner || !wallet) {
+      setUnlockError("You must be the owner and have your wallet connected");
+      return;
+    }
+
+    if (!lock.poolId && lock.poolId !== 0) {
+      setUnlockError("Pool ID not found. Cannot unlock.");
+      return;
+    }
+
+    setIsUnlocking(true);
+    setUnlockError("");
+
+    try {
+      console.log("Unlocking tokens...", { tokenMint: lock.tokenMint, poolId: lock.poolId });
+      
+      // Unstake the tokens
+      await unstake(lock.tokenMint, lock.poolId);
+      
+      // Update lock status in database
+      const response = await fetch(`/api/locks/${lock.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: false, isUnlocked: true }),
+      });
+
+      if (response.ok) {
+        const updatedLock = await response.json();
+        setLock(updatedLock);
+      }
+      
+      alert("Tokens unlocked successfully! ✅");
+    } catch (error: any) {
+      console.error("Error unlocking:", error);
+      setUnlockError(error.message || "Failed to unlock tokens");
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto">
       {/* Back button */}
@@ -105,7 +152,6 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
 
       {/* Header Card */}
       <div className="mb-6 p-6 rounded-2xl border border-white/[0.05] bg-white/[0.02] backdrop-blur-sm relative overflow-hidden">
-        {/* Gradient background */}
         <div
           className="absolute inset-0 opacity-10"
           style={{
@@ -163,7 +209,6 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
             </div>
           </div>
 
-          {/* Amount */}
           <div className="mb-6">
             <p className="text-sm text-gray-400 mb-1">Locked Amount</p>
             <p className="text-4xl font-bold text-white">
@@ -171,7 +216,6 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
             </p>
           </div>
 
-          {/* Info Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 rounded-lg bg-white/[0.02] border border-white/[0.05]">
               <div className="flex items-center gap-2 text-gray-400 mb-2">
@@ -210,15 +254,12 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
         </div>
       </div>
 
-      {/* Timeline Chart */}
       <div className="mb-6 p-6 rounded-2xl border border-white/[0.05] bg-white/[0.02] backdrop-blur-sm">
         <h2 className="text-xl font-bold text-white mb-6">Lock Timeline</h2>
         <LockChart createdAt={lock.createdAt} unlockTime={lock.unlockTime} />
       </div>
 
-      {/* Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        {/* Token Information */}
         <div className="p-6 rounded-2xl border border-white/[0.05] bg-white/[0.02] backdrop-blur-sm">
           <h2 className="text-xl font-bold text-white mb-4">Token Information</h2>
           <div className="space-y-3">
@@ -238,7 +279,7 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
                     <Copy className="w-4 h-4 text-gray-400" />
                   )}
                 </button>
-                <a
+                
                   href={`https://solscan.io/token/${lock.tokenMint}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -254,6 +295,13 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
               <p className="text-white font-medium">#{lock.lockId}</p>
             </div>
 
+            {lock.poolId !== undefined && (
+              <div>
+                <p className="text-sm text-gray-400 mb-1">Pool ID</p>
+                <p className="text-white font-medium">#{lock.poolId}</p>
+              </div>
+            )}
+
             <div>
               <p className="text-sm text-gray-400 mb-1">Created</p>
               <p className="text-white font-medium">
@@ -263,7 +311,6 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
           </div>
         </div>
 
-        {/* Creator Information */}
         <div className="p-6 rounded-2xl border border-white/[0.05] bg-white/[0.02] backdrop-blur-sm">
           <h2 className="text-xl font-bold text-white mb-4">Creator</h2>
           <div className="space-y-3">
@@ -283,7 +330,7 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
                     <Copy className="w-4 h-4 text-gray-400" />
                   )}
                 </button>
-                <a
+                
                   href={`https://solscan.io/account/${lock.creatorWallet}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -322,10 +369,24 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
                 <p className="text-sm text-gray-400">
                   The lock period has ended. You can now withdraw your tokens.
                 </p>
+                {unlockError && (
+                  <p className="text-sm text-red-400 mt-2">{unlockError}</p>
+                )}
               </div>
             </div>
-            <button className="px-6 py-3 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white font-medium hover:opacity-90 transition-opacity whitespace-nowrap">
-              Unlock Tokens
+            <button 
+              onClick={handleUnlock}
+              disabled={isUnlocking}
+              className="px-6 py-3 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white font-medium hover:opacity-90 transition-opacity whitespace-nowrap disabled:opacity-50 flex items-center gap-2"
+            >
+              {isUnlocking ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Unlocking...
+                </>
+              ) : (
+                "Unlock Tokens"
+              )}
             </button>
           </div>
         </div>
@@ -348,4 +409,3 @@ export default function LockDetailClient({ lock: initialLock }: LockDetailClient
     </div>
   );
 }
-
