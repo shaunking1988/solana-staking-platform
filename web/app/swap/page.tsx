@@ -10,6 +10,103 @@ import TokenSelectModal from "./TokenSelectModal";
 import { useSound } from '@/hooks/useSound';
 import { executeJupiterSwap, getJupiterQuote } from "@/lib/jupiter-swap";
 
+interface SwapSuccessModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  fromToken: string;
+  toToken: string;
+  txSignature: string;
+}
+
+function SwapSuccessModal({ isOpen, onClose, fromToken, toToken, txSignature }: SwapSuccessModalProps) {
+  if (!isOpen) return null;
+
+  const getExplorerLink = (signature: string) => {
+    return `https://solscan.io/tx/${signature}`;
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      
+      {/* Modal */}
+      <div className="relative bg-white/[0.02] backdrop-blur border border-white/[0.05] rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in fade-in zoom-in duration-300">
+        {/* Success Icon */}
+        <div className="flex justify-center mb-4">
+          <div 
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
+          >
+            <svg 
+              className="w-8 h-8 text-white" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M5 13l4 4L19 7" 
+              />
+            </svg>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 className="text-2xl font-bold text-center mb-2 text-white">
+          Swap Successful!
+        </h2>
+
+        {/* Swap Details */}
+        <div className="text-center mb-4">
+          <p className="text-gray-400 text-sm">
+            {fromToken} → {toToken}
+          </p>
+        </div>
+
+        {/* Message */}
+        <div 
+          className="border rounded-lg p-4 mb-6"
+          style={{ background: 'rgba(251, 87, 255, 0.1)', borderColor: 'rgba(251, 87, 255, 0.3)' }}
+        >
+          <p className="text-center font-semibold mb-1" style={{ color: '#fb57ff' }}>
+            🏆 Compete for Rewards!
+          </p>
+          <p className="text-center text-sm text-gray-300">
+            Swap your way to the top of the weekly swap leaderboard and earn exclusive rewards!
+          </p>
+        </div>
+
+        {/* Buttons */}
+        <div className="space-y-3">
+          
+            href={getExplorerLink(txSignature)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold transition-all hover:opacity-90 text-white"
+            style={{ background: 'linear-gradient(45deg, black, #fb57ff)' }}
+          >
+            <span>View on Solscan</span>
+            <ExternalLink className="w-4 h-4" />
+          </a>
+          
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-xl font-semibold bg-white/[0.05] hover:bg-white/[0.08] transition-all text-white border border-white/[0.05]"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface Token {
   address: string;
   symbol: string;
@@ -67,6 +164,12 @@ export default function SwapPage() {
   const [lastTxSignature, setLastTxSignature] = useState<string | null>(null);
   const [currentQuote, setCurrentQuote] = useState<any>(null);
   const [tokenBalance, setTokenBalance] = useState<number | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successModalData, setSuccessModalData] = useState<{
+    fromToken: string;
+    toToken: string;
+    txSignature: string;
+  } | null>(null);
 
   // ✅ Calculate Auto Slippage Based on Quote
   useEffect(() => {
@@ -410,8 +513,15 @@ export default function SwapPage() {
 
         console.log('✅ Transaction confirmed!');
         
-        playSound('swap'); // ✅ ADD THIS LINE
-        showSuccess(`✅ ${fromToken.symbol} → ${toToken.symbol}`);
+        playSound('swap');
+        
+        // Set modal data and show
+        setSuccessModalData({
+          fromToken: fromToken.symbol,
+          toToken: toToken.symbol,
+          txSignature: txid,
+        });
+        setShowSuccessModal(true);
         
         setFromAmount("");
         setToAmount("");
@@ -913,6 +1023,20 @@ export default function SwapPage() {
         onClose={() => setShowTokenSelect(null)}
         title={showTokenSelect === "from" ? "Select token to pay" : "Select token to receive"}
       />
+
+      {/* Success Modal */}
+      {successModalData && (
+        <SwapSuccessModal
+          isOpen={showSuccessModal}
+          onClose={() => {
+            setShowSuccessModal(false);
+            setSuccessModalData(null);
+          }}
+          fromToken={successModalData.fromToken}
+          toToken={successModalData.toToken}
+          txSignature={successModalData.txSignature}
+        />
+      )}
     </div>
   );
 }
