@@ -1,7 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useConnection } from '@solana/wallet-adapter-react';
+import { PublicKey } from '@solana/web3.js';
 import { 
   ArrowLeft, 
   Lock, 
@@ -23,8 +25,6 @@ import { useSolanaBalance } from "@/hooks/useSolanaBalance";
 import { useToast } from "@/components/ToastContainer";
 import { useRealtimeRewards } from "@/utils/calculatePendingRewards";
 import IntegrateModal from "@/components/IntegrateModal";
-
-const DECIMALS_MULTIPLIER = 1e9;
 
 interface Pool {
   id: string;
@@ -57,9 +57,31 @@ interface PoolDetailClientProps {
 export default function PoolDetailClient({ pool }: PoolDetailClientProps) {
   const router = useRouter();
   const { connected, publicKey } = useWallet();
+  const { connection } = useConnection();
   const { showToast } = useToast();
   const [copied, setCopied] = useState(false);
   const [showIntegrateModal, setShowIntegrateModal] = useState(false);
+
+  const [tokenDecimals, setTokenDecimals] = useState<number>(9);
+  const decimalsMultiplier = useMemo(() => Math.pow(10, tokenDecimals), [tokenDecimals]);
+  
+  useEffect(() => {
+    if (!effectiveMintAddress || !connection) return;
+    
+    const fetchDecimals = async () => {
+      try {
+        const mintInfo = await connection.getParsedAccountInfo(new PublicKey(effectiveMintAddress));
+        const decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals || 9;
+        setTokenDecimals(decimals);
+        console.log(`✅ Token decimals for ${pool.symbol}:`, decimals);
+      } catch (error) {
+        console.error("Error fetching decimals:", error);
+        setTokenDecimals(9);
+      }
+    };
+    
+    fetchDecimals();
+  }, [effectiveMintAddress, connection, pool.symbol]);
 
   // Staking functionality
   const { 
@@ -104,7 +126,7 @@ export default function PoolDetailClient({ pool }: PoolDetailClientProps) {
   // Calculate reward rate per second from APY percentage
   // APY% -> annual rewards -> per second rewards
   const rewardRatePerSecond = projectData?.rewardRatePerSecond 
-    ? Number(projectData.rewardRatePerSecond) / DECIMALS_MULTIPLIER 
+    ? Number(projectData.rewardRatePerSecond) / decimalsMultiplier 
     : 0;
 
   const realtimeRewards = useRealtimeRewards({
@@ -128,13 +150,13 @@ export default function PoolDetailClient({ pool }: PoolDetailClientProps) {
         const userStake = await getUserStake(effectiveMintAddress, poolId);
         
         if (userStake) {
-          setUserStakedAmount(userStake.amount / DECIMALS_MULTIPLIER);
+          setUserStakedAmount(userStake.amount / decimalsMultiplier);
           setUserStakeTimestamp(userStake.stakeTimestamp);
           setStakeData(userStake);
 
           const rewardsCalc = await calculateRewards(effectiveMintAddress, poolId);
           if (rewardsCalc !== null) {
-            setUserRewardsData(rewardsCalc / DECIMALS_MULTIPLIER);
+            setUserRewardsData(rewardsCalc / decimalsMultiplier);
           }
         }
       } catch (error) {
@@ -162,7 +184,7 @@ export default function PoolDetailClient({ pool }: PoolDetailClientProps) {
           
           // Get total staked from on-chain
           if (project.totalStaked) {
-            const totalStaked = Number(project.totalStaked) / DECIMALS_MULTIPLIER;
+            const totalStaked = Number(project.totalStaked) / decimalsMultiplier;
             setOnChainTotalStaked(totalStaked);
           }
         }
@@ -194,7 +216,7 @@ export default function PoolDetailClient({ pool }: PoolDetailClientProps) {
       try {
         const balance = await refreshReflections(effectiveMintAddress, poolId);
         if (balance !== null) {
-          setReflectionBalance(balance / DECIMALS_MULTIPLIER);
+          setReflectionBalance(balance / decimalsMultiplier);
         }
       } catch (error) {
         console.error("⚠️ Error fetching reflection balance:", error);
@@ -247,7 +269,7 @@ export default function PoolDetailClient({ pool }: PoolDetailClientProps) {
 
       switch (openModal) {
         case "stake":
-          const stakeAmount = Math.floor(amount * DECIMALS_MULTIPLIER);
+          const stakeAmount = Math.floor(amount * decimalsMultiplier);
           txSignature = await blockchainStake(effectiveMintAddress, stakeAmount, poolId);
           
           try {
@@ -267,7 +289,7 @@ export default function PoolDetailClient({ pool }: PoolDetailClientProps) {
           break;
 
         case "unstake":
-          const unstakeAmount = Math.floor(amount * DECIMALS_MULTIPLIER);
+          const unstakeAmount = Math.floor(amount * decimalsMultiplier);
           txSignature = await blockchainUnstake(effectiveMintAddress, poolId, unstakeAmount);
           
           try {
@@ -310,7 +332,7 @@ export default function PoolDetailClient({ pool }: PoolDetailClientProps) {
       // Refresh data
       const userStake = await getUserStake(effectiveMintAddress, poolId);
       if (userStake) {
-        setUserStakedAmount(userStake.amount / DECIMALS_MULTIPLIER);
+        setUserStakedAmount(userStake.amount / decimalsMultiplier);
         setUserStakeTimestamp(userStake.stakeTimestamp);
         setStakeData(userStake);
       }
