@@ -114,9 +114,28 @@ export async function POST(req: Request) {
       id: pool.id,
       symbol: pool.symbol,
       tokenMint: pool.tokenMint,
-      transferTaxBps: pool.transferTaxBps, // ✅ NEW: Log tax field
-      taxPercentage: pool.transferTaxBps / 100, // ✅ NEW: Show as percentage
+      transferTaxBps: pool.transferTaxBps,
+      taxPercentage: pool.transferTaxBps / 100,
     });
+    
+    // 📢 Send Telegram alert
+    try {
+      const { getTelegramBot } = await import('@/lib/telegram-bot-instance');
+      const bot = getTelegramBot(prisma);
+      
+      if (bot.isActive()) {
+        await bot.sendPoolCreatedAlert({
+          poolName: pool.name,
+          tokenSymbol: pool.symbol,
+          aprType: pool.type,
+          lockPeriodDays: pool.lockPeriod || 0,
+          tokenLogo: pool.logo,
+        });
+      }
+    } catch (telegramError) {
+      console.error('⚠️ Telegram alert failed:', telegramError);
+      // Don't fail pool creation if Telegram fails
+    }
     
     return NextResponse.json({
       success: true,
