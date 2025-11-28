@@ -1,5 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useConnection } from '@solana/wallet-adapter-react';
+import { PublicKey } from '@solana/web3.js';
 import { useWallet } from "@solana/wallet-adapter-react";
 import dynamic from "next/dynamic";
 import { 
@@ -17,10 +19,9 @@ import { useSolanaBalance } from "@/hooks/useSolanaBalance";
 import { useToast } from "@/components/ToastContainer";
 import { useRealtimeRewards } from "@/utils/calculatePendingRewards";
 
+
 // Import WalletConnect dynamically to avoid hydration issues
 const WalletConnect = dynamic(() => import("@/components/WalletConnect"), { ssr: false });
-
-const DECIMALS_MULTIPLIER = 1e9;
 
 interface Pool {
   id: string;
@@ -54,6 +55,7 @@ interface EmbedPoolClientProps {
 
 export default function EmbedPoolClient({ pool, buttonColor, theme }: EmbedPoolClientProps) {
   const { connected, publicKey } = useWallet();
+  const { connection } = useConnection();
   const { showToast } = useToast();
 
 
@@ -155,6 +157,8 @@ export default function EmbedPoolClient({ pool, buttonColor, theme }: EmbedPoolC
   
   const [userStakedAmount, setUserStakedAmount] = useState<number>(0);
   const [userStakeTimestamp, setUserStakeTimestamp] = useState<number>(0);
+  const [tokenDecimals, setTokenDecimals] = useState<number>(9);
+  const decimalsMultiplier = useMemo(() => Math.pow(10, tokenDecimals), [tokenDecimals]);
   const [dynamicRate, setDynamicRate] = useState<number | null>(null);
   const [projectData, setProjectData] = useState<any>(null);
   const [stakeData, setStakeData] = useState<any>(null);
@@ -165,6 +169,25 @@ export default function EmbedPoolClient({ pool, buttonColor, theme }: EmbedPoolC
   const isInitialized = pool.isInitialized;
   const isPaused = pool.isPaused;
 
+  // Fetch token decimals
+  useEffect(() => {
+    if (!effectiveMintAddress || !connection) return;
+    
+    const fetchDecimals = async () => {
+      try {
+        const mintInfo = await connection.getParsedAccountInfo(new PublicKey(effectiveMintAddress));
+        const decimals = (mintInfo.value?.data as any)?.parsed?.info?.decimals || 9;
+        setTokenDecimals(decimals);
+        console.log(`✅ Token decimals for ${pool.symbol}:`, decimals);
+      } catch (error) {
+        console.error("Error fetching decimals:", error);
+        setTokenDecimals(9);
+      }
+    };
+    
+    fetchDecimals();
+  }, [effectiveMintAddress, connection, pool.symbol]);
+
   // Fetch user stake data
   useEffect(() => {
     if (!publicKey || !connected || !effectiveMintAddress || !isInitialized) return;
@@ -173,7 +196,7 @@ export default function EmbedPoolClient({ pool, buttonColor, theme }: EmbedPoolC
       try {
         const stake = await getUserStake(effectiveMintAddress, poolId);
         if (stake) {
-          setUserStakedAmount(stake.amount);
+          setUserStakedAmount(stake.amount / decimalsMultiplier);
           setUserStakeTimestamp(stake.stakedAt);
           setStakeData(stake);
         }
@@ -246,14 +269,14 @@ export default function EmbedPoolClient({ pool, buttonColor, theme }: EmbedPoolC
 
       switch (openModal) {
         case "stake":
-          const stakeAmount = Math.floor(amount * DECIMALS_MULTIPLIER);
+          const stakeAmount = Math.floor(amount * decimalsMultiplier);
           txSignature = await blockchainStake(effectiveMintAddress, stakeAmount, poolId);
           showToast("✅ Successfully staked!", "success");
           setUserStakedAmount(prev => prev + amount);
           break;
 
         case "unstake":
-          const unstakeAmount = Math.floor(amount * DECIMALS_MULTIPLIER);
+          const unstakeAmount = Math.floor(amount * decimalsMultiplier);
           txSignature = await blockchainUnstake(effectiveMintAddress, poolId, unstakeAmount);
           showToast("✅ Successfully unstaked!", "success");
           setUserStakedAmount(prev => prev - amount);
@@ -367,7 +390,7 @@ export default function EmbedPoolClient({ pool, buttonColor, theme }: EmbedPoolC
             <div className="rounded-xl p-4" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
               <Coins className="w-5 h-5 mx-auto mb-2" style={{ color: buttonColor }} />
               <p className="text-sm" style={{ color: secondaryTextColor }}>Your Stake</p>
-              <p className="text-2xl font-bold" style={{ color: textColor }}>{(userStakedAmount / DECIMALS_MULTIPLIER).toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+              <p className="text-2xl font-bold" style={{ color: textColor }}>{userStakedAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
             </div>
 
             <div className="rounded-xl p-4" style={{ background: cardBg, border: `1px solid ${cardBorder}` }}>
