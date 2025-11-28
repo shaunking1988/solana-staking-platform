@@ -19,9 +19,10 @@ interface SwapStats {
 }
 
 export class TelegramBotService {
-  private bot: TelegramBot | null = null;
+ private bot: TelegramBot | null = null;
   private prisma: PrismaClient;
   private bannerImageUrl: string = "https://image2url.com/images/1764325586041-e82989fd-172c-446c-a02d-25ea2690bbd6.png";
+  private fallbackLogoUrl: string = "https://solanastaking-seven.vercel.app/favicon.jpg";
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
@@ -378,17 +379,17 @@ Let's see who's leading the pack! 🚀
 Start staking now! 🚀
       `;
 
-      if (poolData.tokenLogo) {
-        try {
-          await this.bot.sendPhoto(parseInt(chatId), poolData.tokenLogo, {
-            caption: message,
-            parse_mode: 'Markdown'
-          });
-        } catch (error) {
-          console.error('Failed to send token logo:', error);
-          await this.bot.sendMessage(parseInt(chatId), message, { parse_mode: 'Markdown' });
-        }
-      } else {
+      // Use token logo if available, otherwise use fallback
+      const imageUrl = poolData.tokenLogo || this.fallbackLogoUrl;
+      
+      try {
+        await this.bot.sendPhoto(parseInt(chatId), imageUrl, {
+          caption: message,
+          parse_mode: 'Markdown'
+        });
+      } catch (error) {
+        console.error('Failed to send image:', error);
+        // Fallback to text-only if image fails
         await this.bot.sendMessage(parseInt(chatId), message, { parse_mode: 'Markdown' });
       }
 
