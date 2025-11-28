@@ -2,9 +2,14 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { TelegramBotService } from '@/lib/telegram-bot';
+import { Program, AnchorProvider } from "@coral-xyz/anchor";
+import { IDL } from "@/lib/idl/solana_staking";
+import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+const PROGRAM_ID = process.env.NEXT_PUBLIC_PROGRAM_ID!;
 
 /**
  * API route to create a user-generated pool
@@ -77,7 +82,54 @@ export async function POST(req: Request) {
       console.log(`⚠️ Token has ${transferTaxBps / 100}% transfer tax`);
     }
     
-    // 3. Create pool in database
+    // 🆕 3. FETCH BLOCKCHAIN DATA AUTOMATICALLY
+    let duration = body.duration || 365; // Default to 365 days if not provided
+    let lockPeriod = body.lockPeriod ? parseInt(body.lockPeriod) : null;
+    
+    try {
+      console.log("🔍 Fetching on-chain pool data...");
+      
+      // Create minimal program instance to read pool data
+      const wallet = new NodeWallet(new Uint8Array(32)); // Dummy wallet for reading
+      const provider = new AnchorProvider(connection, wallet as any, {
+        commitment: "confirmed",
+        skipPreflight: false,
+      });
+      const program = new Program(IDL, new PublicKey(PROGRAM_ID), provider);
+
+      // Derive project PDA
+      const [projectPDA] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("project"),
+          new PublicKey(body.tokenMint).toBuffer(),
+          Buffer.from([body.poolId || 0]),
+        ],
+        program.programId
+      );
+
+      // Fetch pool account
+      const projectAccount = await program.account.project.fetch(projectPDA);
+      
+      // Extract duration (convert seconds to days)
+      const poolDurationBn = (projectAccount as any).poolDuration;
+      if (poolDurationBn) {
+        duration = Math.floor(Number(poolDurationBn.toString()) / 86400);
+        console.log(`✅ Fetched duration from blockchain: ${duration} days`);
+      }
+      
+      // Extract lock period (convert seconds to days)
+      const lockPeriodBn = (projectAccount as any).lockPeriod;
+      if (lockPeriodBn) {
+        lockPeriod = Math.floor(Number(lockPeriodBn.toString()) / 86400);
+        console.log(`✅ Fetched lock period from blockchain: ${lockPeriod} days`);
+      }
+      
+    } catch (fetchError) {
+      console.error("⚠️ Error fetching on-chain pool data (using defaults):", fetchError);
+      // Continue with defaults if blockchain fetch fails
+    }
+    
+    // 4. Create pool in database with fetched blockchain data
     const pool = await prisma.pool.create({
       data: {
         tokenMint: body.tokenMint,
@@ -87,7 +139,8 @@ export async function POST(req: Request) {
         apr: body.apr ? parseFloat(body.apr) : null,
         apy: body.apy ? parseFloat(body.apy) : null,
         type: body.type || "unlocked",
-        lockPeriod: body.lockPeriod ? parseInt(body.lockPeriod) : null,
+        lockPeriod: lockPeriod, // ✅ Use blockchain-fetched value
+        duration: duration, // ✅ Use blockchain-fetched value
         rewards: body.rewards || "To be deposited",
         logo: body.logo || null,
         pairAddress: body.pairAddress || null,
