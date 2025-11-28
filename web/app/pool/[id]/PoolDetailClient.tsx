@@ -185,6 +185,7 @@ export default function PoolDetailClient({ pool }: PoolDetailClientProps) {
           // Get total staked from on-chain
           if (project.totalStaked) {
             const totalStaked = Number(project.totalStaked) / decimalsMultiplier;
+            console.log(`🔢 Total Staked calculation: ${project.totalStaked} / ${decimalsMultiplier} = ${totalStaked}`);
             setOnChainTotalStaked(totalStaked);
           }
         }

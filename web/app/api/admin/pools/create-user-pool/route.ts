@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { TelegramBotService } from '@/lib/telegram-bot';
 import { Program, AnchorProvider } from "@coral-xyz/anchor";
-import { IDL } from "@/lib/staking_program.json";
+import IDL from "@/lib/staking_program.json";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 
 export const dynamic = 'force-dynamic';
