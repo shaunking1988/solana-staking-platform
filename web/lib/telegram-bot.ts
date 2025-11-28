@@ -479,3 +479,4 @@ Start staking now! 🚀
       console.error('❌ Failed to send pool alert:', error);
     }
   }
+}
