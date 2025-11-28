@@ -65,6 +65,9 @@ export default function PoolDetailClient({ pool }: PoolDetailClientProps) {
   const [tokenDecimals, setTokenDecimals] = useState<number>(9);
   const decimalsMultiplier = useMemo(() => Math.pow(10, tokenDecimals), [tokenDecimals]);
   
+  const effectiveMintAddress = pool.tokenAddress;
+  const { balance: tokenBalance, loading: balanceLoading } = useSolanaBalance(effectiveMintAddress);
+
   useEffect(() => {
     if (!effectiveMintAddress || !connection) return;
     
@@ -95,9 +98,6 @@ export default function PoolDetailClient({ pool }: PoolDetailClientProps) {
     getPoolRate,
     getProjectInfo,
   } = useStakingProgram();
-
-  const effectiveMintAddress = pool.tokenAddress;
-  const { balance: tokenBalance, loading: balanceLoading } = useSolanaBalance(effectiveMintAddress);
   
   const [openModal, setOpenModal] = useState<"stake" | "unstake" | "claimRewards" | "claimReflections" | null>(null);
   const [amount, setAmount] = useState<number>(0);
