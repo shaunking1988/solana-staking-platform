@@ -3,9 +3,5 @@
     "env": {
       "PASSWORD_PROTECT": "1"
     }
-  },
-  "crons": [{
-    "path": "/api/startup",
-    "schedule": "*/5 * * * *"
-  }]
+  }
 }
