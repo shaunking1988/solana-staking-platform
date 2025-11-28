@@ -21,45 +21,127 @@ interface SwapStats {
 export class TelegramBotService {
   private bot: TelegramBot | null = null;
   private prisma: PrismaClient;
-  private isRunning = false;
   private bannerImageUrl: string = "https://image2url.com/images/1764325586041-e82989fd-172c-446c-a02d-25ea2690bbd6.png";
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (token) {
+      // Initialize bot without polling (webhook mode)
+      this.bot = new TelegramBot(token, { polling: false });
+    }
   }
 
-  // Initialize and start the bot
-  start() {
-    const token = process.env.TELEGRAM_BOT_TOKEN;
-
-    if (!token) {
-      console.warn('⚠️  TELEGRAM_BOT_TOKEN not found. Telegram bot disabled.');
-      return;
-    }
-
-    if (this.isRunning) {
-      console.warn('⚠️  Telegram bot is already running.');
-      return;
-    }
+  // Process incoming webhook update
+  async processUpdate(update: any) {
+    if (!this.bot) return;
 
     try {
-      this.bot = new TelegramBot(token, { polling: true });
-      this.isRunning = true;
-      this.setupCommands();
-      this.setupErrorHandlers();
-      console.log('🤖 Telegram bot started successfully!');
+      const message = update.message;
+      if (!message || !message.text) return;
+
+      const chatId = message.chat.id;
+      const text = message.text;
+
+      // Route commands
+      if (text === '/start') {
+        await this.handleStart(chatId);
+      } else if (text === '/help') {
+        await this.handleHelp(chatId);
+      } else if (text === '/toptraders' || text === '/top10') {
+        await this.handleTopTraders(chatId, 10);
+      } else if (text === '/top20') {
+        await this.handleTopTraders(chatId, 20);
+      } else if (text === '/monthly') {
+        await this.handleMonthly(chatId);
+      } else if (text === '/alltime') {
+        await this.handleAlltime(chatId);
+      }
     } catch (error) {
-      console.error('❌ Failed to start Telegram bot:', error);
+      console.error('Error processing update:', error);
     }
   }
 
-  // Stop the bot
-  async stop() {
-    if (this.bot && this.isRunning) {
-      await this.bot.stopPolling();
-      this.isRunning = false;
-      console.log('🛑 Telegram bot stopped.');
+  // Command handlers
+  private async handleStart(chatId: number) {
+    const welcomeMessage = `
+🎯 *Welcome to StakePoint Leaderboard Bot!*
+
+I track the top traders on the StakePoint platform and show weekly rewards!
+
+*Available Commands:*
+/toptraders - Show this week's top 10 + rewards (Mon-Sun)
+/top10 - Same as /toptraders
+/top20 - Show top 20 traders
+/monthly - Show top 10 for last 30 days
+/alltime - Show all-time top 10 traders
+/help - Show this help message
+
+*Weekly Rewards:*
+🎁 Reward pool split proportionally among top 10 traders!
+📅 Resets every Monday at 00:00
+
+Let's see who's leading the pack! 🚀
+    `;
+    await this.sendMessageWithBanner(chatId, welcomeMessage);
+  }
+
+  private async handleHelp(chatId: number) {
+    const helpMessage = `
+📚 *StakePoint Leaderboard Bot Commands*
+
+*Leaderboard Commands:*
+/toptraders - This week's top 10 (Mon-Sun)
+/top10 - Same as /toptraders
+/top20 - Top 20 traders (this week)
+/monthly - Top 10 for last 30 days
+/alltime - All-time top 10 traders
+
+*Rewards:*
+- Weekly reward pool split proportionally by volume among top 10 traders
+- Resets every Monday 00:00
+
+*Time Ranges:*
+- Weekly: Current week (Monday to Sunday)
+- Monthly: Last 30 days
+- All Time: Since platform launch
+
+💡 Data updates in real-time from the blockchain!
+    `;
+    await this.sendMessageWithBanner(chatId, helpMessage);
+  }
+
+  private async handleTopTraders(chatId: number, limit: number) {
+    await this.bot!.sendMessage(chatId, '⏳ Fetching this week\'s leaderboard...');
+    const stats = await this.fetchStats('week');
+    if (!stats) {
+      await this.bot!.sendMessage(chatId, '❌ Failed to fetch leaderboard data. Please try again later.');
+      return;
     }
+    const message = this.formatLeaderboard(stats, 'week', limit);
+    await this.sendMessageWithBanner(chatId, message);
+  }
+
+  private async handleMonthly(chatId: number) {
+    await this.bot!.sendMessage(chatId, '⏳ Fetching monthly leaderboard...');
+    const stats = await this.fetchStats('month');
+    if (!stats) {
+      await this.bot!.sendMessage(chatId, '❌ Failed to fetch leaderboard data. Please try again later.');
+      return;
+    }
+    const message = this.formatLeaderboard(stats, 'month', 10);
+    await this.sendMessageWithBanner(chatId, message);
+  }
+
+  private async handleAlltime(chatId: number) {
+    await this.bot!.sendMessage(chatId, '⏳ Fetching all-time leaderboard...');
+    const stats = await this.fetchStats('alltime');
+    if (!stats) {
+      await this.bot!.sendMessage(chatId, '❌ Failed to fetch leaderboard data. Please try again later.');
+      return;
+    }
+    const message = this.formatLeaderboard(stats, 'alltime', 10);
+    await this.sendMessageWithBanner(chatId, message);
   }
 
   // Helper: Send message with optional banner image
@@ -71,7 +153,6 @@ export class TelegramBotService {
           parse_mode: 'Markdown'
         });
       } catch (error) {
-        // If image fails, send text only
         console.error('Failed to send banner image:', error);
         await this.bot!.sendMessage(chatId, message, { parse_mode: 'Markdown' });
       }
@@ -105,7 +186,7 @@ export class TelegramBotService {
   private getWeekStart(): Date {
     const now = new Date();
     const day = now.getDay();
-    const diff = day === 0 ? -6 : 1 - day; // If Sunday (0), go back 6 days; else go to Monday
+    const diff = day === 0 ? -6 : 1 - day;
     const monday = new Date(now);
     monday.setDate(now.getDate() + diff);
     monday.setHours(0, 0, 0, 0);
@@ -121,43 +202,34 @@ export class TelegramBotService {
     return sunday;
   }
 
-  // Fetch stats from database (same logic as API)
+  // Fetch stats from database
   private async fetchStats(mode: 'week' | 'month' | 'alltime' | number = 'week'): Promise<SwapStats | null> {
     try {
-      // Build date filter
       const dateFilter: any = {};
       
       if (mode === 'week') {
-        // Current calendar week (Monday 00:00 to Sunday 23:59)
         dateFilter.gte = this.getWeekStart();
         dateFilter.lte = this.getWeekEnd();
       } else if (mode === 'month') {
-        // Last 30 days
         const endDate = new Date();
         const startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
         dateFilter.gte = startDate;
         dateFilter.lte = endDate;
       } else if (typeof mode === 'number') {
-        // Custom days (rolling)
         const endDate = new Date();
         const startDate = new Date(endDate.getTime() - mode * 24 * 60 * 60 * 1000);
         dateFilter.gte = startDate;
         dateFilter.lte = endDate;
       }
-      // 'alltime' = no filter
 
-      const whereClause = Object.keys(dateFilter).length > 0
-        ? { createdAt: dateFilter }
-        : {};
+      const whereClause = Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
 
-      // Get overall statistics
       const stats = await this.prisma.swapStats.aggregate({
         where: whereClause,
         _count: { id: true },
         _sum: { volumeUsd: true },
       });
 
-      // Calculate time-based volumes
       const now = new Date();
       const day24Ago = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       const day7Ago = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -172,7 +244,6 @@ export class TelegramBotService {
         _sum: { volumeUsd: true },
       });
 
-      // Get top wallets
       const topWalletsRaw = await this.prisma.swapStats.groupBy({
         where: whereClause,
         by: ['userAddress'],
@@ -189,20 +260,17 @@ export class TelegramBotService {
         swaps: wallet._count.id,
       }));
 
-      // Get platform fee
       const config = await this.prisma.swapConfig.findFirst();
       const platformFeeBps = config?.platformFeeBps || 100;
       const totalVolumeUsd = stats._sum.volumeUsd || 0;
       const totalFeesUsd = (totalVolumeUsd * platformFeeBps) / 10000;
-      
-      // Calculate reward pool (40% of fees collected)
       const rewardPoolUsd = totalFeesUsd * 0.4;
 
       return {
         totalSwaps: stats._count.id || 0,
         totalVolumeUsd,
         totalFeesUsd,
-        rewardPoolUsd, // Add reward pool
+        rewardPoolUsd,
         last24hVolumeUsd: last24hStats._sum.volumeUsd || 0,
         last7dVolumeUsd: last7dStats._sum.volumeUsd || 0,
         topWallets,
@@ -241,7 +309,6 @@ export class TelegramBotService {
     message += `📈 Total Volume: $${this.formatNumber(stats.totalVolumeUsd)}\n`;
     message += `🔄 Total Swaps: ${this.formatNumber(stats.totalSwaps, 0)}\n`;
     
-    // Show reward pool for weekly leaderboard
     if (mode === 'week') {
       message += `\n🎁 *Reward Pool: $${this.formatNumber(stats.rewardPoolUsd)}*\n`;
       message += `   💎 Distributed to top 10 traders!\n`;
@@ -258,9 +325,7 @@ export class TelegramBotService {
       message += `   💵 Volume: $${volume}\n`;
       message += `   🔄 Swaps: ${wallet.swaps}\n`;
       
-      // Show proportional reward for weekly leaderboard (top 10 only)
       if (mode === 'week' && wallet.rank <= 10 && stats.rewardPoolUsd > 0) {
-        // Calculate total volume of top 10
         const top10Wallets = stats.topWallets.slice(0, 10);
         const top10TotalVolume = top10Wallets.reduce((sum, w) => sum + w.volumeUsd, 0);
         
@@ -286,151 +351,6 @@ export class TelegramBotService {
     return message;
   }
 
-  // Setup bot commands
-  private setupCommands() {
-    if (!this.bot) return;
-
-    // Command: /start
-    this.bot.onText(/\/start/, async (msg) => {
-      const chatId = msg.chat.id;
-      const welcomeMessage = `
-🎯 *Welcome to StakePoint Leaderboard Bot!*
-
-I track the top traders on the StakePoint platform and show weekly rewards!
-
-*Available Commands:*
-/toptraders - Show this week's top 10 + rewards (Mon-Sun)
-/top10 - Same as /toptraders
-/top20 - Show top 20 traders
-/monthly - Show top 10 for last 30 days
-/alltime - Show all-time top 10 traders
-/help - Show this help message
-
-*Weekly Rewards:*
-🎁 Reward pool split proportionally among top 10 traders!
-📅 Resets every Monday at 00:00
-
-Let's see who's leading the pack! 🚀
-      `;
-
-      await this.sendMessageWithBanner(chatId, welcomeMessage);
-    });
-
-    // Command: /help
-    this.bot.onText(/\/help/, async (msg) => {
-      const chatId = msg.chat.id;
-      const helpMessage = `
-📚 *StakePoint Leaderboard Bot Commands*
-
-*Leaderboard Commands:*
-/toptraders - This week's top 10 (Mon-Sun)
-/top10 - Same as /toptraders
-/top20 - Top 20 traders (this week)
-/monthly - Top 10 for last 30 days
-/alltime - All-time top 10 traders
-
-*Rewards:*
-• Weekly reward pool split proportionally by volume among top 10 traders
-• Resets every Monday 00:00
-
-*Time Ranges:*
-• Weekly: Current week (Monday to Sunday)
-• Monthly: Last 30 days
-• All Time: Since platform launch
-
-💡 Data updates in real-time from the blockchain!
-      `;
-
-      await this.sendMessageWithBanner(chatId, helpMessage);
-    });
-
-    // Command: /toptraders or /top10 (calendar week, top 10)
-    this.bot.onText(/\/toptraders|\/top10/, async (msg) => {
-      const chatId = msg.chat.id;
-
-      await this.bot!.sendMessage(chatId, '⏳ Fetching this week\'s leaderboard...');
-
-      const stats = await this.fetchStats('week');
-
-      if (!stats) {
-        await this.bot!.sendMessage(chatId, '❌ Failed to fetch leaderboard data. Please try again later.');
-        return;
-      }
-
-      const message = this.formatLeaderboard(stats, 'week', 10);
-      await this.sendMessageWithBanner(chatId, message);
-    });
-
-    // Command: /top20 (calendar week, top 20)
-    this.bot.onText(/\/top20/, async (msg) => {
-      const chatId = msg.chat.id;
-
-      await this.bot!.sendMessage(chatId, '⏳ Fetching top 20 traders this week...');
-
-      const stats = await this.fetchStats('week');
-
-      if (!stats) {
-        await this.bot!.sendMessage(chatId, '❌ Failed to fetch leaderboard data. Please try again later.');
-        return;
-      }
-
-      const message = this.formatLeaderboard(stats, 'week', 20);
-      await this.sendMessageWithBanner(chatId, message);
-    });
-
-    // Command: /monthly (30 days, top 10)
-    this.bot.onText(/\/monthly/, async (msg) => {
-      const chatId = msg.chat.id;
-
-      await this.bot!.sendMessage(chatId, '⏳ Fetching monthly leaderboard...');
-
-      const stats = await this.fetchStats('month');
-
-      if (!stats) {
-        await this.bot!.sendMessage(chatId, '❌ Failed to fetch leaderboard data. Please try again later.');
-        return;
-      }
-
-      const message = this.formatLeaderboard(stats, 'month', 10);
-      await this.sendMessageWithBanner(chatId, message);
-    });
-
-    // Command: /alltime (all time, top 10)
-    this.bot.onText(/\/alltime/, async (msg) => {
-      const chatId = msg.chat.id;
-
-      await this.bot!.sendMessage(chatId, '⏳ Fetching all-time leaderboard...');
-
-      const stats = await this.fetchStats('alltime');
-
-      if (!stats) {
-        await this.bot!.sendMessage(chatId, '❌ Failed to fetch leaderboard data. Please try again later.');
-        return;
-      }
-
-      const message = this.formatLeaderboard(stats, 'alltime', 10);
-      await this.sendMessageWithBanner(chatId, message);
-    });
-  }
-
-  // Setup error handlers
-  private setupErrorHandlers() {
-    if (!this.bot) return;
-
-    this.bot.on('polling_error', (error) => {
-      console.error('Telegram bot polling error:', error);
-    });
-
-    this.bot.on('error', (error) => {
-      console.error('Telegram bot error:', error);
-    });
-  }
-
-  // Check if bot is running
-  isActive(): boolean {
-    return this.isRunning;
-  }
-
   // Send pool creation alert to group
   async sendPoolCreatedAlert(poolData: {
     poolName: string;
@@ -441,7 +361,7 @@ Let's see who's leading the pack! 🚀
   }) {
     const chatId = process.env.TELEGRAM_ALERT_CHAT_ID;
     
-    if (!this.bot || !this.isRunning || !chatId) {
+    if (!this.bot || !chatId) {
       console.log('⚠️ Telegram alerts not configured');
       return;
     }
@@ -458,7 +378,6 @@ Let's see who's leading the pack! 🚀
 Start staking now! 🚀
       `;
 
-      // Send with token logo if available, otherwise text only
       if (poolData.tokenLogo) {
         try {
           await this.bot.sendPhoto(parseInt(chatId), poolData.tokenLogo, {
@@ -466,7 +385,6 @@ Start staking now! 🚀
             parse_mode: 'Markdown'
           });
         } catch (error) {
-          // If logo fails, send text only
           console.error('Failed to send token logo:', error);
           await this.bot.sendMessage(parseInt(chatId), message, { parse_mode: 'Markdown' });
         }
