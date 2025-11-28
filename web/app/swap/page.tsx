@@ -84,7 +84,7 @@ function SwapSuccessModal({ isOpen, onClose, fromToken, toToken, txSignature }: 
 
         {/* Buttons */}
         <div className="space-y-3">
-          
+          <a
             href={getExplorerLink(txSignature)}
             target="_blank"
             rel="noopener noreferrer"
