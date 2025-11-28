@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { Connection, PublicKey } from "@solana/web3.js";
+import { TelegramBotService } from '@/lib/telegram-bot';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -19,7 +20,7 @@ export async function POST(req: Request) {
       symbol: body.symbol,
       creator: body.creatorWallet,
       paymentTx: body.paymentTxSignature,
-      transferTaxBps: body.transferTaxBps, // ✅ NEW: Log tax field
+      transferTaxBps: body.transferTaxBps,
     });
     
     // 1. Verify payment transaction on-chain
@@ -37,7 +38,6 @@ export async function POST(req: Request) {
         }, { status: 400 });
       }
 
-      // Verify the transaction was successful
       if (tx.meta?.err) {
         return NextResponse.json({ 
           error: "Payment transaction failed on-chain" 
@@ -48,10 +48,9 @@ export async function POST(req: Request) {
       
     } catch (txError) {
       console.error("Error verifying payment transaction:", txError);
-      // Continue anyway - the transaction might just not be fully confirmed yet
     }
     
-    // 2. Check if pool already exists for this token mint + pool ID
+    // 2. Check if pool already exists
     const existingPool = await prisma.pool.findFirst({
       where: {
         tokenMint: body.tokenMint,
@@ -66,17 +65,16 @@ export async function POST(req: Request) {
         existingPoolId: existingPool.id,
       });
       return NextResponse.json({ 
-        error: `Pool #${body.poolId || 0} already exists for this token in the database. This is likely a database sync issue. Please refresh the page and try again.` 
+        error: `Pool #${body.poolId || 0} already exists for this token in the database.` 
       }, { status: 400 });
     }
     
-    // ✅ NEW: Validate transferTaxBps (must be 0-10000)
     const transferTaxBps = body.transferTaxBps 
       ? Math.min(10000, Math.max(0, parseInt(body.transferTaxBps))) 
       : 0;
     
     if (transferTaxBps > 0) {
-      console.log(`⚠️ Token has ${transferTaxBps / 100}% transfer tax - vault will receive less than deposited amount`);
+      console.log(`⚠️ Token has ${transferTaxBps / 100}% transfer tax`);
     }
     
     // 3. Create pool in database
@@ -100,57 +98,41 @@ export async function POST(req: Request) {
         reflectionVaultAddress: body.reflectionVaultAddress || null,
         reflectionTokenSymbol: body.reflectionTokenSymbol || null,
         isInitialized: body.isInitialized || false,
-        isPaused: body.isPaused !== undefined ? body.isPaused : true, // Start paused by default
+        isPaused: body.isPaused !== undefined ? body.isPaused : true,
         poolAddress: body.projectPda || null,
         transferTaxBps: transferTaxBps,
-        // User creation metadata
-        // creatorWallet: body.creatorWallet, // TODO: Re-enable after running database migration
-        featured: false, // User pools not featured by default
+        featured: false,
         hidden: false,
       },
     });
     
-    console.log("✅ User pool created in database:", {
-      id: pool.id,
-      symbol: pool.symbol,
-      tokenMint: pool.tokenMint,
-      transferTaxBps: pool.transferTaxBps,
-      taxPercentage: pool.transferTaxBps / 100,
-    });
+    console.log("✅ User pool created:", pool.id);
     
     // 📢 Send Telegram alert
     try {
-      import { TelegramBotService } from '@/lib/telegram-bot';
-      import { prisma } from '@/lib/prisma';
       const telegramBot = new TelegramBotService(prisma);
-      const bot = getTelegramBot(prisma);
-      
-      if (bot.isActive()) {
-        await bot.sendPoolCreatedAlert({
-          poolName: pool.name,
-          tokenSymbol: pool.symbol,
-          aprType: pool.type,
-          lockPeriodDays: pool.lockPeriod || 0,
-          tokenLogo: pool.logo,
-        });
-      }
+      await telegramBot.sendPoolCreatedAlert({
+        poolName: pool.name,
+        tokenSymbol: pool.symbol,
+        aprType: pool.type,
+        lockPeriodDays: pool.lockPeriod || 0,
+        tokenLogo: pool.logo || undefined,
+      });
     } catch (telegramError) {
       console.error('⚠️ Telegram alert failed:', telegramError);
-      // Don't fail pool creation if Telegram fails
     }
     
     return NextResponse.json({
       success: true,
       pool,
       message: transferTaxBps > 0 
-        ? `Pool created successfully! Note: ${transferTaxBps / 100}% transfer tax will be deducted during deposits.`
-        : "Pool created successfully! You can now deposit rewards to activate it.",
+        ? `Pool created! Note: ${transferTaxBps / 100}% transfer tax will be deducted.`
+        : "Pool created! You can now deposit rewards to activate it.",
     });
     
   } catch (err: any) {
     console.error("❌ Error creating user pool:", err);
     
-    // Handle Prisma unique constraint violations
     if (err.code === 'P2002') {
       return NextResponse.json({ 
         error: "A pool with this token already exists" 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyAdminToken } from "@/lib/adminMiddleware";
+import { TelegramBotService } from '@/lib/telegram-bot';
 
 // Add these to prevent static generation
 export const dynamic = 'force-dynamic';
@@ -64,20 +65,14 @@ export async function POST(req: Request) {
     
     // 📢 Send Telegram alert
     try {
-      import { TelegramBotService } from '@/lib/telegram-bot';
-      import { prisma } from '@/lib/prisma';
       const telegramBot = new TelegramBotService(prisma);
-      const bot = getTelegramBot(prisma);
-      
-      if (bot.isActive()) {
-        await bot.sendPoolCreatedAlert({
-          poolName: pool.name,
-          tokenSymbol: pool.symbol,
-          aprType: pool.type,
-          lockPeriodDays: pool.lockPeriodDays || 0,
-          tokenLogo: pool.logo,
-        });
-      }
+      await telegramBot.sendPoolCreatedAlert({
+        poolName: pool.name,
+        tokenSymbol: pool.symbol,
+        aprType: pool.type,
+        lockPeriodDays: pool.lockPeriod || 0,
+        tokenLogo: pool.logo || undefined,
+      });
     } catch (telegramError) {
       console.error('⚠️ Telegram alert failed:', telegramError);
       // Don't fail pool creation if Telegram fails
