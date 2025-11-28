@@ -120,7 +120,9 @@ export async function POST(req: Request) {
     
     // 📢 Send Telegram alert
     try {
-      const { getTelegramBot } = await import('@/lib/telegram-bot-instance');
+      import { TelegramBotService } from '@/lib/telegram-bot';
+      import { prisma } from '@/lib/prisma';
+      const telegramBot = new TelegramBotService(prisma);
       const bot = getTelegramBot(prisma);
       
       if (bot.isActive()) {
