@@ -62,6 +62,25 @@ export async function POST(req: Request) {
     // 📝 Log admin action for audit trail
     console.log(`✅ Pool created by admin wallet: ${authResult.wallet}`, pool);
     
+    // 📢 Send Telegram alert
+    try {
+      const { getTelegramBot } = await import('@/lib/telegram-bot-instance');
+      const bot = getTelegramBot(prisma);
+      
+      if (bot.isActive()) {
+        await bot.sendPoolCreatedAlert({
+          poolName: pool.name,
+          tokenSymbol: pool.symbol,
+          aprType: pool.type,
+          lockPeriodDays: pool.lockPeriodDays || 0,
+          tokenLogo: pool.logo,
+        });
+      }
+    } catch (telegramError) {
+      console.error('⚠️ Telegram alert failed:', telegramError);
+      // Don't fail pool creation if Telegram fails
+    }
+    
     return NextResponse.json(pool);
   } catch (err: any) {
     console.error("❌ Error creating pool:", err);

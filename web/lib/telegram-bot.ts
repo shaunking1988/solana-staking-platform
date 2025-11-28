@@ -430,4 +430,52 @@ Let's see who's leading the pack! 🚀
   isActive(): boolean {
     return this.isRunning;
   }
-}
+
+  // Send pool creation alert to group
+  async sendPoolCreatedAlert(poolData: {
+    poolName: string;
+    tokenSymbol: string;
+    aprType: string;
+    lockPeriodDays: number;
+    tokenLogo?: string;
+  }) {
+    const chatId = process.env.TELEGRAM_ALERT_CHAT_ID;
+    
+    if (!this.bot || !this.isRunning || !chatId) {
+      console.log('⚠️ Telegram alerts not configured');
+      return;
+    }
+
+    try {
+      const message = `
+🎉 *New Staking Pool Created!*
+
+*Pool:* ${poolData.poolName}
+*Token:* ${poolData.tokenSymbol}
+*Type:* ${poolData.aprType === 'locked' ? '🔒 Locked' : '🔓 Unlocked'}
+*Lock Period:* ${poolData.lockPeriodDays} days
+
+Start staking now! 🚀
+      `;
+
+      // Send with token logo if available, otherwise text only
+      if (poolData.tokenLogo) {
+        try {
+          await this.bot.sendPhoto(parseInt(chatId), poolData.tokenLogo, {
+            caption: message,
+            parse_mode: 'Markdown'
+          });
+        } catch (error) {
+          // If logo fails, send text only
+          console.error('Failed to send token logo:', error);
+          await this.bot.sendMessage(parseInt(chatId), message, { parse_mode: 'Markdown' });
+        }
+      } else {
+        await this.bot.sendMessage(parseInt(chatId), message, { parse_mode: 'Markdown' });
+      }
+
+      console.log('✅ Pool alert sent to Telegram');
+    } catch (error) {
+      console.error('❌ Failed to send pool alert:', error);
+    }
+  }
