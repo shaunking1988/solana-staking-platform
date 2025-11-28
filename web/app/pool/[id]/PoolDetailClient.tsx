@@ -206,7 +206,7 @@ export default function PoolDetailClient({ pool }: PoolDetailClientProps) {
     fetchProjectData();
     const interval = setInterval(fetchProjectData, 15000);
     return () => clearInterval(interval);
-  }, [effectiveMintAddress, poolId, isInitialized]);
+  }, [effectiveMintAddress, poolId, isInitialized, tokenDecimals]);
 
   // Fetch reflection balance
   useEffect(() => {
