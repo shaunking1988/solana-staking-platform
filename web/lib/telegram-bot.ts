@@ -22,7 +22,7 @@ export class TelegramBotService {
   private bot: TelegramBot | null = null;
   private prisma: PrismaClient;
   private isRunning = false;
-  private bannerImageUrl: string = "https://image2url.com/images/1762876954512-706b19ed-165f-4d8e-a320-a0edaa7abc43.jpg";
+  private bannerImageUrl: string = "https://image2url.com/images/1764325586041-e82989fd-172c-446c-a02d-25ea2690bbd6.png";
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
